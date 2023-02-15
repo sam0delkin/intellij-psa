@@ -1,18 +1,38 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>org.jetbrains.plugins.template</id>
-    <name>IntelliJ Platform Plugin Template</name>
-    <vendor>JetBrains</vendor>
+    <id>com.github.sam0delkin.intellijpsa</id>
+    <name>Project Specific Autocomplete</name>
+    <vendor>sam0delkin</vendor>
 
+    <depends>com.jetbrains.php</depends>
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="org.jetbrains.plugins.template.services.MyApplicationService"/>
-        <projectService serviceImplementation="org.jetbrains.plugins.template.services.MyProjectService"/>
+        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.settings.Settings"/>
+
+        <projectConfigurable
+                parentId="tools"
+                instance="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm"
+                id="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm"
+                displayName="Project Specific Autocomplete Settings"
+                nonDefaultProject="true"/>
+
+        <applicationService serviceImplementation="com.github.sam0delkin.intellijpsa.services.MainService"/>
+        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.services.ProjectService"/>
+        <completion.contributor
+                language="PHP"
+                implementationClass="com.github.sam0delkin.intellijpsa.completion.PhpCompletionContributor$Completion"/>
+        <completion.contributor
+                language="JavaScript"
+                implementationClass="com.github.sam0delkin.intellijpsa.completion.JsCompletionContributor$Completion"/>
+        <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.PhpCompletionContributor$GotoDeclaration"/>
+        <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.JsCompletionContributor$GotoDeclaration"/>
+        <notificationGroup id="PSA Notification"
+                           displayType="BALLOON"/>
     </extensions>
 
     <applicationListeners>
-        <listener class="org.jetbrains.plugins.template.listeners.MyProjectManagerListener"
+        <listener class="com.github.sam0delkin.intellijpsa.listeners.MyProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </applicationListeners>
 </idea-plugin>

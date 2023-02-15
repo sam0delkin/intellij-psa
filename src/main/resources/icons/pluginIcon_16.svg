@@ -1,0 +1,22 @@
+<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+    <g class="layer">
+        <title>Layer 1</title>
+        <path d="m1.27,2.96l13.46,0m-8.22,3.74l8.22,0m-8.22,2.99l8.22,0m-13.46,3.74l13.46,0m-13.46,-7.48l2.25,2.25l-2.25,2.25" fill="url(#paint0_linear)" id="svg_1" stroke="url(#paint0_linear)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+        <path d="m13.23,14.49l-1.25,-1.25l-0.38,0.38c-0.39,0.39 -0.59,0.59 -0.8,0.54c-0.21,-0.05 -0.3,-0.31 -0.5,-0.83l-0.64,-1.73c-0.38,-1.04 -0.57,-1.56 -0.3,-1.83c0.27,-0.27 0.79,-0.08 1.83,0.3l1.73,0.64c0.52,0.19 0.78,0.29 0.83,0.5c0.04,0.21 -0.15,0.41 -0.54,0.8l-0.38,0.38l1.25,1.25c0.13,0.13 0.2,0.2 0.22,0.27c0.04,0.1 0.04,0.21 0,0.3c-0.03,0.07 -0.09,0.14 -0.22,0.27c-0.13,0.13 -0.2,0.2 -0.27,0.22c-0.09,0.04 -0.2,0.04 -0.3,0c-0.07,-0.03 -0.14,-0.09 -0.27,-0.22l0,0z" fill="url(#paint1_linear)" id="svg_2"/>
+        <g fill="url(#paint0_linear)" id="svg_12">
+            <rect height="0.42" id="svg_8" width="2.51" x="10.9" y="1.26"/>
+            <rect height="4.04" id="svg_9" width="0.29" x="12.07" y="1.61"/>
+            <rect height="0.42" id="svg_10" width="2.51" x="10.9" y="5.34"/>
+        </g>
+    </g>
+    <defs>
+        <linearGradient gradientUnits="objectBoundingBox" id="paint0_linear" x1="0" x2="100%" y1="0" y2="100%">
+            <stop offset="0" stop-color="#fc466b"/>
+            <stop offset="80%" stop-color="#3f5efb"/>
+        </linearGradient>
+        <linearGradient id="paint1_linear" x1="0" x2="100%" y1="0" y2="100%">
+            <stop offset="0" stop-color="#39b4bf"/>
+            <stop offset="40%" stop-color="#69b34a"/>
+        </linearGradient>
+    </defs>
+</svg>

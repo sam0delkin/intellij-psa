@@ -6,17 +6,23 @@ fun properties(key: String) = project.findProperty(key).toString()
 plugins {
     // Java support
     id("java")
-    // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "1.8.0"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.12.0"
+    id("org.jetbrains.intellij") version "1.10.1"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "2.0.0"
     // Gradle Qodana Plugin
     id("org.jetbrains.qodana") version "0.1.13"
     // Gradle Kover Plugin
     id("org.jetbrains.kotlinx.kover") version "0.6.1"
+    kotlin("jvm") version "1.9.23"
+    kotlin("plugin.serialization") version "1.9.23"
 }
+
+dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation(group = "com.intellij", name = "forms_rt", version = "7.0.3")
+}
+
 
 group = properties("pluginGroup")
 version = properties("pluginVersion")
@@ -24,18 +30,25 @@ version = properties("pluginVersion")
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    maven("https://www.jetbrains.com/intellij-repository/releases")
+    maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
 }
 
 // Set the JVM language level used to build the project. Use Java 11 for 2020.3+, and Java 17 for 2022.2+.
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
     pluginName.set(properties("pluginName"))
-    version.set(properties("platformVersion"))
+    if (properties("platformVersion") != "") {
+        version.set(properties("platformVersion"))
+    }
     type.set(properties("platformType"))
+    if (properties("platformLocalPath") != "") {
+        localPath.set(properties("platformLocalPath"))
+    }
 
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
@@ -60,7 +73,25 @@ kover.xmlReport {
     onCheck.set(true)
 }
 
+val fatJar = task("fatJar", type = Jar::class) {
+    println("FAT JAR")
+    from(configurations.runtimeClasspath.get().map({ if (it.isDirectory) it else zipTree(it) }), { duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE })
+    with(tasks.jar.get() as CopySpec)
+    outputs.cacheIf { false }
+    outputs.upToDateWhen { false }
+}
+
+
 tasks {
+    "build" {
+        dependsOn(fatJar)
+    }
+
+    jar {
+        outputs.cacheIf { false }
+        outputs.upToDateWhen { false }
+    }
+
     wrapper {
         gradleVersion = properties("gradleVersion")
     }
