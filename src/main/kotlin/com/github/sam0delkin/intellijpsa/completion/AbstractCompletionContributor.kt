@@ -12,14 +12,11 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
-import com.intellij.symfony.SymfonyIcons
 import com.intellij.util.ProcessingContext
-import icons.PhpIcons
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.boolean
@@ -101,22 +98,7 @@ class AbstractCompletionContributor() {
                             for (i in json.get("completions") as JsonArray) {
                                 var element =
                                     LookupElementBuilder.create(i.jsonObject.get("text")?.jsonPrimitive!!.content)
-                                if (i.jsonObject.keys.contains("icon")) {
-                                    if (i.jsonObject.get("icon")?.jsonPrimitive!!.content == "FILE") {
-                                        element = element.withIcon(PhpIcons.PhpIcon)
-                                    }
-                                    if (i.jsonObject.get("icon")?.jsonPrimitive!!.content == "ATTRIBUTE") {
-                                        element = element.withIcon(PhpIcons.Attribute)
-                                    }
-                                    if (i.jsonObject.get("icon")?.jsonPrimitive!!.content == "SYMFONY") {
-                                        element = element.withIcon(SymfonyIcons.SymfonyLogo)
-                                    }
-                                    if (i.jsonObject.get("icon")?.jsonPrimitive!!.content == "PSA") {
-                                        element = element.withIcon(Icons.PluginIcon)
-                                    }
-                                } else {
-                                    element = element.withIcon(Icons.PluginIcon)
-                                }
+                                element = element.withIcon(Icons.PluginIcon)
                                 if (i.jsonObject.get("bold")?.jsonPrimitive!!.boolean) {
                                     element = element.bold()
                                 }

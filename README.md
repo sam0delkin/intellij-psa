@@ -7,7 +7,8 @@
 
 <!-- Plugin description -->
 Small plugin which adds support for custom autocomplete & GoTo on the language you're writing your project.
-![example](src/main/resources/doc/images/autocomplete_example.png)
+
+![example](https://github.com/sam0delkin/intellij-psa/raw/main/src/main/resources/doc/images/autocomplete_example.png)
 <!-- Plugin description end -->
 
 ## Installation

@@ -16,7 +16,6 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.elementType
-import com.jetbrains.php.lang.psi.elements.*
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -158,8 +157,6 @@ class ProjectService(project: Project) {
                     !method.returnType.isAssignableFrom(String::class.java)
                     && !method.returnType.isAssignableFrom(PsiElement::class.java)
                     && !method.returnType.componentType.isAssignableFrom(PsiElement::class.java)
-                    && !method.returnType.isAssignableFrom(PhpPsiElement::class.java)
-                    && !method.returnType.componentType.isAssignableFrom(PhpPsiElement::class.java)
                 ) {
                     continue
                 }
