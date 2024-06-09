@@ -3,6 +3,7 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+Performance improvements
 
 ## [0.0.1] - 2024-06-09
 Initial Release
