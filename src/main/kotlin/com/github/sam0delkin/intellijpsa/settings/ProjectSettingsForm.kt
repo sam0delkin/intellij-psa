@@ -29,10 +29,12 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
     private lateinit var phpEnabled: JCheckBox
     private lateinit var phpScriptPath: TextFieldWithBrowseButton
     private lateinit var phpPathMappings: PathMappingsComponent
+    private lateinit var phpGoToFilter: JTextField
 
     private lateinit var jsEnabled: JCheckBox
     private lateinit var jsScriptPath: TextFieldWithBrowseButton
     private lateinit var jsPathMappings: PathMappingsComponent
+    private lateinit var jsGoToFilter: JTextField
 
     override fun createComponent(): JComponent? {
         this.enabled.addItemListener { e ->
@@ -40,20 +42,25 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                 this.phpEnabled.setEnabled(true)
                 this.phpScriptPath.setEnabled(true)
                 this.phpPathMappings.setEnabled(true)
+                this.phpGoToFilter.setEnabled(true)
 
                 this.jsEnabled.setEnabled(true)
                 this.jsScriptPath.setEnabled(true)
                 this.jsPathMappings.setEnabled(true)
+                this.jsGoToFilter.setEnabled(true)
 
                 this.debug.setEnabled(true)
             } else {
                 this.phpEnabled.setEnabled(false)
                 this.phpScriptPath.setEnabled(false)
                 this.phpPathMappings.setEnabled(false)
+                this.phpGoToFilter.setEnabled(false)
 
                 this.jsEnabled.setEnabled(false)
                 this.jsScriptPath.setEnabled(false)
                 this.jsPathMappings.setEnabled(false)
+                this.jsGoToFilter.setEnabled(false)
+
                 this.debug.setEnabled(false)
             }
         }
@@ -67,18 +74,22 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
             if ((e.source as JCheckBox).isSelected) {
                 this.phpScriptPath.setEnabled(true)
                 this.phpPathMappings.setEnabled(true)
+                this.phpGoToFilter.setEnabled(true)
             } else {
                 this.phpScriptPath.setEnabled(false)
                 this.phpPathMappings.setEnabled(false)
+                this.phpGoToFilter.setEnabled(false)
             }
         }
         this.jsEnabled.addItemListener { e ->
             if ((e.source as JCheckBox).isSelected) {
                 this.jsScriptPath.setEnabled(true)
                 this.jsPathMappings.setEnabled(true)
+                this.jsGoToFilter.setEnabled(true)
             } else {
                 this.phpScriptPath.setEnabled(false)
                 this.jsPathMappings.setEnabled(false)
+                this.jsGoToFilter.setEnabled(false)
             }
         }
 
@@ -99,10 +110,12 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                         || phpEnabled.isSelected != settings.phpEnabled
                         || phpScriptPath.text != settings.phpScriptPath
                         || phpPathMappings.mappingSettings.pathMappings != settings.phpPathMappings
+                        || phpGoToFilter.text != settings.phpGoToFilter
 
                         || jsEnabled.isSelected != settings.jsEnabled
                         || jsScriptPath.text != settings.jsScriptPath
                         || jsPathMappings.mappingSettings.pathMappings != settings.jsPathMappings
+                        || jsGoToFilter.text != settings.jsGoToFilter
                 )
     }
 
@@ -118,10 +131,12 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         settings.phpEnabled = phpEnabled.isSelected
         settings.phpScriptPath = phpScriptPath.text.trim()
         settings.phpPathMappings = phpPathMappings.mappingSettings.pathMappings.toTypedArray()
+        settings.phpGoToFilter = phpGoToFilter.text.trim()
 
         settings.jsEnabled = jsEnabled.isSelected
         settings.jsScriptPath = jsScriptPath.text.trim()
         settings.jsPathMappings = jsPathMappings.mappingSettings.pathMappings.toTypedArray()
+        settings.jsGoToFilter = jsGoToFilter.text.trim()
     }
 
     private fun updateUIFromSettings() {
@@ -131,10 +146,12 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         phpEnabled.setSelected(settings.phpEnabled)
         phpScriptPath.setText(settings.phpScriptPath)
         settings.phpPathMappings?.map { el -> phpPathMappings.mappingSettings.add(el) }
+        phpGoToFilter.setText(settings.phpGoToFilter)
 
         jsEnabled.setSelected(settings.jsEnabled)
         jsScriptPath.setText(settings.jsScriptPath)
         settings.jsPathMappings?.map { el -> jsPathMappings.mappingSettings.add(el) }
+        jsGoToFilter.setText(settings.jsGoToFilter)
     }
 
     private val settings: Settings

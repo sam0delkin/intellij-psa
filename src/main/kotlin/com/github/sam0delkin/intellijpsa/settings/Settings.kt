@@ -15,18 +15,22 @@ import org.jetbrains.annotations.Nullable
 class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false;
     var debug: Boolean = false;
-    var phpEnabled: Boolean = false;
 
+    var phpEnabled: Boolean = false;
     @Nullable
     var phpScriptPath: String? = ".psa/psa.php"
     @Nullable
     var phpPathMappings: Array<PathMapping>? = arrayOf()
-    var jsEnabled: Boolean = false;
+    @Nullable
+    var phpGoToFilter: String? = ""
 
+    var jsEnabled: Boolean = false;
     @Nullable
     var jsScriptPath: String? = ".psa/psa.js"
     @Nullable
     var jsPathMappings: Array<PathMapping>? = arrayOf()
+    @Nullable
+    var jsGoToFilter: String? = ""
 
     @Nullable
     @Override
@@ -107,6 +111,24 @@ class Settings : PersistentStateComponent<Settings> {
             this.jsPathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
         }
 
-        return resultStr;
+        return resultStr
+    }
+
+    fun isElementTypeMatchingFilter(language: Language, str: String): Boolean {
+        var goToFilter: String? = null
+
+        if (language === Language.PHP) {
+            goToFilter = this.phpGoToFilter
+        }
+
+        if (language === Language.JS) {
+            goToFilter = this.jsGoToFilter
+        }
+
+        if (null === goToFilter || "" == goToFilter) {
+            return true
+        }
+
+        return goToFilter.split(",").any { e -> e == str }
     }
 }

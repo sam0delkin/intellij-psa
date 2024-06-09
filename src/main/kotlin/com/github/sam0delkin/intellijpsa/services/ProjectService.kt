@@ -13,6 +13,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.elementType
@@ -37,6 +38,18 @@ enum class Language {
 
 class ProjectService(project: Project) {
     private val project: Project
+    private val PSA_VISITED: Key<Boolean> = Key.create("PSA_VISITED")
+    private val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
+    private val ignoredMethods = arrayOf(
+        "clone",
+        "getPsi",
+        "getPrevPsiSibling",
+        "getNextPsiSibling",
+        "getFirstPsiChild",
+        "getTreePrev",
+        "getTreeNext",
+        "copyElement"
+    )
 
     init {
         this.project = project
@@ -119,12 +132,15 @@ class ProjectService(project: Project) {
     private fun psiElementToModel(
         element: PsiElement,
         processParent: Boolean = true,
-        processOptions: Boolean = true
+        processOptions: Boolean = true,
+        processChildOptions: Boolean = true,
+        processedElements: ArrayList<PsiElement>? = null
     ): PsiElementModel {
+        val currentProcessedElements = if (null !== processedElements) processedElements else ArrayList()
         val options = mutableMapOf<String, PsiElementModelChild>()
-        val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
         val methods = element.javaClass.methods.filter { method ->
-            !baseMethods.contains(method.name)
+            !this.baseMethods.contains(method.name)
+                    && !this.ignoredMethods.contains(method.name)
                     && method.parameterTypes.isEmpty()
         }
 
@@ -151,12 +167,32 @@ class ProjectService(project: Project) {
         var nextElement: PsiElementModel? = null
         var prevElement: PsiElementModel? = null
 
+        if (currentProcessedElements.contains(element)) {
+            return PsiElementModel(
+                elementType,
+                options,
+                elementName,
+                elementFqn,
+                elementText,
+                null,
+                null,
+                null
+            )
+        }
+
+        currentProcessedElements.add(element)
+
         for (method in methods) {
+            val interfaces = this.getAllExtendedOrImplementedInterfacesRecursively(method.returnType)
+            val componentTypeInterfaces =
+                if (method.returnType.componentType !== null) this.getAllExtendedOrImplementedInterfacesRecursively(
+                    method.returnType.componentType
+                ) else HashSet()
             try {
                 if (
                     !method.returnType.isAssignableFrom(String::class.java)
-                    && !method.returnType.isAssignableFrom(PsiElement::class.java)
-                    && !method.returnType.componentType.isAssignableFrom(PsiElement::class.java)
+                    && !interfaces!!.any { e -> e.isAssignableFrom(PsiElement::class.java) }
+                    && !componentTypeInterfaces!!.any { e -> e.isAssignableFrom(PsiElement::class.java) }
                 ) {
                     continue
                 }
@@ -172,19 +208,27 @@ class ProjectService(project: Project) {
                         result = result.substring(0, 250)
                     }
                     options[optionName] = PsiElementModelChild(null, result)
-                } else if (result is PsiElement && processOptions) {
+                } else if (result is PsiElement && processOptions && processChildOptions) {
                     options[optionName] = PsiElementModelChild(
                         this.psiElementToModel(
                             result,
-                            processParent = false,
-                            processOptions = false
+                            false,
+                            true,
+                            false,
+                            currentProcessedElements
                         ), null
                     )
-                } else if (result is Array<*> && result.isArrayOf<PsiElement>()) {
-                    val arr: Array<PsiElementModel?> = arrayOfNulls<PsiElementModel>(result.size)
+                } else if (result is Array<*> && result.isArrayOf<PsiElement>() && processOptions && processChildOptions) {
+                    val arr: Array<PsiElementModel?> = arrayOfNulls(result.size)
 
                     for ((index, item) in (result as Array<PsiElement>).withIndex()) {
-                        arr[index] = this.psiElementToModel(item, processParent = false, processOptions = true)
+                        arr[index] = this.psiElementToModel(
+                            item,
+                            false,
+                            true,
+                            false,
+                            currentProcessedElements
+                        )
                     }
                     options[optionName] = PsiElementModelChild(null, null, arr)
                 }
@@ -194,13 +238,26 @@ class ProjectService(project: Project) {
         }
 
         if (element.parent !== null && processParent) {
-            parentElement = this.psiElementToModel(element.parent, true, processOptions = true)
+            parentElement =
+                this.psiElementToModel(element.parent, true, true, true, currentProcessedElements)
         }
         if (element.nextSibling !== null && processParent) {
-            nextElement = this.psiElementToModel(element.nextSibling, processParent = false, processOptions = true)
+            nextElement = this.psiElementToModel(
+                element.nextSibling,
+                false,
+                true,
+                true,
+                currentProcessedElements
+            )
         }
         if (element.prevSibling !== null && processParent) {
-            prevElement = this.psiElementToModel(element.prevSibling, processParent = false, processOptions = true)
+            prevElement = this.psiElementToModel(
+                element.prevSibling,
+                false,
+                true,
+                true,
+                currentProcessedElements
+            )
         }
 
         return PsiElementModel(
@@ -224,5 +281,17 @@ class ProjectService(project: Project) {
         bw.close()
 
         return tempFile.absolutePath
+    }
+
+    fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>>? {
+        val res: MutableSet<Class<*>> = HashSet()
+        val interfaces = clazz.interfaces
+        if (interfaces.size > 0) {
+            res.addAll(interfaces)
+            for (interfaze in interfaces) {
+                res.addAll(getAllExtendedOrImplementedInterfacesRecursively(interfaze)!!)
+            }
+        }
+        return res
     }
 }

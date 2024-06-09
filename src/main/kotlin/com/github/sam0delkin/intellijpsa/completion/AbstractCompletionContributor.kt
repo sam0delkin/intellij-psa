@@ -16,7 +16,9 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
+import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
+import com.jetbrains.rd.util.string.printToString
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.boolean
@@ -144,6 +146,11 @@ class AbstractCompletionContributor() {
             val project = sourceElement.project
             val projectService = project.service<ProjectService>()
             val settings = projectService.getSettings()
+
+            if (!settings.isElementTypeMatchingFilter(getLanguage(), sourceElement.elementType.printToString())) {
+                return null
+            }
+
             val json =
                 projectService.getCompletions(
                     settings,
