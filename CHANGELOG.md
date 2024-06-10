@@ -5,7 +5,9 @@
 ## [Unreleased]
 
 ## [0.0.2] - 2024-06-09
-Performance improvements
+* Performance improvements
+* Added some initial documentation
+* Misc fixes
 
 ## [0.0.1] - 2024-06-09
 Initial Release

@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable
 
 @State(
     name = "PSAAutocompleteSettings",
-    storages = [Storage("php_autocomplete.xml")]
+    storages = [Storage("psa.xml")]
 )
 class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false;
