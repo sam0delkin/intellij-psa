@@ -13,7 +13,7 @@
                 parentId="tools"
                 instance="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm"
                 id="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm"
-                displayName="Project Specific Autocomplete Settings"
+                displayName="Project Specific Autocomplete"
                 nonDefaultProject="true"/>
 
         <applicationService serviceImplementation="com.github.sam0delkin.intellijpsa.services.MainService"/>
@@ -24,8 +24,12 @@
         <completion.contributor
                 language="JavaScript"
                 implementationClass="com.github.sam0delkin.intellijpsa.completion.JsCompletionContributor$Completion"/>
+        <completion.contributor
+                language="TypeScript"
+                implementationClass="com.github.sam0delkin.intellijpsa.completion.TsCompletionContributor$Completion"/>
         <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.PhpCompletionContributor$GotoDeclaration"/>
         <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.JsCompletionContributor$GotoDeclaration"/>
+        <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.TsCompletionContributor$GotoDeclaration"/>
         <notificationGroup id="PSA Notification"
                            displayType="BALLOON"/>
     </extensions>

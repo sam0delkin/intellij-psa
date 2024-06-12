@@ -3,6 +3,15 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+* Added support for TypeScript language
+* Added support for `priority` in completions
+* Added support for automatic GoTo element filters by `goto_element_filter` option and removed this options from settings
+* Added support for `info` notifications
+* Updated README.md based on JetBrains marketplace response
+* Updated documentation
+* Added examples
+* Added LICENSE
+* Misc fixes & improvements
 
 ## [0.0.2] - 2024-06-09
 * Performance improvements

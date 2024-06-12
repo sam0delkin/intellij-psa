@@ -13,10 +13,10 @@ import org.jetbrains.annotations.Nullable
     storages = [Storage("psa.xml")]
 )
 class Settings : PersistentStateComponent<Settings> {
-    var pluginEnabled: Boolean = false;
-    var debug: Boolean = false;
+    var pluginEnabled: Boolean = false
+    var debug: Boolean = false
 
-    var phpEnabled: Boolean = false;
+    var phpEnabled: Boolean = false
     @Nullable
     var phpScriptPath: String? = ".psa/psa.php"
     @Nullable
@@ -24,13 +24,21 @@ class Settings : PersistentStateComponent<Settings> {
     @Nullable
     var phpGoToFilter: String? = ""
 
-    var jsEnabled: Boolean = false;
+    var jsEnabled: Boolean = false
     @Nullable
     var jsScriptPath: String? = ".psa/psa.js"
     @Nullable
     var jsPathMappings: Array<PathMapping>? = arrayOf()
     @Nullable
     var jsGoToFilter: String? = ""
+
+    var tsEnabled: Boolean = false
+    @Nullable
+    var tsScriptPath: String? = ".psa/psa.ts"
+    @Nullable
+    var tsPathMappings: Array<PathMapping>? = arrayOf()
+    @Nullable
+    var tsGoToFilter: String? = ""
 
     @Nullable
     @Override
@@ -59,10 +67,18 @@ class Settings : PersistentStateComponent<Settings> {
             return true
         }
 
+        if (
+            language === Language.TS
+            && this.tsEnabled
+            && null !== this.tsScriptPath
+        ) {
+            return true
+        }
+
         return false
     }
 
-    private fun getLanguageScriptPath(language: Language): String? {
+    fun getLanguageScriptPath(language: Language): String? {
         if (
             language === Language.PHP
             && this.phpEnabled
@@ -77,6 +93,14 @@ class Settings : PersistentStateComponent<Settings> {
             && null !== this.jsScriptPath
         ) {
             return this.jsScriptPath
+        }
+
+        if (
+            language === Language.TS
+            && this.tsEnabled
+            && null !== this.tsScriptPath
+        ) {
+            return this.tsScriptPath
         }
 
         return null
@@ -111,6 +135,14 @@ class Settings : PersistentStateComponent<Settings> {
             this.jsPathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
         }
 
+        if (
+            language === Language.TS
+            && this.tsEnabled
+            && null !== this.tsPathMappings
+        ) {
+            this.tsPathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
+        }
+
         return resultStr
     }
 
@@ -125,10 +157,28 @@ class Settings : PersistentStateComponent<Settings> {
             goToFilter = this.jsGoToFilter
         }
 
+        if (language === Language.TS) {
+            goToFilter = this.tsGoToFilter
+        }
+
         if (null === goToFilter || "" == goToFilter) {
             return true
         }
 
         return goToFilter.split(",").any { e -> e == str }
+    }
+
+    fun setElementFilter(language: Language, filter: String) {
+        if (language === Language.PHP) {
+            this.phpGoToFilter = filter
+        }
+
+        if (language === Language.JS) {
+            this.jsGoToFilter = filter
+        }
+
+        if (language === Language.TS) {
+            this.tsGoToFilter = filter
+        }
     }
 }

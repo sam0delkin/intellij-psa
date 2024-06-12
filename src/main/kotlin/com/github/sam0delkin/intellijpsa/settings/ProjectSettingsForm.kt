@@ -6,7 +6,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
-import com.intellij.openapi.observable.util.bindEnabled
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.Project
@@ -29,76 +28,95 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
     private lateinit var phpEnabled: JCheckBox
     private lateinit var phpScriptPath: TextFieldWithBrowseButton
     private lateinit var phpPathMappings: PathMappingsComponent
-    private lateinit var phpGoToFilter: JTextField
 
     private lateinit var jsEnabled: JCheckBox
     private lateinit var jsScriptPath: TextFieldWithBrowseButton
     private lateinit var jsPathMappings: PathMappingsComponent
-    private lateinit var jsGoToFilter: JTextField
 
-    override fun createComponent(): JComponent? {
+    private lateinit var tsEnabled: JCheckBox
+    private lateinit var tsScriptPath: TextFieldWithBrowseButton
+    private lateinit var tsPathMappings: PathMappingsComponent
+
+    override fun createComponent(): JComponent {
         this.enabled.addItemListener { e ->
             if ((e.source as JCheckBox).isSelected) {
                 this.phpEnabled.setEnabled(true)
                 this.phpScriptPath.setEnabled(true)
                 this.phpPathMappings.setEnabled(true)
-                this.phpGoToFilter.setEnabled(true)
 
                 this.jsEnabled.setEnabled(true)
                 this.jsScriptPath.setEnabled(true)
                 this.jsPathMappings.setEnabled(true)
-                this.jsGoToFilter.setEnabled(true)
+
+                this.tsEnabled.setEnabled(true)
+                this.tsScriptPath.setEnabled(true)
+                this.tsPathMappings.setEnabled(true)
 
                 this.debug.setEnabled(true)
             } else {
                 this.phpEnabled.setEnabled(false)
                 this.phpScriptPath.setEnabled(false)
                 this.phpPathMappings.setEnabled(false)
-                this.phpGoToFilter.setEnabled(false)
 
                 this.jsEnabled.setEnabled(false)
                 this.jsScriptPath.setEnabled(false)
                 this.jsPathMappings.setEnabled(false)
-                this.jsGoToFilter.setEnabled(false)
+
+                this.tsEnabled.setEnabled(false)
+                this.tsScriptPath.setEnabled(false)
+                this.tsPathMappings.setEnabled(false)
 
                 this.debug.setEnabled(false)
             }
         }
+
         this.phpScriptPath.addBrowseFolderListener(
             createBrowseFolderListener(
                 this.phpScriptPath.textField,
                 FileChooserDescriptorFactory.createSingleFileDescriptor()
             )
         )
-        this.phpEnabled.addItemListener { e ->
-            if ((e.source as JCheckBox).isSelected) {
-                this.phpScriptPath.setEnabled(true)
-                this.phpPathMappings.setEnabled(true)
-                this.phpGoToFilter.setEnabled(true)
-            } else {
-                this.phpScriptPath.setEnabled(false)
-                this.phpPathMappings.setEnabled(false)
-                this.phpGoToFilter.setEnabled(false)
-            }
-        }
-        this.jsEnabled.addItemListener { e ->
-            if ((e.source as JCheckBox).isSelected) {
-                this.jsScriptPath.setEnabled(true)
-                this.jsPathMappings.setEnabled(true)
-                this.jsGoToFilter.setEnabled(true)
-            } else {
-                this.phpScriptPath.setEnabled(false)
-                this.jsPathMappings.setEnabled(false)
-                this.jsGoToFilter.setEnabled(false)
-            }
-        }
-
         this.jsScriptPath.addBrowseFolderListener(
             createBrowseFolderListener(
                 this.jsScriptPath.textField,
                 FileChooserDescriptorFactory.createSingleFileDescriptor()
             )
         )
+        this.tsScriptPath.addBrowseFolderListener(
+            createBrowseFolderListener(
+                this.tsScriptPath.textField,
+                FileChooserDescriptorFactory.createSingleFileDescriptor()
+            )
+        )
+
+        this.phpEnabled.addItemListener { e ->
+            if ((e.source as JCheckBox).isSelected) {
+                this.phpScriptPath.setEnabled(true)
+                this.phpPathMappings.setEnabled(true)
+            } else {
+                this.phpScriptPath.setEnabled(false)
+                this.phpPathMappings.setEnabled(false)
+            }
+        }
+        this.jsEnabled.addItemListener { e ->
+            if ((e.source as JCheckBox).isSelected) {
+                this.jsScriptPath.setEnabled(true)
+                this.jsPathMappings.setEnabled(true)
+            } else {
+                this.jsScriptPath.setEnabled(false)
+                this.jsPathMappings.setEnabled(false)
+            }
+        }
+        this.tsEnabled.addItemListener { e ->
+            if ((e.source as JCheckBox).isSelected) {
+                this.tsScriptPath.setEnabled(true)
+                this.tsPathMappings.setEnabled(true)
+            } else {
+                this.tsScriptPath.setEnabled(false)
+                this.tsPathMappings.setEnabled(false)
+            }
+        }
+
         return this.panel1
     }
 
@@ -109,13 +127,21 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
 
                         || phpEnabled.isSelected != settings.phpEnabled
                         || phpScriptPath.text != settings.phpScriptPath
-                        || phpPathMappings.mappingSettings.pathMappings != settings.phpPathMappings
-                        || phpGoToFilter.text != settings.phpGoToFilter
+                        || phpPathMappings.mappingSettings.pathMappings.map { el -> el.localRoot + " ->" + el.remoteRoot }
+                    .joinToString(",") != settings.phpPathMappings?.map { el -> el.localRoot + " ->" + el.remoteRoot }
+                    ?.joinToString(",")
 
                         || jsEnabled.isSelected != settings.jsEnabled
                         || jsScriptPath.text != settings.jsScriptPath
-                        || jsPathMappings.mappingSettings.pathMappings != settings.jsPathMappings
-                        || jsGoToFilter.text != settings.jsGoToFilter
+                        || jsPathMappings.mappingSettings.pathMappings.map { el -> el.localRoot + " ->" + el.remoteRoot }
+                    .joinToString(",") != settings.jsPathMappings?.map { el -> el.localRoot + " ->" + el.remoteRoot }
+                    ?.joinToString(",")
+
+                        || tsEnabled.isSelected != settings.tsEnabled
+                        || tsScriptPath.text != settings.tsScriptPath
+                        || tsPathMappings.mappingSettings.pathMappings.map { el -> el.localRoot + " ->" + el.remoteRoot }
+                    .joinToString(",") != settings.tsPathMappings?.map { el -> el.localRoot + " ->" + el.remoteRoot }
+                    ?.joinToString(",")
                 )
     }
 
@@ -131,12 +157,14 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         settings.phpEnabled = phpEnabled.isSelected
         settings.phpScriptPath = phpScriptPath.text.trim()
         settings.phpPathMappings = phpPathMappings.mappingSettings.pathMappings.toTypedArray()
-        settings.phpGoToFilter = phpGoToFilter.text.trim()
 
         settings.jsEnabled = jsEnabled.isSelected
         settings.jsScriptPath = jsScriptPath.text.trim()
         settings.jsPathMappings = jsPathMappings.mappingSettings.pathMappings.toTypedArray()
-        settings.jsGoToFilter = jsGoToFilter.text.trim()
+
+        settings.tsEnabled = tsEnabled.isSelected
+        settings.tsScriptPath = tsScriptPath.text.trim()
+        settings.tsPathMappings = tsPathMappings.mappingSettings.pathMappings.toTypedArray()
     }
 
     private fun updateUIFromSettings() {
@@ -146,12 +174,14 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         phpEnabled.setSelected(settings.phpEnabled)
         phpScriptPath.setText(settings.phpScriptPath)
         settings.phpPathMappings?.map { el -> phpPathMappings.mappingSettings.add(el) }
-        phpGoToFilter.setText(settings.phpGoToFilter)
 
         jsEnabled.setSelected(settings.jsEnabled)
         jsScriptPath.setText(settings.jsScriptPath)
         settings.jsPathMappings?.map { el -> jsPathMappings.mappingSettings.add(el) }
-        jsGoToFilter.setText(settings.jsGoToFilter)
+
+        tsEnabled.setSelected(settings.tsEnabled)
+        tsScriptPath.setText(settings.tsScriptPath)
+        settings.tsPathMappings?.map { el -> tsPathMappings.mappingSettings.add(el) }
     }
 
     private val settings: Settings
@@ -181,7 +211,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         }
     }
 
-    override fun getDisplayName(): @Nls String? {
+    override fun getDisplayName(): @Nls String {
         return "Project Specific Autocomplete"
     }
 }

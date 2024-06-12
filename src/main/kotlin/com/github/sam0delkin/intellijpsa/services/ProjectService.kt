@@ -13,7 +13,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.elementType
@@ -25,7 +24,6 @@ import kotlinx.serialization.json.jsonObject
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
-import java.util.concurrent.Callable
 import kotlin.reflect.full.memberFunctions
 
 enum class RequestType {
@@ -33,12 +31,11 @@ enum class RequestType {
 }
 
 enum class Language {
-    PHP, JS
+    PHP, JS, TS
 }
 
 class ProjectService(project: Project) {
     private val project: Project
-    private val PSA_VISITED: Key<Boolean> = Key.create("PSA_VISITED")
     private val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
     private val ignoredMethods = arrayOf(
         "clone",
@@ -89,14 +86,14 @@ class ProjectService(project: Project) {
         val indicator = ProgressManager.getGlobalProgressIndicator()
 
 
-        commandLine = GeneralCommandLine(settings.phpScriptPath)
+        commandLine = GeneralCommandLine(settings.getLanguageScriptPath(language))
         commandLine.environment.put("PSA_CONTEXT", filePath)
         commandLine.environment.put("PSA_TYPE", requestType.toString())
         commandLine.environment.put("PSA_LANGUAGE", language.toString())
         commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
         commandLine.setWorkDirectory(element.project.guessProjectDir()?.path)
 
-        ApplicationUtil.runWithCheckCanceled(Callable {
+        ApplicationUtil.runWithCheckCanceled({
             result = ExecUtil.execAndGetOutput(
                 commandLine
             )
@@ -191,8 +188,9 @@ class ProjectService(project: Project) {
             try {
                 if (
                     !method.returnType.isAssignableFrom(String::class.java)
-                    && !interfaces!!.any { e -> e.isAssignableFrom(PsiElement::class.java) }
-                    && !componentTypeInterfaces!!.any { e -> e.isAssignableFrom(PsiElement::class.java) }
+                    && !method.returnType.isAssignableFrom(Number::class.java)
+                    && !interfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) }
+                    && !componentTypeInterfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) }
                 ) {
                     continue
                 }
@@ -283,13 +281,13 @@ class ProjectService(project: Project) {
         return tempFile.absolutePath
     }
 
-    fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>>? {
+    private fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>> {
         val res: MutableSet<Class<*>> = HashSet()
         val interfaces = clazz.interfaces
         if (interfaces.size > 0) {
             res.addAll(interfaces)
             for (interfaze in interfaces) {
-                res.addAll(getAllExtendedOrImplementedInterfacesRecursively(interfaze)!!)
+                res.addAll(getAllExtendedOrImplementedInterfacesRecursively(interfaze))
             }
         }
         return res

@@ -20,10 +20,7 @@ import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.*
 import org.apache.commons.lang3.StringUtils
 
 @Serializable
@@ -98,14 +95,23 @@ class AbstractCompletionContributor() {
 
                         if (null !== json.get("completions")) {
                             for (i in json.get("completions") as JsonArray) {
+                                var priority = 0.0
                                 var element =
                                     LookupElementBuilder.create(i.jsonObject.get("text")?.jsonPrimitive!!.content)
                                 element = element.withIcon(Icons.PluginIcon)
+
                                 if (i.jsonObject.get("bold")?.jsonPrimitive!!.boolean) {
                                     element = element.bold()
+                                    priority = 100.0
                                 }
+
                                 element = element.withTypeText(i.jsonObject.get("type")?.jsonPrimitive!!.content)
-                                resultSet.addElement(element)
+
+                                if (i.jsonObject.containsKey("priority")) {
+                                    priority = i.jsonObject.get("priority")?.jsonPrimitive!!.long.toDouble()
+                                }
+
+                                resultSet.addElement(PrioritizedLookupElement.withPriority(element, priority))
                             }
                         }
 
@@ -113,8 +119,9 @@ class AbstractCompletionContributor() {
                             for (i in json.get("notifications") as JsonArray) {
                                 var notificationType = NotificationType.INFORMATION
                                 when (i.jsonObject.get("type")?.jsonPrimitive!!.content) {
-                                    "error" -> notificationType = NotificationType.ERROR
+                                    "info" -> notificationType = NotificationType.INFORMATION
                                     "warning" -> notificationType = NotificationType.WARNING
+                                    "error" -> notificationType = NotificationType.ERROR
                                 }
 
                                 NotificationGroupManager.getInstance()
@@ -123,7 +130,7 @@ class AbstractCompletionContributor() {
                                         i.jsonObject.get("text")?.jsonPrimitive!!.content,
                                         notificationType
                                     )
-                                    .notify(parameters.originalFile.project);
+                                    .notify(parameters.originalFile.project)
                             }
                         }
                     }
@@ -165,17 +172,17 @@ class AbstractCompletionContributor() {
             }
 
             val psiElements = ArrayList<PsiElement>()
-            val fm = VirtualFileManager.getInstance();
-            val pm = PsiManager.getInstance(project);
+            val fm = VirtualFileManager.getInstance()
+            val pm = PsiManager.getInstance(project)
 
-            if (null !== json.get("completions")) {
+            if (json.containsKey("completions")) {
                 for (i in json.get("completions") as JsonArray) {
                     val linkData = i.jsonObject.get("link")?.jsonPrimitive!!.content
-                    val link = linkData.split(':');
+                    val link = linkData.split(':')
                     val path = settings.replacePathMappings(this.getLanguage(), link[0])
-                    val virtualFile = fm.findFileByUrl(project.guessProjectDir().toString() + path);
+                    val virtualFile = fm.findFileByUrl(project.guessProjectDir().toString() + path)
                     if (null !== virtualFile) {
-                        val psiFile = pm.findFile(virtualFile);
+                        val psiFile = pm.findFile(virtualFile)
                         if (null !== psiFile) {
                             if (link.count() > 1) {
                                 val position =
@@ -183,6 +190,8 @@ class AbstractCompletionContributor() {
                                 val element = psiFile.findElementAt(position)
                                 if (null !== element) {
                                     psiElements.add(element)
+                                } else {
+                                    psiElements.add(psiFile.firstChild)
                                 }
                             } else {
                                 psiElements.add(psiFile.firstChild)
@@ -192,22 +201,28 @@ class AbstractCompletionContributor() {
                 }
             }
 
-            if (null !== json.get("notifications")) {
+            if (json.containsKey("goto_element_filter")) {
+                val filter = (json.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }.joinToString(",")
+                settings.setElementFilter(getLanguage(), filter)
+            }
+
+            if (json.containsKey("notifications")) {
                 for (i in json.get("notifications") as JsonArray) {
                     var notificationType = NotificationType.INFORMATION
                     when (i.jsonObject.get("type")?.jsonPrimitive!!.content) {
-                        "error" -> notificationType = NotificationType.ERROR
+                        "info" -> notificationType = NotificationType.INFORMATION
                         "warning" -> notificationType = NotificationType.WARNING
+                        "error" -> notificationType = NotificationType.ERROR
                     }
 
                     NotificationGroupManager.getInstance()
                         .getNotificationGroup("PSA Notification")
                         .createNotification(i.jsonObject.get("text")?.jsonPrimitive!!.content, notificationType)
-                        .notify(sourceElement.containingFile.project);
+                        .notify(sourceElement.containingFile.project)
                 }
             }
 
-            return psiElements.toList().toTypedArray();
+            return psiElements.toList().toTypedArray()
         }
     }
 }
