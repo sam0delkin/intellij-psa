@@ -3,6 +3,12 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Settings structure is changed. You should reconfigure plugin in setting
+- Added support of all programming languages
+- Fixed platformType (change back to IU)
+- Updated & improved documentation
+- Automatically publish plugin to JetBrains Marketplace
+- Misc fixes
 
 ## [0.0.3] - 2024-06-12
 - Added support for TypeScript language

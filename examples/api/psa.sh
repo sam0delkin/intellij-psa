@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ ${PSA_TYPE} == "Info" ]]; then
+  echo '{"supported_languages":["TypeScript"]}'
+  exit 0
+fi
+
 # set your API endpoint
 #API_ENDPOINT=http://localhost:12345/_psa
 API_ENDPOINT=https://666969682e964a6dfed5074e.mockapi.io/_psa/1

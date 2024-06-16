@@ -14,10 +14,7 @@ Currently, supports:
 * Custom GoTo based on your code (Ctrl/Command + Click)
 
 ### Supported Languages
-* PHP
-* JavaScript
-* TypeScript
-* others - coming soon
+Any language that your IDE supports will be supported by plugin.
 
 To check how to add custom autocomplete, please read [documentation](https://github.com/sam0delkin/intellij-psa#documentation) 
 <!-- Plugin description end -->
@@ -331,6 +328,61 @@ then you'll receive the following JSON in the filepath, passed from `PSA_CONTEXT
 
 ## Documentation
 
+### Configuration
+![settings](src/main/resources/doc/images/settings.png)
+1) Is plugin enabled or not
+2) Is debug enabled or not. Passed as `PSA_DEBUG` into the executable script
+3) Path to the PSA executable script. Must be an executable file
+4) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
+as project root.
+5) Programming languages supported by your autocompletion. Separated by comma, read-only
+6) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
+[performance](#goto-optimizations) section.
+7) Info notification popup which was retrieved from your custom autocomplete.
+
+To configure your autocomplete, follow these actions:
+1) Check the `Plugin Enabled` checkbox (1) for enable plugin
+2) Specify a path to your executable in the `Script Path` field (3)
+3) CLick the (i) icon right to the `Script Path` field to retrieve info from your executable
+4) After that fields `Supported Languages` (5) and optionally `GoTo Element Filter` (6) will be filled automatically in
+case of your script is return data in valid format
+5) Save settings
+
+### Custom autocomplete info
+
+When you installed and enabled plugin, and you click the (i) icon right to the `Script Path` field, IDE will run
+your executable script to retrieve supported languages + GoTo element filter (for 
+[performance optimizations](#goto-optimizations)). In this case only 2 ENV variables would be passed to your executable:
+* `PSA_TYPE` - will be `Info`.
+* `PSA_DEBUG` - `1` in case of debug is enabled in plugin settings and `0` otherwise.
+
+As a result, your script should return an array of supported languages:
+<details>
+  <summary>Expand</summary>
+
+```JSON
+{
+  "supported_languages": "array of strings. List of supported programming languages.",
+  "goto_element_filter": "optional, array of strings. Used for filter element types where GoTo will work. Performance optimization."
+}
+```
+</details>
+
+For example, if your script is supporting JavaScript and TypeScript and return GoTo only for JS string literals, you
+should return the following JSON:
+<details>
+  <summary>Expand</summary>
+
+```JSON
+{
+  "supported_languages": ["JavaScript", "TypeScript"],
+  "goto_element_filter": ["JS:STRING_LITERAL"]
+}
+```
+</details>
+
+### Completions & GoTo
+
 As it already mentioned in [introduction](#how-it-works), plugin is sending JSON-encoded PSI tree into the executable.
 
 Here is the full list of ENV variables passed to the executable:
@@ -390,7 +442,6 @@ Full resulting JSON structure will be described below:
       "type": "string, the type which will be shown as grayed text on the right of completion."
     }
   ],
-  "goto_element_filter": "optional, array of strings. Used for filter element types where GoTo will work. Performance optimization.",
   "notifications": [
     {
       "type": "string, may be either `info`, `error` or `warning`.",
@@ -440,6 +491,67 @@ For working examples on different languages, check out the [examples](examples) 
 
 > [!NOTE]
 > In case of `PSA_TYPE` is `GoTo`, you should return only one completion with the link to reference.
+
+### Debug
+
+It's almost impossible to describe the full structure of `PSA_CONTEXT`, especially all `options` passed to the context,
+due to its very dynamic and based on the language you're using. Of course, you can just write JSON into the tmp file
+and then analyze it, but it's much easier to use debug on your language. When `Debug` option is set in the plugin
+settings, a ENV variable `PSA_DEBUG` will be passed to your script with value `1`. You can use it for debugging. 
+
+You can always execute your script with debug option, but it will slow down the execution during the time you're not 
+need to debug autocomplete. For this purpose a `PSA_DEBUG` option is passing to your script. Some examples for 
+[PHP](examples/php/psa.sh), [JavaScript](examples/js/psa.sh), [TypeScript](examples/ts/psa.sh) are shown in the 
+[examples](examples) folder.
+
+#### Completions
+
+When `Debug` option is set in the plugin settings, and you try to autocomplete something in some supported language,
+debug will break on your breakpoint (if specified). So you can debug autocomplete script like you usually debugging your
+app (on PHP, JavaScript, TypeScript, etc.). See examples for PHP and JavaScript:
+
+<details>
+  <summary>PHP Debug</summary>
+
+![example_debug_php_invoke](src/main/resources/doc/images/debug_php_invoke.png)
+![example_debug_php](src/main/resources/doc/images/debug_php.png)
+</details>
+
+<details>
+  <summary>JavaScript Debug</summary>
+
+![example_debug_js_invoke](src/main/resources/doc/images/debug_js_invoke.png)
+![example_debug_js](src/main/resources/doc/images/debug_js.png)
+</details>
+
+
+#### GoTo
+
+GoTo debugging is working absolutely same as completion debugging, except one thing: when IDE is running completion,
+execution may be interrupted (user may click on other element, or press Escape key), and it means that it's ok to run
+long command during autocomplete and IDE will not freeze during this execution. But resolving reference can't be
+interrupted and executing synchronously, so when you will try to run GoTo with debug enabled, you'll see the following
+window:
+
+![resolving_reference](src/main/resources/doc/images/resolving_reference.png)
+
+And when you press `Cancel`, you'll see the following window:
+
+![operation_too_complex](src/main/resources/doc/images/operation_too_complex.png)
+
+It's ok, and when you'll press `OK`, you will be able to debug your completion and execution will be stopped on 
+breakpoint.
+
+> [!NOTE]
+> To not overload IDE, plugin automatically check that completion is started in any file within the directory of
+> `Script Path` setting and prevent GoTo/Completion from any file of this path. So, debug sessions will not be
+> recursively started during your debugging session.
+
+> [!WARNING]
+> Keep `Debug` option disabled in plugin settings such as it has a strong impact on performance. Enable debug only in
+> case of you want to debug your autocomplete (write new completion, or check why some old is not working).
+
+
 
 ### Performance considerations
 
@@ -511,7 +623,7 @@ script will be called and then will ignore all elements that are not matching th
 solution: you can implement some route, which will be accessible in DEV environment only, and respond with completions.
 See [example](examples/api).
 
-**Q: What is i want to use some language that is not yet supported?**
+**Q: What if I want to use some feature that is not yet supported?**
 
 **A:** That's really great 😊. Please, [fork](https://github.com/sam0delkin/intellij-psa/fork) the repository and then
 create a [pull request](https://github.com/sam0delkin/intellij-psa/compare).

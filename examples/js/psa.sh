@@ -6,7 +6,7 @@ if [[ ${PSA_DEBUG} == '1' ]]; then
 		kill -4 ${PREVIOUS_PID}
 	fi
 
-	node --inspect-brk -r ts-node/register $(dirname "$0")/psa.ts
+	node --inspect-brk $(dirname "$0")/psa.js
 else
-	ts-node $(dirname "$0")/psa.ts
+	node $(dirname "$0")/psa.js
 fi

@@ -1,7 +1,13 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
+import java.util.Base64
 
 fun properties(key: String) = project.findProperty(key).toString()
+fun base64decode(data: String): String {
+    val decoder = Base64.getDecoder()
+
+    return decoder.decode(data).decodeToString()
+}
 
 plugins {
     // Java support
@@ -73,25 +79,8 @@ kover.xmlReport {
     onCheck.set(true)
 }
 
-val fatJar = task("fatJar", type = Jar::class) {
-    println("FAT JAR")
-    from(configurations.runtimeClasspath.get().map({ if (it.isDirectory) it else zipTree(it) }), { duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE })
-    with(tasks.jar.get() as CopySpec)
-    outputs.cacheIf { false }
-    outputs.upToDateWhen { false }
-}
-
 
 tasks {
-    "build" {
-        dependsOn(fatJar)
-    }
-
-    jar {
-        outputs.cacheIf { false }
-        outputs.upToDateWhen { false }
-    }
-
     wrapper {
         gradleVersion = properties("gradleVersion")
     }
@@ -136,9 +125,9 @@ tasks {
     }
 
     signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+        certificateChain.set(base64decode(System.getenv("CERTIFICATE_CHAIN")))
+        privateKey.set(base64decode(System.getenv("PRIVATE_KEY")))
+        password.set(base64decode(System.getenv("PRIVATE_KEY_PASSWORD")))
     }
 
     publishPlugin {

@@ -1,6 +1,5 @@
 package com.github.sam0delkin.intellijpsa.settings
 
-import com.github.sam0delkin.intellijpsa.services.Language
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
@@ -16,29 +15,16 @@ class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false
     var debug: Boolean = false
 
-    var phpEnabled: Boolean = false
     @Nullable
-    var phpScriptPath: String? = ".psa/psa.php"
+    var scriptPath: String? = ".psa/psa.php"
     @Nullable
-    var phpPathMappings: Array<PathMapping>? = arrayOf()
+    var pathMappings: Array<PathMapping>? = arrayOf()
     @Nullable
-    var phpGoToFilter: String? = ""
-
-    var jsEnabled: Boolean = false
+    var goToFilter: String? = ""
     @Nullable
-    var jsScriptPath: String? = ".psa/psa.js"
+    var supportedLanguages: String? = ""
     @Nullable
-    var jsPathMappings: Array<PathMapping>? = arrayOf()
-    @Nullable
-    var jsGoToFilter: String? = ""
-
-    var tsEnabled: Boolean = false
-    @Nullable
-    var tsScriptPath: String? = ".psa/psa.ts"
-    @Nullable
-    var tsPathMappings: Array<PathMapping>? = arrayOf()
-    @Nullable
-    var tsGoToFilter: String? = ""
+    var pluginVersion: String? = null
 
     @Nullable
     @Override
@@ -50,116 +36,35 @@ class Settings : PersistentStateComponent<Settings> {
         XmlSerializerUtil.copyBean(settings, this)
     }
 
-    fun isLanguageEnabled(language: Language): Boolean {
-        if (
-            language === Language.PHP
-            && this.phpEnabled
-            && null !== this.phpScriptPath
-        ) {
-            return true
-        }
-
-        if (
-            language === Language.JS
-            && this.jsEnabled
-            && null !== this.jsScriptPath
-        ) {
-            return true
-        }
-
-        if (
-            language === Language.TS
-            && this.tsEnabled
-            && null !== this.tsScriptPath
-        ) {
-            return true
-        }
-
-        return false
+    fun isLanguageSupported(language: String): Boolean {
+        return this.pluginEnabled && this.supportedLanguages?.split(",")?.contains(language) == true
     }
 
-    fun getLanguageScriptPath(language: Language): String? {
-        if (
-            language === Language.PHP
-            && this.phpEnabled
-            && null !== this.phpScriptPath
-        ) {
-            return this.phpScriptPath
-        }
-
-        if (
-            language === Language.JS
-            && this.jsEnabled
-            && null !== this.jsScriptPath
-        ) {
-            return this.jsScriptPath
-        }
-
-        if (
-            language === Language.TS
-            && this.tsEnabled
-            && null !== this.tsScriptPath
-        ) {
-            return this.tsScriptPath
-        }
-
-        return null
-    }
-
-    fun getLanguageScriptDir(language: Language): String? {
-        val path = this.getLanguageScriptPath(language)
+    fun getScriptDir(): String? {
+        val path = this.scriptPath
 
         if (null === path) {
             return null
         }
         val split = path.split("/")
 
-        return split.slice(IntRange(0, split.size - 1)).joinToString("/")
+        return split.slice(IntRange(0, split.size - 2)).joinToString("/")
     }
 
-    fun replacePathMappings(language: Language, str: String): String {
+    fun replacePathMappings(str: String): String {
         var resultStr = str
         if (
-            language === Language.PHP
-            && this.phpEnabled
-            && null !== this.phpPathMappings
+            this.pluginEnabled
+            && null !== this.pathMappings
         ) {
-            this.phpPathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
-        }
-
-        if (
-            language === Language.JS
-            && this.jsEnabled
-            && null !== this.jsPathMappings
-        ) {
-            this.jsPathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
-        }
-
-        if (
-            language === Language.TS
-            && this.tsEnabled
-            && null !== this.tsPathMappings
-        ) {
-            this.tsPathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
+            this.pathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
         }
 
         return resultStr
     }
 
-    fun isElementTypeMatchingFilter(language: Language, str: String): Boolean {
-        var goToFilter: String? = null
-
-        if (language === Language.PHP) {
-            goToFilter = this.phpGoToFilter
-        }
-
-        if (language === Language.JS) {
-            goToFilter = this.jsGoToFilter
-        }
-
-        if (language === Language.TS) {
-            goToFilter = this.tsGoToFilter
-        }
+    fun isElementTypeMatchingFilter(str: String): Boolean {
+        val goToFilter: String? = this.goToFilter
 
         if (null === goToFilter || "" == goToFilter) {
             return true
@@ -168,17 +73,7 @@ class Settings : PersistentStateComponent<Settings> {
         return goToFilter.split(",").any { e -> e == str }
     }
 
-    fun setElementFilter(language: Language, filter: String) {
-        if (language === Language.PHP) {
-            this.phpGoToFilter = filter
-        }
-
-        if (language === Language.JS) {
-            this.jsGoToFilter = filter
-        }
-
-        if (language === Language.TS) {
-            this.tsGoToFilter = filter
-        }
+    fun setElementFilter(filter: String) {
+        this.goToFilter = filter
     }
 }

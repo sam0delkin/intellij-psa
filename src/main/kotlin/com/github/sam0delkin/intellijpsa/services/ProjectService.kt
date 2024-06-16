@@ -27,7 +27,7 @@ import java.io.FileWriter
 import kotlin.reflect.full.memberFunctions
 
 enum class RequestType {
-    Completion, GoTo
+    Completion, GoTo, Info
 }
 
 enum class Language {
@@ -56,12 +56,35 @@ class ProjectService(project: Project) {
         return this.project.service<Settings>()
     }
 
+    fun getInfo(settings: Settings, project: Project, path: String): JsonObject? {
+        val commandLine: GeneralCommandLine?
+        var result: ProcessOutput? = null
+
+
+        commandLine = GeneralCommandLine(path)
+        commandLine.environment.put("PSA_TYPE", RequestType.Info.toString())
+        commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
+        commandLine.setWorkDirectory(project.guessProjectDir()?.path)
+
+        result = ExecUtil.execAndGetOutput(
+            commandLine,
+            5000
+        )
+
+
+        if (0 != result.exitCode) {
+           throw Exception(result.stdout + "\n" + result.stderr)
+        }
+
+        return Json.parseToJsonElement(result.stdout).jsonObject
+    }
+
     fun getCompletions(
         settings: Settings,
         element: PsiElement?,
         file: PsiFile?,
         requestType: RequestType,
-        language: Language
+        language: String
     ): JsonObject? {
         if (!settings.pluginEnabled) {
             return null
@@ -71,11 +94,13 @@ class ProjectService(project: Project) {
             return null
         }
 
-        if (!settings.isLanguageEnabled(language)) {
+        if (!settings.isLanguageSupported(language)) {
             return null
         }
-
-        if (file?.containingDirectory.toString().indexOf(settings.getLanguageScriptDir(language)!!) >= 0) {
+        if (
+            file?.name?.indexOf("example") != 0
+            && file?.containingDirectory.toString().indexOf(settings.getScriptDir()!!) >= 0
+            ) {
             return null
         }
 
@@ -86,7 +111,7 @@ class ProjectService(project: Project) {
         val indicator = ProgressManager.getGlobalProgressIndicator()
 
 
-        commandLine = GeneralCommandLine(settings.getLanguageScriptPath(language))
+        commandLine = GeneralCommandLine(settings.scriptPath)
         commandLine.environment.put("PSA_CONTEXT", filePath)
         commandLine.environment.put("PSA_TYPE", requestType.toString())
         commandLine.environment.put("PSA_LANGUAGE", language.toString())

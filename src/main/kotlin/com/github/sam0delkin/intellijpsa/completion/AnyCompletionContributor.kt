@@ -1,7 +1,6 @@
 package com.github.sam0delkin.intellijpsa.completion
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
-import com.github.sam0delkin.intellijpsa.services.Language
 import com.github.sam0delkin.intellijpsa.services.ProjectService
 import com.github.sam0delkin.intellijpsa.services.RequestType
 import com.intellij.codeInsight.completion.*
@@ -65,10 +64,8 @@ data class PsiElementModel(
     val next: PsiElementModel?
 )
 
-class AbstractCompletionContributor() {
-    abstract class Completion : CompletionContributor() {
-        abstract fun getLanguage(): Language
-
+class AnyCompletionContributor() {
+    class Completion : CompletionContributor() {
         init {
             extend(
                 CompletionType.BASIC, PlatformPatterns.psiElement(),
@@ -81,12 +78,18 @@ class AbstractCompletionContributor() {
                         val project = parameters.position.project
                         val projectService = project.service<ProjectService>()
                         val settings = projectService.getSettings()
+                        val language = parameters.originalFile.language
+                        var languageString = language.id
+                        if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
+                            languageString = language.baseLanguage!!.id
+                        }
+
                         val json = projectService.getCompletions(
                             settings,
                             parameters.originalPosition,
                             parameters.originalFile,
                             RequestType.Completion,
-                            getLanguage()
+                            languageString
                         )
 
                         if (null === json) {
@@ -139,8 +142,7 @@ class AbstractCompletionContributor() {
         }
     }
 
-    abstract class GotoDeclaration : GotoDeclarationHandler {
-        abstract fun getLanguage(): Language
+    class GotoDeclaration : GotoDeclarationHandler {
         override fun getGotoDeclarationTargets(
             sourceElement: PsiElement?,
             offset: Int,
@@ -153,8 +155,13 @@ class AbstractCompletionContributor() {
             val project = sourceElement.project
             val projectService = project.service<ProjectService>()
             val settings = projectService.getSettings()
+            val language = sourceElement.containingFile.language
+            var languageString = language.id
+            if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
+                languageString = language.baseLanguage!!.id
+            }
 
-            if (!settings.isElementTypeMatchingFilter(getLanguage(), sourceElement.elementType.printToString())) {
+            if (!settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString())) {
                 return null
             }
 
@@ -164,7 +171,7 @@ class AbstractCompletionContributor() {
                     sourceElement,
                     sourceElement.containingFile,
                     RequestType.GoTo,
-                    getLanguage()
+                    languageString
                 )
 
             if (null === json) {
@@ -179,7 +186,7 @@ class AbstractCompletionContributor() {
                 for (i in json.get("completions") as JsonArray) {
                     val linkData = i.jsonObject.get("link")?.jsonPrimitive!!.content
                     val link = linkData.split(':')
-                    val path = settings.replacePathMappings(this.getLanguage(), link[0])
+                    val path = settings.replacePathMappings(link[0])
                     val virtualFile = fm.findFileByUrl(project.guessProjectDir().toString() + path)
                     if (null !== virtualFile) {
                         val psiFile = pm.findFile(virtualFile)
@@ -203,7 +210,7 @@ class AbstractCompletionContributor() {
 
             if (json.containsKey("goto_element_filter")) {
                 val filter = (json.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }.joinToString(",")
-                settings.setElementFilter(getLanguage(), filter)
+                settings.setElementFilter(filter)
             }
 
             if (json.containsKey("notifications")) {

@@ -1,23 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm">
-  <grid id="27dc6" binding="panel1" layout-manager="GridLayoutManager" row-count="5" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+  <grid id="27dc6" binding="panel1" layout-manager="GridLayoutManager" row-count="9" column-count="6" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="20" y="20" width="913" height="593"/>
+      <xy x="20" y="20" width="562" height="370"/>
     </constraints>
     <properties>
+      <enabled value="true"/>
       <maximumSize width="-1" height="-1"/>
       <opaque value="false"/>
     </properties>
     <border type="none"/>
     <children>
-      <component id="7772b" class="javax.swing.JLabel">
+      <component id="7a522" class="javax.swing.JCheckBox" binding="enabled">
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
-            <preferred-size width="291" height="16"/>
+          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="151" height="16"/>
           </grid>
         </constraints>
         <properties>
+          <horizontalAlignment value="10"/>
+          <horizontalTextPosition value="11"/>
+          <selected value="true"/>
+          <text value=""/>
+        </properties>
+      </component>
+      <component id="59781" class="javax.swing.JCheckBox" binding="debug">
+        <constraints>
+          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="151" height="10"/>
+          </grid>
+        </constraints>
+        <properties>
+          <selected value="true"/>
+          <text value=""/>
+        </properties>
+      </component>
+      <component id="7d3e6" class="com.intellij.openapi.ui.TextFieldWithBrowseButton" binding="scriptPath">
+        <constraints>
+          <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="151" height="30"/>
+          </grid>
+        </constraints>
+        <properties>
+          <text value=".psa/index.php"/>
+        </properties>
+      </component>
+      <component id="add1b" class="com.intellij.execution.util.PathMappingsComponent" binding="pathMappings">
+        <constraints>
+          <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false">
+            <minimum-size width="200" height="-1"/>
+          </grid>
+        </constraints>
+        <properties>
+          <enabled value="true"/>
+          <text value=""/>
+          <toolTipText value="Path mappings for remote execution"/>
+        </properties>
+      </component>
+      <component id="f178e" class="javax.swing.JTextField" binding="supportedLanguages">
+        <constraints>
+          <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="150" height="-1"/>
+          </grid>
+        </constraints>
+        <properties>
+          <enabled value="false"/>
+        </properties>
+      </component>
+      <component id="c5465" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="7" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <text value=""/>
+        </properties>
+      </component>
+      <component id="ab308" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="117" height="16"/>
+          </grid>
+        </constraints>
+        <properties>
+          <horizontalAlignment value="10"/>
+          <horizontalTextPosition value="11"/>
           <opaque value="false"/>
           <text value="Plugin Enabled"/>
           <verticalTextPosition value="0"/>
@@ -27,266 +94,103 @@
           <html.disable class="java.lang.Boolean" value="false"/>
         </clientProperties>
       </component>
-      <component id="7a522" class="javax.swing.JCheckBox" binding="enabled">
-        <constraints>
-          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="4" anchor="8" fill="0" indent="0" use-parent-layout="false">
-            <preferred-size width="18" height="16"/>
-          </grid>
-        </constraints>
-        <properties>
-          <horizontalAlignment value="0"/>
-          <horizontalTextPosition value="0"/>
-          <selected value="true"/>
-          <text value=""/>
-        </properties>
-      </component>
-      <component id="e2ea9" class="javax.swing.JLabel">
+      <component id="7d76c" class="javax.swing.JLabel">
         <constraints>
           <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
-            <preferred-size width="291" height="10"/>
+            <preferred-size width="117" height="16"/>
           </grid>
         </constraints>
         <properties>
+          <horizontalAlignment value="10"/>
+          <horizontalTextPosition value="11"/>
           <text value="Debug"/>
         </properties>
       </component>
-      <component id="59781" class="javax.swing.JCheckBox" binding="debug">
+      <component id="88aa4" class="javax.swing.JLabel">
         <constraints>
-          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
-            <preferred-size width="18" height="10"/>
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="117" height="16"/>
           </grid>
         </constraints>
         <properties>
-          <selected value="true"/>
+          <horizontalAlignment value="10"/>
+          <horizontalTextPosition value="11"/>
+          <text value="Script Path"/>
+        </properties>
+      </component>
+      <component id="10542" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="117" height="16"/>
+          </grid>
+        </constraints>
+        <properties>
+          <horizontalAlignment value="10"/>
+          <horizontalTextPosition value="11"/>
+          <text value="Path Mappings"/>
+        </properties>
+      </component>
+      <component id="29925" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="117" height="16"/>
+          </grid>
+        </constraints>
+        <properties>
+          <horizontalAlignment value="10"/>
+          <horizontalTextPosition value="11"/>
+          <text value="Supported Languages"/>
+          <verticalAlignment value="0"/>
+        </properties>
+      </component>
+      <component id="5c5e4" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="6" column="3" row-span="1" col-span="1" vsize-policy="7" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="117" height="0"/>
+          </grid>
+        </constraints>
+        <properties>
           <text value=""/>
         </properties>
       </component>
-      <tabbedpane id="c49c2" default-binding="true">
+      <component id="818f8" class="javax.swing.JButton" binding="infoButton">
         <constraints>
-          <grid row="2" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false">
-            <preferred-size width="0" height="0"/>
-            <maximum-size width="800" height="300"/>
+          <grid row="2" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="2" indent="0" use-parent-layout="false">
+            <minimum-size width="25" height="25"/>
+            <preferred-size width="25" height="25"/>
+            <maximum-size width="25" height="25"/>
           </grid>
-        </constraints>
-        <properties/>
-        <border type="none"/>
-        <children>
-          <grid id="909aa" layout-manager="GridLayoutManager" row-count="4" column-count="2" same-size-horizontally="true" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints>
-              <tabbedpane title="PHP"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <component id="775b4" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="259" height="28"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Enabled"/>
-                </properties>
-              </component>
-              <component id="2a70d" class="javax.swing.JCheckBox" binding="phpEnabled">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="36" height="28"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <selected value="true"/>
-                  <text value=""/>
-                </properties>
-              </component>
-              <component id="2e4df" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="118" height="16"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Script Path"/>
-                </properties>
-              </component>
-              <component id="efb62" class="com.intellij.openapi.ui.TextFieldWithBrowseButton" binding="phpScriptPath">
-                <constraints>
-                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="1" indent="0" use-parent-layout="false">
-                    <preferred-size width="150" height="-1"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value=".psa/index.php"/>
-                </properties>
-              </component>
-              <component id="4e360" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="Path Mappings"/>
-                </properties>
-              </component>
-              <component id="7498d" class="com.intellij.execution.util.PathMappingsComponent" binding="phpPathMappings">
-                <constraints>
-                  <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <enabled value="true"/>
-                  <text value=""/>
-                </properties>
-              </component>
-            </children>
-          </grid>
-          <grid id="7f8a3" layout-manager="GridLayoutManager" row-count="4" column-count="2" same-size-horizontally="true" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints>
-              <tabbedpane title="JavaScript"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <component id="f1198" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="359" height="10"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Enabled"/>
-                </properties>
-              </component>
-              <component id="4bcdc" class="javax.swing.JCheckBox" binding="jsEnabled">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="18" height="10"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <selected value="true"/>
-                  <text value=""/>
-                </properties>
-              </component>
-              <component id="24b7" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="359" height="16"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Script Path"/>
-                </properties>
-              </component>
-              <component id="fccbf" class="com.intellij.openapi.ui.TextFieldWithBrowseButton" binding="jsScriptPath">
-                <constraints>
-                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
-                    <preferred-size width="150" height="-1"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value=".psa/index.php"/>
-                </properties>
-              </component>
-              <component id="178fb" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="359" height="16"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Path Mappings"/>
-                </properties>
-              </component>
-              <component id="aab9" class="com.intellij.execution.util.PathMappingsComponent" binding="jsPathMappings">
-                <constraints>
-                  <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <enabled value="true"/>
-                  <text value=""/>
-                </properties>
-              </component>
-            </children>
-          </grid>
-          <grid id="3f081" layout-manager="GridLayoutManager" row-count="4" column-count="2" same-size-horizontally="true" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints>
-              <tabbedpane title="TypeScript"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <component id="77957" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="359" height="10"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Enabled"/>
-                </properties>
-              </component>
-              <component id="97742" class="javax.swing.JCheckBox" binding="tsEnabled">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="18" height="10"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <selected value="true"/>
-                  <text value=""/>
-                </properties>
-              </component>
-              <component id="78d44" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="359" height="16"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Script Path"/>
-                </properties>
-              </component>
-              <component id="49dd5" class="com.intellij.openapi.ui.TextFieldWithBrowseButton" binding="tsScriptPath">
-                <constraints>
-                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
-                    <preferred-size width="150" height="-1"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value=".psa/index.php"/>
-                </properties>
-              </component>
-              <component id="70db3" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="1" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <preferred-size width="359" height="16"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Path Mappings"/>
-                </properties>
-              </component>
-              <component id="f91cd" class="com.intellij.execution.util.PathMappingsComponent" binding="tsPathMappings">
-                <constraints>
-                  <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <enabled value="true"/>
-                  <text value=""/>
-                </properties>
-              </component>
-            </children>
-          </grid>
-        </children>
-      </tabbedpane>
-      <component id="fb969" class="javax.swing.JLabel">
-        <constraints>
-          <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="4" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
+          <enabled value="false"/>
+          <horizontalAlignment value="0"/>
+          <horizontalTextPosition value="0"/>
+          <opaque value="true"/>
           <text value=""/>
+          <toolTipText value="Show Info"/>
+        </properties>
+      </component>
+      <component id="53450" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="117" height="16"/>
+          </grid>
+        </constraints>
+        <properties>
+          <horizontalAlignment value="10"/>
+          <horizontalTextPosition value="11"/>
+          <text value="GoTo Element Filter"/>
+          <verticalAlignment value="0"/>
+        </properties>
+      </component>
+      <component id="536d3" class="javax.swing.JTextField" binding="goToElementFilter">
+        <constraints>
+          <grid row="5" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false">
+            <preferred-size width="150" height="-1"/>
+          </grid>
+        </constraints>
+        <properties>
+          <enabled value="false"/>
         </properties>
       </component>
     </children>

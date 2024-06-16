@@ -19,19 +19,12 @@
         <applicationService serviceImplementation="com.github.sam0delkin.intellijpsa.services.MainService"/>
         <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.services.ProjectService"/>
         <completion.contributor
-                language="PHP"
-                implementationClass="com.github.sam0delkin.intellijpsa.completion.PhpCompletionContributor$Completion"/>
-        <completion.contributor
-                language="JavaScript"
-                implementationClass="com.github.sam0delkin.intellijpsa.completion.JsCompletionContributor$Completion"/>
-        <completion.contributor
-                language="TypeScript"
-                implementationClass="com.github.sam0delkin.intellijpsa.completion.TsCompletionContributor$Completion"/>
-        <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.PhpCompletionContributor$GotoDeclaration"/>
-        <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.JsCompletionContributor$GotoDeclaration"/>
-        <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.TsCompletionContributor$GotoDeclaration"/>
+                language="any"
+                implementationClass="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$Completion"/>
+        <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$GotoDeclaration"/>
         <notificationGroup id="PSA Notification"
                            displayType="BALLOON"/>
+        <postStartupActivity implementation="com.github.sam0delkin.intellijpsa.PSAStartupActivity"/>
     </extensions>
 
     <applicationListeners>
