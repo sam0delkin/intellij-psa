@@ -23,14 +23,10 @@ To check how to add custom autocomplete, please read [documentation](https://git
 
 ## Installation
 
-[//]: # (- Using IDE built-in plugin system:)
+- Using IDE built-in plugin system:
+  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > 
+  <kbd>Search for "Project Specific Autocomplete"</kbd> > <kbd>Install Plugin</kbd>
 
-[//]: # (  )
-[//]: # (  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "intellij-psa"</kbd> >)
-
-[//]: # (  <kbd>Install Plugin</kbd>)
-
-[//]: # (  )
 - Manually:
 
   Download the [latest release](https://github.com/sam0delkin/intellij-psa/releases/latest) and install it manually using
