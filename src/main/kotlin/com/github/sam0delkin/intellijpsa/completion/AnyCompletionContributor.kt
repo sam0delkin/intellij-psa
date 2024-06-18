@@ -1,7 +1,7 @@
 package com.github.sam0delkin.intellijpsa.completion
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
-import com.github.sam0delkin.intellijpsa.services.ProjectService
+import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.services.RequestType
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
@@ -52,16 +52,17 @@ data class PsiElementModelChild(
     }
 }
 
-@Serializable
+@Serializable()
 data class PsiElementModel(
-    val elementType: String,
-    val options: MutableMap<String, PsiElementModelChild>,
-    val elementName: String?,
-    val elementFqn: String?,
-    val text: String?,
-    val parent: PsiElementModel?,
-    val prev: PsiElementModel?,
-    val next: PsiElementModel?
+    val id: String,
+    var elementType: String,
+    var options: MutableMap<String, PsiElementModelChild>,
+    var elementName: String?,
+    var elementFqn: String?,
+    var text: String?,
+    var parent: PsiElementModel?,
+    var prev: PsiElementModel?,
+    var next: PsiElementModel?
 )
 
 class AnyCompletionContributor() {
@@ -76,15 +77,15 @@ class AnyCompletionContributor() {
                         resultSet: CompletionResultSet
                     ) {
                         val project = parameters.position.project
-                        val projectService = project.service<ProjectService>()
-                        val settings = projectService.getSettings()
+                        val completionService = project.service<CompletionService>()
+                        val settings = completionService.getSettings()
                         val language = parameters.originalFile.language
                         var languageString = language.id
                         if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
                             languageString = language.baseLanguage!!.id
                         }
 
-                        val json = projectService.getCompletions(
+                        val json = completionService.getCompletions(
                             settings,
                             parameters.originalPosition,
                             parameters.originalFile,
@@ -153,8 +154,8 @@ class AnyCompletionContributor() {
             }
 
             val project = sourceElement.project
-            val projectService = project.service<ProjectService>()
-            val settings = projectService.getSettings()
+            val completionService = project.service<CompletionService>()
+            val settings = completionService.getSettings()
             val language = sourceElement.containingFile.language
             var languageString = language.id
             if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
@@ -166,7 +167,7 @@ class AnyCompletionContributor() {
             }
 
             val json =
-                projectService.getCompletions(
+                completionService.getCompletions(
                     settings,
                     sourceElement,
                     sourceElement.containingFile,

@@ -16,8 +16,7 @@
                 displayName="Project Specific Autocomplete"
                 nonDefaultProject="true"/>
 
-        <applicationService serviceImplementation="com.github.sam0delkin.intellijpsa.services.MainService"/>
-        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.services.ProjectService"/>
+        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.services.CompletionService"/>
         <completion.contributor
                 language="any"
                 implementationClass="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$Completion"/>
@@ -26,9 +25,4 @@
                            displayType="BALLOON"/>
         <postStartupActivity implementation="com.github.sam0delkin.intellijpsa.PSAStartupActivity"/>
     </extensions>
-
-    <applicationListeners>
-        <listener class="com.github.sam0delkin.intellijpsa.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
 </idea-plugin>

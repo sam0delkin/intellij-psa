@@ -3,6 +3,10 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Performance optimizations
+- Prev/Next are now in correct places :) 
+- Prev/Next tree is generated fully
+- Misc code clearings
 
 ## [0.0.4] - 2024-06-16
 - Settings structure is changed. You should reconfigure plugin in setting

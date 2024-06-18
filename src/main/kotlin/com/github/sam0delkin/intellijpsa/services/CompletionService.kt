@@ -24,17 +24,16 @@ import kotlinx.serialization.json.jsonObject
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
+import java.lang.reflect.Method
 import kotlin.reflect.full.memberFunctions
 
 enum class RequestType {
     Completion, GoTo, Info
 }
 
-enum class Language {
-    PHP, JS, TS
-}
+private const val MAX_STRING_LENGTH = 250
 
-class ProjectService(project: Project) {
+class CompletionService(project: Project) {
     private val project: Project
     private val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
     private val ignoredMethods = arrayOf(
@@ -47,6 +46,7 @@ class ProjectService(project: Project) {
         "getTreeNext",
         "copyElement"
     )
+    private val elementIgnoredMethods = HashMap<String, List<Method>>()
 
     init {
         this.project = project
@@ -56,9 +56,9 @@ class ProjectService(project: Project) {
         return this.project.service<Settings>()
     }
 
-    fun getInfo(settings: Settings, project: Project, path: String): JsonObject? {
+    fun getInfo(settings: Settings, project: Project, path: String): JsonObject {
         val commandLine: GeneralCommandLine?
-        var result: ProcessOutput? = null
+        val result: ProcessOutput?
 
 
         commandLine = GeneralCommandLine(path)
@@ -104,7 +104,8 @@ class ProjectService(project: Project) {
             return null
         }
 
-        val data = Json.encodeToString(psiElementToModel(element))
+        val model = psiElementToModel(element)
+        val data = Json.encodeToString(model)
         val filePath = this.writeToFile("psa_tmp", data)
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
@@ -114,7 +115,7 @@ class ProjectService(project: Project) {
         commandLine = GeneralCommandLine(settings.scriptPath)
         commandLine.environment.put("PSA_CONTEXT", filePath)
         commandLine.environment.put("PSA_TYPE", requestType.toString())
-        commandLine.environment.put("PSA_LANGUAGE", language.toString())
+        commandLine.environment.put("PSA_LANGUAGE", language)
         commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
         commandLine.setWorkDirectory(element.project.guessProjectDir()?.path)
 
@@ -156,41 +157,45 @@ class ProjectService(project: Project) {
         processParent: Boolean = true,
         processOptions: Boolean = true,
         processChildOptions: Boolean = true,
+        processNext: Boolean = true,
+        processPrev: Boolean = true,
         processedElements: ArrayList<PsiElement>? = null
     ): PsiElementModel {
         val currentProcessedElements = if (null !== processedElements) processedElements else ArrayList()
         val options = mutableMapOf<String, PsiElementModelChild>()
-        val methods = element.javaClass.methods.filter { method ->
-            !this.baseMethods.contains(method.name)
-                    && !this.ignoredMethods.contains(method.name)
-                    && method.parameterTypes.isEmpty()
-        }
-
         val elementType = element.elementType.printToString()
+        val methods: List<Method>
+
+        if (this.elementIgnoredMethods[elementType] !== null) {
+            methods = this.elementIgnoredMethods[elementType]!!
+        } else {
+            methods = element.javaClass.methods.filter { method ->
+                !this.baseMethods.contains(method.name)
+                        && !this.ignoredMethods.contains(method.name)
+                        && method.parameterTypes.isEmpty()
+            }
+            this.elementIgnoredMethods[elementType] = methods
+        }
+
         var elementName: String? = null
-        var elementFqn: String? = null
-        val nameMethod = element.javaClass.methods.filter { el -> el.name === "name" }
-
-        if (nameMethod.isNotEmpty()) {
-            elementName = nameMethod[0].invoke(element) as String
-        }
-
-        val fqnMethod = element.javaClass.methods.filter { el -> el.name === "name" }
-
-        if (fqnMethod.isNotEmpty()) {
-            elementFqn = fqnMethod[0].invoke(element) as String
-        }
+        val elementFqn: String? = null
+        try {
+            val nameMethod = element.javaClass.methods.first { el -> el.name === "name" }
+            elementName = nameMethod.invoke(element) as String
+        } catch (_: NoSuchElementException) {}
 
         var elementText = element.text
-        if (elementText.length > 250) {
-            elementText = elementText.substring(0, 250)
+        if (elementText.length > MAX_STRING_LENGTH) {
+            elementText = elementText.substring(0, MAX_STRING_LENGTH)
         }
         var parentElement: PsiElementModel? = null
         var nextElement: PsiElementModel? = null
         var prevElement: PsiElementModel? = null
+        val hashCode: String = System.identityHashCode(element).toString()
 
         if (currentProcessedElements.contains(element)) {
             return PsiElementModel(
+                hashCode,
                 elementType,
                 options,
                 elementName,
@@ -238,6 +243,8 @@ class ProjectService(project: Project) {
                             false,
                             true,
                             false,
+                            false,
+                            false,
                             currentProcessedElements
                         ), null
                     )
@@ -249,6 +256,8 @@ class ProjectService(project: Project) {
                             item,
                             false,
                             true,
+                            false,
+                            false,
                             false,
                             currentProcessedElements
                         )
@@ -262,36 +271,49 @@ class ProjectService(project: Project) {
 
         if (element.parent !== null && processParent) {
             parentElement =
-                this.psiElementToModel(element.parent, true, true, true, currentProcessedElements)
+                this.psiElementToModel(
+                    element.parent,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    currentProcessedElements
+                )
         }
-        if (element.nextSibling !== null && processParent) {
+        if (processNext && element.nextSibling !== null) {
             nextElement = this.psiElementToModel(
                 element.nextSibling,
                 false,
                 true,
                 true,
+                true,
+                false,
                 currentProcessedElements
             )
         }
-        if (element.prevSibling !== null && processParent) {
+        if (processPrev && element.prevSibling !== null) {
             prevElement = this.psiElementToModel(
                 element.prevSibling,
                 false,
                 true,
+                true,
+                false,
                 true,
                 currentProcessedElements
             )
         }
 
         return PsiElementModel(
+            hashCode,
             elementType,
             options,
             elementName,
             elementFqn,
             elementText,
             parentElement,
-            nextElement,
-            prevElement
+            prevElement,
+            nextElement
         )
     }
 

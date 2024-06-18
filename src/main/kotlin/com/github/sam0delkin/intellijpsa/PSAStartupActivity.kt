@@ -1,6 +1,6 @@
 package com.github.sam0delkin.intellijpsa
 
-import com.github.sam0delkin.intellijpsa.services.ProjectService
+import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.notification.NotificationGroupManager
@@ -25,22 +25,24 @@ class PSAStartupActivity: ProjectActivity {
     }
 
     override suspend fun execute(project: Project) {
-        val plugin = getPluginById("com.github.sam0delkin.intellijpsa");
+        val plugin = getPluginById("com.github.sam0delkin.intellijpsa")
         if (null === plugin) {
             return
         }
 
-        val settings = project.service<ProjectService>().getSettings()
-        val pluginVersion = plugin.version;
-        val changeNotes = Optional.ofNullable(plugin.changeNotes).orElse("");
+        val settings = project.service<CompletionService>().getSettings()
+        val pluginVersion = plugin.version
+        val changeNotes = Optional.ofNullable(plugin.changeNotes).orElse("")
 
         if (pluginVersion != settings.pluginVersion) {
             settings.pluginVersion = pluginVersion
             NotificationGroupManager.getInstance()
                 .getNotificationGroup("PSA Notification")
                 .createNotification(changeNotes, NotificationType.INFORMATION)
-                .setTitle("Project Specific Autocomplete Update")
-                .notify(project);
+                .setTitle(buildString {
+        append("Project Specific Autocomplete Update")
+    })
+                .notify(project)
         }
     }
 }

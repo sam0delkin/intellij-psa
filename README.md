@@ -464,7 +464,6 @@ And the full working example:
       "type": "MyType"
     }
   ],
-  "goto_element_filter":  ["single quoted string", "double quoted string"],
   "notifications": [
     {
       "type": "info",
@@ -595,9 +594,9 @@ if (!checkElement($context)) {
 
 When you're clicking (Ctrl/Command + Click) by **any** element in the IDE editor, IDE is calling all GoTo
 contributors, regardless of language or any other things. And there is no way to know - does your custom autocomplete
-will resolve the reference or not. For this purposes, there is an additional option were added: `goto_element_filter`.
+will resolve the reference or not. For these purposes, there is an additional option were added: `goto_element_filter`.
 Here your script should return an array of element types to filter GoTo references. It will be saved first time your
-script will be called and then will ignore all elements that are not matching the types provided.
+script will be called with [Info](#custom-autocomplete-info) call and then will ignore all elements that are not matching the types provided.
 
 ## Ideas / ToDo
 

@@ -1,6 +1,6 @@
 package com.github.sam0delkin.intellijpsa.settings
 
-import com.github.sam0delkin.intellijpsa.services.ProjectService
+import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.intellij.execution.util.PathMappingsComponent
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
@@ -67,31 +67,29 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         this.infoButton.icon = AllIcons.General.BalloonInformation
         this.infoButton.addActionListener { e ->
             run {
-                val service = project.service<ProjectService>()
+                val service = project.service<CompletionService>()
                 try {
                     this.goToElementFilter.setText("")
                     this.supportedLanguages.setText("")
                     val info = service.getInfo(settings, project, this.scriptPath.text)
-                    if (info != null) {
-                        var filter = ""
-                        var languages = ""
-                        if (info.containsKey("goto_element_filter")) {
-                            filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
-                                .joinToString(",")
-                            this.goToElementFilter.setText(filter)
-                        }
-                        if (info.containsKey("supported_languages")) {
-                            languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
-                                .joinToString(",")
-                            this.supportedLanguages.setText(languages)
-                        }
-
-                        val tooltip = com.intellij.ui.GotItTooltip(
-                            "PSA",
-                            "Successfully retrieved info: <br />Supported Languages: $languages<br />GoTo Element Filter: $filter"
-                        ).withIcon(AllIcons.General.BalloonInformation)
-                        tooltip.createAndShow(this.infoButton) { c, _ -> Point(c.width, c.height / 2) }
+                    var filter = ""
+                    var languages = ""
+                    if (info.containsKey("goto_element_filter")) {
+                        filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
+                            .joinToString(",")
+                        this.goToElementFilter.setText(filter)
                     }
+                    if (info.containsKey("supported_languages")) {
+                        languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
+                            .joinToString(",")
+                        this.supportedLanguages.setText(languages)
+                    }
+
+                    val tooltip = com.intellij.ui.GotItTooltip(
+                        "PSA",
+                        "Successfully retrieved info: <br />Supported Languages: $languages<br />GoTo Element Filter: $filter"
+                    ).withIcon(AllIcons.General.BalloonInformation)
+                    tooltip.createAndShow(this.infoButton) { c, _ -> Point(c.width, c.height / 2) }
                 } catch (e: Exception) {
                     val tooltip = com.intellij.ui.GotItTooltip(
                         "PSA",
@@ -151,7 +149,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
     }
 
     private val settings: Settings
-        get() = project.service<ProjectService>().getSettings()
+        get() = project.service<CompletionService>().getSettings()
 
     private fun createBrowseFolderListener(
         textField: JTextField,
