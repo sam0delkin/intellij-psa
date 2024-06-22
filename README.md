@@ -320,7 +320,7 @@ then you'll receive the following JSON in the filepath, passed from `PSA_CONTEXT
 </details>
 
 > [!NOTE]
-> In the output above the `options` option is omitted to make output less size.
+> In the output above the `options` and `textRange` options are omitted to make output less size.
 
 ## Documentation
 
@@ -339,14 +339,14 @@ as project root.
 To configure your autocomplete, follow these actions:
 1) Check the `Plugin Enabled` checkbox (1) for enable plugin
 2) Specify a path to your executable in the `Script Path` field (3)
-3) CLick the (i) icon right to the `Script Path` field to retrieve info from your executable
+3) Click the ![info](src/main/resources/doc/images/balloonInformation.svg) icon right to the `Script Path` field to retrieve info from your executable
 4) After that fields `Supported Languages` (5) and optionally `GoTo Element Filter` (6) will be filled automatically in
 case of your script is return data in valid format
 5) Save settings
 
 ### Custom autocomplete info
 
-When you installed and enabled plugin, and you click the (i) icon right to the `Script Path` field, IDE will run
+When you installed and enabled plugin, and you click the ![info](src/main/resources/doc/images/balloonInformation.svg) icon right to the `Script Path` field, IDE will run
 your executable script to retrieve supported languages + GoTo element filter (for 
 [performance optimizations](#goto-optimizations)). In this case only 2 ENV variables would be passed to your executable:
 * `PSA_TYPE` - will be `Info`.
@@ -386,6 +386,7 @@ Here is the full list of ENV variables passed to the executable:
 * `PSA_TYPE` - may be either `Completion` or `GoTo`. Type of the execution.
 * `PSA_LANGUAGE` - language which is caused the autocomplete/resolving reference (`PHP`, `JS`, ...).
 * `PSA_DEBUG` - `1` in case of debug is enabled in plugin settings and `0` otherwise.
+* `PSA_OFFSET` - shows cursor position within current element in editor.
 
 So, you can parse the JSON and analyze it for your needs. This JSON has a tree structure, and each element will have
 the following structure:
@@ -404,7 +405,11 @@ the following structure:
   "text": "string",
   "parent": "additional tree element",
   "prev": "additional tree element",
-  "next": "additional tree element"
+  "next": "additional tree element",
+  "textRange": {
+    "startOffset": "integer, start PSI element position is the file",
+    "endOffset": "integer, end PSI element position is the file"
+  }
 }
 ```
 </details>
@@ -596,14 +601,15 @@ When you're clicking (Ctrl/Command + Click) by **any** element in the IDE editor
 contributors, regardless of language or any other things. And there is no way to know - does your custom autocomplete
 will resolve the reference or not. For these purposes, there is an additional option were added: `goto_element_filter`.
 Here your script should return an array of element types to filter GoTo references. It will be saved first time your
-script will be called with [Info](#custom-autocomplete-info) call and then will ignore all elements that are not matching the types provided.
+script will be called with [Info](#custom-autocomplete-info) call and then will ignore all elements that are not matching
+the types provided.
 
 ## Ideas / ToDo
 
 - [x] Add support of autocomplete
 - [x] Add support of GoTo
-- [ ] Add support of intentions
 - [ ] Add support of custom code templates with variables
+- [ ] Add support of intentions
 
 ## FAQ / How To
 
@@ -622,3 +628,9 @@ See [example](examples/api).
 
 **A:** That's really great 😊. Please, [fork](https://github.com/sam0delkin/intellij-psa/fork) the repository and then
 create a [pull request](https://github.com/sam0delkin/intellij-psa/compare).
+
+---
+Plugin based on the [IntelliJ Platform Plugin Template][template].
+
+[template]: https://github.com/JetBrains/intellij-platform-plugin-template
+[docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation

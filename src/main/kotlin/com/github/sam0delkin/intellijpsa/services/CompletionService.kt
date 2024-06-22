@@ -1,7 +1,5 @@
 package com.github.sam0delkin.intellijpsa.services
 
-import com.github.sam0delkin.intellijpsa.completion.PsiElementModel
-import com.github.sam0delkin.intellijpsa.completion.PsiElementModelChild
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
@@ -17,6 +15,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.elementType
 import com.jetbrains.rd.util.string.printToString
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -26,6 +26,54 @@ import java.io.File
 import java.io.FileWriter
 import java.lang.reflect.Method
 import kotlin.reflect.full.memberFunctions
+
+@Serializable
+data class PsiElementModelChild(
+    val model: PsiElementModel? = null,
+    var string: String? = null,
+    var array: Array<PsiElementModel?>? = null
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as PsiElementModelChild
+
+        if (model != other.model) return false
+        if (string != other.string) return false
+        if (array != null) {
+            if (other.array == null) return false
+            if (!array.contentEquals(other.array)) return false
+        } else if (other.array != null) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = model?.hashCode() ?: 0
+        result = 31 * result + (string?.hashCode() ?: 0)
+        result = 31 * result + (array?.contentHashCode() ?: 0)
+        return result
+    }
+}
+
+@Serializable
+data class PsiElementModelTextRange(var startOffset: Int, var endOffset: Int)
+
+@Serializable()
+data class PsiElementModel(
+    val id: String,
+    var elementType: String,
+    var options: MutableMap<String, PsiElementModelChild>,
+    var elementName: String?,
+    var elementFqn: String?,
+    var text: String?,
+    var parent: PsiElementModel?,
+    var prev: PsiElementModel?,
+    var next: PsiElementModel?,
+    @Contextual
+    var textRange: PsiElementModelTextRange?,
+)
 
 enum class RequestType {
     Completion, GoTo, Info
@@ -84,7 +132,8 @@ class CompletionService(project: Project) {
         element: PsiElement?,
         file: PsiFile?,
         requestType: RequestType,
-        language: String
+        language: String,
+        editorOffset: Int? = null
     ): JsonObject? {
         if (!settings.pluginEnabled) {
             return null
@@ -116,6 +165,7 @@ class CompletionService(project: Project) {
         commandLine.environment.put("PSA_CONTEXT", filePath)
         commandLine.environment.put("PSA_TYPE", requestType.toString())
         commandLine.environment.put("PSA_LANGUAGE", language)
+        commandLine.environment.put("PSA_OFFSET", if (null !== editorOffset) editorOffset.toString() else "")
         commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
         commandLine.setWorkDirectory(element.project.guessProjectDir()?.path)
 
@@ -203,7 +253,8 @@ class CompletionService(project: Project) {
                 elementText,
                 null,
                 null,
-                null
+                null,
+                null,
             )
         }
 
@@ -251,9 +302,9 @@ class CompletionService(project: Project) {
                 } else if (result is Array<*> && result.isArrayOf<PsiElement>() && processOptions && processChildOptions) {
                     val arr: Array<PsiElementModel?> = arrayOfNulls(result.size)
 
-                    for ((index, item) in (result as Array<PsiElement>).withIndex()) {
+                    for ((index, item) in (result).withIndex()) {
                         arr[index] = this.psiElementToModel(
-                            item,
+                            item as PsiElement,
                             false,
                             true,
                             false,
@@ -313,7 +364,11 @@ class CompletionService(project: Project) {
             elementText,
             parentElement,
             prevElement,
-            nextElement
+            nextElement,
+            if (null !== element.textRange) PsiElementModelTextRange(
+                element.textRange.startOffset,
+                element.textRange.endOffset
+            ) else null,
         )
     }
 

@@ -65,7 +65,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         )
 
         this.infoButton.icon = AllIcons.General.BalloonInformation
-        this.infoButton.addActionListener { e ->
+        this.infoButton.addActionListener {
             run {
                 val service = project.service<CompletionService>()
                 try {
