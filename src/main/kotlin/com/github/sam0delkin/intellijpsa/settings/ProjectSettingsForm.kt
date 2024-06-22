@@ -4,123 +4,142 @@ import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.intellij.execution.util.PathMappingsComponent
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.ui.components.JBCheckBox
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.annotations.Nls
 import java.awt.Point
 import java.awt.event.ActionEvent
 import java.nio.file.Path
-import javax.swing.JButton
-import javax.swing.JCheckBox
 import javax.swing.JComponent
-import javax.swing.JPanel
 import javax.swing.JTextField
+import com.intellij.ui.dsl.builder.*
 
 class ProjectSettingsForm(private val project: Project) : Configurable {
-    private lateinit var panel1: JPanel
-    private lateinit var enabled: JCheckBox
-    private lateinit var debug: JCheckBox
-    private lateinit var scriptPath: TextFieldWithBrowseButton
-    private lateinit var pathMappings: PathMappingsComponent
-    private lateinit var supportedLanguages: JTextField
-    private lateinit var goToElementFilter: JTextField
-    private lateinit var infoButton: JButton
+    private lateinit var enabled: Cell<JBCheckBox>
+    private lateinit var debug: Cell<JBCheckBox>
+    private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
+    private lateinit var pathMappings: Cell<PathMappingsComponent>
+    private lateinit var supportedLanguages: Cell<JTextField>
+    private lateinit var goToElementFilter: Cell<JTextField>
+    private lateinit var infoButton: Cell<ActionButton>
+
+    fun createComponents(): DialogPanel {
+        val self = this
+        val panel = panel {
+            row("Plugin Enabled") {
+                enabled = checkBox("")
+            }
+            group {
+                row("Debug") {
+                    debug = checkBox("")
+                }.rowComment("Debug mode. Passed as `PSA_DEBUG` into the executable script")
+                row("Script Path") {
+                    scriptPath = textFieldWithBrowseButton()
+                        .gap(RightGap.SMALL)
+                        .align(AlignX.LEFT)
+                    scriptPath.component.addBrowseFolderListener(
+                        createBrowseFolderListener(
+                            scriptPath.component.textField,
+                            FileChooserDescriptorFactory
+                                .createSingleFileDescriptor()
+                                .withShowHiddenFiles(true)
+                                .withFileFilter { e ->
+                                    java.nio.file.Files.isExecutable(Path.of(e.path))
+                                }
+                        )
+                    )
+                    val action = object : DumbAwareAction("Get info from your executable script", "", AllIcons.General.BalloonInformation) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            val service = project.service<CompletionService>()
+                            try {
+                                self.goToElementFilter.component.setText("")
+                                self.supportedLanguages.component.setText("")
+                                val info = service.getInfo(settings, project, self.scriptPath.component.text)
+                                var filter = ""
+                                var languages = ""
+                                if (info.containsKey("goto_element_filter")) {
+                                    filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
+                                        .joinToString(",")
+                                    self.goToElementFilter.component.setText(filter)
+                                }
+                                if (info.containsKey("supported_languages")) {
+                                    languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
+                                        .joinToString(",")
+                                    self.supportedLanguages.component.setText(languages)
+                                }
+
+                                val tooltip = com.intellij.ui.GotItTooltip(
+                                    "PSA",
+                                    "Successfully retrieved info: <br />Supported Languages: $languages<br />GoTo Element Filter: $filter"
+                                ).withIcon(AllIcons.General.BalloonInformation)
+                                tooltip.createAndShow(self.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
+                            } catch (e: Exception) {
+                                val tooltip = com.intellij.ui.GotItTooltip(
+                                    "PSA",
+                                    "Error during retrieve info: <br />" + e.message
+                                ).withIcon(AllIcons.General.BalloonError)
+                                    .withButtonLabel("OK")
+                                    .withSecondaryButton("Help", { BrowserUtil.browse("https://github.com/sam0delkin/intellij-psa#documentation") })
+                                tooltip.createAndShow(self.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
+                            }
+                        }
+                    }
+                    infoButton = actionButton(action)
+                }.rowComment("Path to the PSA executable script. Must be an executable file")
+                row("Path Mappings") {
+                    val pathMappingsComponent = PathMappingsComponent()
+                    pathMappingsComponent.text = ""
+                    pathMappings = cell(pathMappingsComponent)
+                }.rowComment("Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`\n" +
+                        "as project root")
+                row("Supported Languages") {
+                    supportedLanguages = textField().enabled(false)
+                }.rowComment("Programming languages supported by your autocompletion")
+                row("GoTO Element Filter") {
+                    goToElementFilter = textField().enabled(false)
+                }.rowComment("GoTo element filter returned by you autocompletion. Read more in \n" +
+                        "<a href=\"https://github.com/sam0delkin/intellij-psa#goto-optimizations\">performance</a> documentation section.")
+            }.enabledIf(enabled.selected).rowComment("For more info, please check the <a href=\"https://github.com/sam0delkin/intellij-psa#documentation\">documentation</a>.")
+        }
+
+        return panel
+    }
 
     override fun createComponent(): JComponent {
-        this.enabled.addItemListener { e ->
-            if ((e.source as JCheckBox).isSelected) {
-                this.scriptPath.setEnabled(true)
-                this.pathMappings.setEnabled(true)
-                this.debug.setEnabled(true)
-                this.updateInfoButtonEnabled()
-            } else {
-                this.scriptPath.setEnabled(false)
-                this.pathMappings.setEnabled(false)
-                this.debug.setEnabled(false)
-                this.updateInfoButtonEnabled()
-            }
-        }
-
-        this.scriptPath.addBrowseFolderListener(
-            createBrowseFolderListener(
-                this.scriptPath.textField,
-                FileChooserDescriptorFactory
-                    .createSingleFileDescriptor()
-                    .withShowHiddenFiles(true)
-                    .withFileFilter { e ->
-                        java.nio.file.Files.isExecutable(Path.of(e.path))
-                    }
-            )
-        )
-
-        this.infoButton.icon = AllIcons.General.BalloonInformation
-        this.infoButton.addActionListener {
-            run {
-                val service = project.service<CompletionService>()
-                try {
-                    this.goToElementFilter.setText("")
-                    this.supportedLanguages.setText("")
-                    val info = service.getInfo(settings, project, this.scriptPath.text)
-                    var filter = ""
-                    var languages = ""
-                    if (info.containsKey("goto_element_filter")) {
-                        filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
-                            .joinToString(",")
-                        this.goToElementFilter.setText(filter)
-                    }
-                    if (info.containsKey("supported_languages")) {
-                        languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
-                            .joinToString(",")
-                        this.supportedLanguages.setText(languages)
-                    }
-
-                    val tooltip = com.intellij.ui.GotItTooltip(
-                        "PSA",
-                        "Successfully retrieved info: <br />Supported Languages: $languages<br />GoTo Element Filter: $filter"
-                    ).withIcon(AllIcons.General.BalloonInformation)
-                    tooltip.createAndShow(this.infoButton) { c, _ -> Point(c.width, c.height / 2) }
-                } catch (e: Exception) {
-                    val tooltip = com.intellij.ui.GotItTooltip(
-                        "PSA",
-                        "Error during retrieve info: <br />" + e.message
-                    ).withIcon(AllIcons.General.BalloonError)
-                        .withButtonLabel("OK")
-                        .withSecondaryButton("Help", { BrowserUtil.browse("https://github.com/sam0delkin/intellij-psa#documentation") })
-                    tooltip.createAndShow(this.infoButton) { c, _ -> Point(c.width, c.height / 2) }
-                }
-            }
-        }
-        this.updateInfoButtonEnabled()
-
-        return this.panel1
+        return this.createComponents()
     }
 
     fun updateInfoButtonEnabled() {
-        this.infoButton.setEnabled(this.enabled.isSelected && this.scriptPath.text !== "")
+        this.infoButton.component.setEnabled(this.enabled.component.isSelected && this.scriptPath.component.text !== "")
     }
 
     override fun isModified(): Boolean {
         return (
-                enabled.isSelected != settings.pluginEnabled
-                        || debug.isSelected != settings.debug
+                enabled.component.isSelected != settings.pluginEnabled
+                        || debug.component.isSelected != settings.debug
 
-                        || scriptPath.text != settings.scriptPath
-                        || pathMappings.mappingSettings.pathMappings.map { el -> el.localRoot + " ->" + el.remoteRoot }
+                        || scriptPath.component.text != settings.scriptPath
+                        || pathMappings.component.mappingSettings.pathMappings.map { el -> el.localRoot + " ->" + el.remoteRoot }
                     .joinToString(",") != settings.pathMappings?.map { el -> el.localRoot + " ->" + el.remoteRoot }
                     ?.joinToString(",")
-                        || supportedLanguages.text != settings.supportedLanguages
-                        || goToElementFilter.text != settings.goToFilter
+                        || supportedLanguages.component.text != settings.supportedLanguages
+                        || goToElementFilter.component.text != settings.goToFilter
 
                 )
     }
@@ -131,21 +150,21 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
 
     @Throws(ConfigurationException::class)
     override fun apply() {
-        settings.pluginEnabled = enabled.isSelected
-        settings.debug = debug.isSelected
-        settings.scriptPath = scriptPath.text.trim()
-        settings.pathMappings = pathMappings.mappingSettings.pathMappings.toTypedArray()
-        settings.supportedLanguages = supportedLanguages.text
-        settings.goToFilter = goToElementFilter.text
+        settings.pluginEnabled = enabled.component.isSelected
+        settings.debug = debug.component.isSelected
+        settings.scriptPath = scriptPath.component.text.trim()
+        settings.pathMappings = pathMappings.component.mappingSettings.pathMappings.toTypedArray()
+        settings.supportedLanguages = supportedLanguages.component.text
+        settings.goToFilter = goToElementFilter.component.text
     }
 
     private fun updateUIFromSettings() {
-        enabled.setSelected(settings.pluginEnabled)
-        debug.setSelected(settings.debug)
-        scriptPath.setText(settings.scriptPath)
-        settings.pathMappings?.map { el -> pathMappings.mappingSettings.add(el) }
-        supportedLanguages.setText(settings.supportedLanguages)
-        goToElementFilter.setText(settings.goToFilter)
+        enabled.component.setSelected(settings.pluginEnabled)
+        debug.component.setSelected(settings.debug)
+        scriptPath.component.setText(settings.scriptPath)
+        settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
+        supportedLanguages.component.setText(settings.supportedLanguages)
+        goToElementFilter.component.setText(settings.goToFilter)
     }
 
     private val settings: Settings

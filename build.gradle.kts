@@ -26,7 +26,6 @@ plugins {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-    implementation(group = "com.intellij", name = "forms_rt", version = "7.0.3")
 }
 
 
