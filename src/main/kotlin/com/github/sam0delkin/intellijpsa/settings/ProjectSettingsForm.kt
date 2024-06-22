@@ -28,6 +28,7 @@ import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JTextField
 import com.intellij.ui.dsl.builder.*
+import java.awt.Dimension
 
 class ProjectSettingsForm(private val project: Project) : Configurable {
     private lateinit var enabled: Cell<JBCheckBox>
@@ -62,6 +63,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                                 }
                         )
                     )
+                    @Suppress("DialogTitleCapitalization")
                     val action = object : DumbAwareAction("Get info from your executable script", "", AllIcons.General.BalloonInformation) {
                         override fun actionPerformed(e: AnActionEvent) {
                             val service = project.service<CompletionService>()
@@ -105,13 +107,14 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                 row("Path Mappings") {
                     val pathMappingsComponent = PathMappingsComponent()
                     pathMappingsComponent.text = ""
+                    pathMappingsComponent.minimumSize = Dimension(200, 0)
                     pathMappings = cell(pathMappingsComponent)
                 }.rowComment("Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`\n" +
                         "as project root")
                 row("Supported Languages") {
                     supportedLanguages = textField().enabled(false)
                 }.rowComment("Programming languages supported by your autocompletion")
-                row("GoTO Element Filter") {
+                row("GoTo Element Filter") {
                     goToElementFilter = textField().enabled(false)
                 }.rowComment("GoTo element filter returned by you autocompletion. Read more in \n" +
                         "<a href=\"https://github.com/sam0delkin/intellij-psa#goto-optimizations\">performance</a> documentation section.")
@@ -163,6 +166,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         debug.component.setSelected(settings.debug)
         scriptPath.component.setText(settings.scriptPath)
         settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
+        pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
         supportedLanguages.component.setText(settings.supportedLanguages)
         goToElementFilter.component.setText(settings.goToFilter)
     }

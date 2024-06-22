@@ -3,6 +3,7 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Small typo fixes
 
 ## [0.0.6] - 2024-06-22
 - Added `textRange` to the `PSA_CONTEXT` ENV variable. Shows PSI element position is the file
