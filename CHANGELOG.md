@@ -5,7 +5,8 @@
 ## [Unreleased]
 - Added `textRange` to the `PSA_CONTEXT` ENV variable. Shows PSI element position is the file
 - Added `PSA_OFFSET` ENV variable. Shows cursor position within current element in editor
-- Moved settings form to Kotlin UI DSL + improved it a lot.
+- Moved settings form to Kotlin UI DSL + improved it a lot
+- Changed IDE minimum version to 2022.1 to support old IDEs
 
 ## [0.0.5] - 2024-06-18
 - Performance optimizations

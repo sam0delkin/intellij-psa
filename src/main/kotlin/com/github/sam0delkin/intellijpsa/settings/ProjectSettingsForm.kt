@@ -3,7 +3,6 @@ package com.github.sam0delkin.intellijpsa.settings
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.intellij.execution.util.PathMappingsComponent
 import com.intellij.icons.AllIcons
-import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.components.service
@@ -52,7 +51,6 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                 row("Script Path") {
                     scriptPath = textFieldWithBrowseButton()
                         .gap(RightGap.SMALL)
-                        .align(AlignX.LEFT)
                     scriptPath.component.addBrowseFolderListener(
                         createBrowseFolderListener(
                             scriptPath.component.textField,
@@ -87,15 +85,17 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                                 val tooltip = com.intellij.ui.GotItTooltip(
                                     "PSA",
                                     "Successfully retrieved info: <br />Supported Languages: $languages<br />GoTo Element Filter: $filter"
-                                ).withIcon(AllIcons.General.BalloonInformation)
+                                )
+                                    .withIcon(AllIcons.General.BalloonInformation)
+                                    .withButtonLabel("OK")
                                 tooltip.createAndShow(self.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
                             } catch (e: Exception) {
                                 val tooltip = com.intellij.ui.GotItTooltip(
                                     "PSA",
-                                    "Error during retrieve info: <br />" + e.message
+                                    "Error during retrieve info: <br />" + e.message + "<br /><br /> For help, please " +
+                                            "check the <a href=\"https://github.com/sam0delkin/intellij-psa#documentation\">documentation</a>"
                                 ).withIcon(AllIcons.General.BalloonError)
                                     .withButtonLabel("OK")
-                                    .withSecondaryButton("Help", { BrowserUtil.browse("https://github.com/sam0delkin/intellij-psa#documentation") })
                                 tooltip.createAndShow(self.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
                             }
                         }

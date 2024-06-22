@@ -5,6 +5,7 @@
       <option name="env">
         <map>
           <entry key="ORG_GRADLE_PROJECT_platformType" value="PS" />
+          <entry key="ORG_GRADLE_PROJECT_platformVersion" value="2024.1" />
         </map>
       </option>
       <option name="executionName" />

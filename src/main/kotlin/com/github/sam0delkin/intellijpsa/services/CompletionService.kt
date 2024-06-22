@@ -173,7 +173,7 @@ class CompletionService(project: Project) {
             result = ExecUtil.execAndGetOutput(
                 commandLine
             )
-        }, indicator)
+        }, indicator!!)
 
         try {
             val fileVal = File(filePath)

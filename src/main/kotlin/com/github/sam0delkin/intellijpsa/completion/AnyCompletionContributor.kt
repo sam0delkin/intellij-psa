@@ -152,7 +152,7 @@ class AnyCompletionContributor() {
                         if (null !== psiFile) {
                             if (link.count() > 1) {
                                 val position =
-                                    StringUtils.ordinalIndexOf(psiFile.fileDocument.text, "\n", link[1].toInt())
+                                    StringUtils.ordinalIndexOf(psiFile.originalFile.text, "\n", link[1].toInt())
                                 val element = psiFile.findElementAt(position)
                                 if (null !== element) {
                                     psiElements.add(element)

@@ -23,6 +23,5 @@
         <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$GotoDeclaration"/>
         <notificationGroup id="PSA Notification"
                            displayType="BALLOON"/>
-        <postStartupActivity implementation="com.github.sam0delkin.intellijpsa.PSAStartupActivity"/>
     </extensions>
 </idea-plugin>
