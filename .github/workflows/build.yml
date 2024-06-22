@@ -32,17 +32,26 @@ jobs:
       version: ${{ steps.properties.outputs.version }}
       changelog: ${{ steps.properties.outputs.changelog }}
     steps:
-
       # Free GitHub Actions Environment Disk Space
-      - name: Maximize Build Space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v3
+        with:
+          remove-android: 'true'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+          remove-large-packages: 'true'
+          remove-cached-tools: 'true'
 
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v3
+
+      - name: Check Free Space
+        run: |
+          echo "Free space:"
+          df -h
 
       # Validate wrapper
       - name: Gradle Wrapper Validation
@@ -97,7 +106,7 @@ jobs:
       - name: Setup Plugin Verifier IDEs Cache
         uses: actions/cache@v3
         with:
-          path: ${{ steps.properties.outputs.pluginVerifierHomeDir }}/ides
+          path: ~/.cache/pluginVerifier/ides
           key: plugin-verifier-${{ hashFiles('build/listProductsReleases.txt') }}
 
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
