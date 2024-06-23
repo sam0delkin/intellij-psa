@@ -13,9 +13,53 @@ if ('Info' === $type) {
         'goto_element_filter' => [
             'single quoted string',
             'double quoted string',
-        ]
+        ],
+        'templates' => [[
+            'type' => 'single_file',
+            'name' => 'my_awesome_template',
+            'title' => 'My Awesome Template',
+            'path_regex' => '^/src/[^/]+/$',
+            'fields' => [
+                [
+                    'name' => 'className',
+                    'title' => 'Class Name',
+                    'type' => 'Text',
+                    'options' => [],
+                ],
+                [
+                    'name' => 'abstract',
+                    'title' => 'Is Abstract',
+                    'type' => 'Checkbox',
+                    'options' => [],
+                ],
+                [
+
+                    'name' => 'returnType',
+                    'title' => 'Return Type',
+                    'type' => 'Select',
+                    'options' => ['TypeA', 'TypeB', 'TypeC']
+                ]
+            ],
+        ]],
     ]);
     die;
+}
+
+if ('GenerateFileFromTemplate' === $type) {
+    $templateName = $context['templateName'];
+    $actionPath = $context['actionPath'];
+    $formFields = $context['formFields'];
+    $namespace = str_replace('src/', '', $actionPath);
+    $namespace = implode('\\', explode('/', $namespace));
+
+    $content = include_once (__DIR__ . '/templates/phpClass.template.php');
+
+    echo json_encode([
+        'file_name' => $formFields['className'] . '.php',
+        'content' => $content,
+    ]);
+
+    exit(0);
 }
 
 if ($language === 'PHP') {

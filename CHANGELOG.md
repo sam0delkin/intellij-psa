@@ -3,6 +3,10 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Added support of custom `single_file` file templates
+- Added toolbar icon with current autocomplete status + actions for update info and check last error.
+- Fixed all "slow/blocking operations in EDT/ReadAction" issues by using threading
+- Lot of additional refactorings
 - Small typo fixes
 
 ## [0.0.6] - 2024-06-22

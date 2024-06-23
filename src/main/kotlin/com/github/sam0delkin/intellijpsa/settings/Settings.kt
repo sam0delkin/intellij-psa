@@ -7,6 +7,76 @@ import com.intellij.util.PathMappingSettings.PathMapping
 import com.intellij.util.xmlb.XmlSerializerUtil
 import org.jetbrains.annotations.Nullable
 
+enum class TemplateFormFieldType {
+    Text, Checkbox, Select
+}
+
+class TemplateFormField {
+    var name: String? = null
+    var title: String? = null
+    var type: TemplateFormFieldType? = null
+    var options: ArrayList<String>? = null
+
+    override fun toString(): String {
+        return "TemplateFormField(name=$name, title=$title, type=$type, options=$options)"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as TemplateFormField
+
+        if (name != other.name) return false
+        if (title != other.title) return false
+        if (type != other.type) return false
+        if (options?.joinToString(",") != other.options?.joinToString(",")) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name?.hashCode() ?: 0
+        result = 31 * result + (title?.hashCode() ?: 0)
+        result = 31 * result + (type?.hashCode() ?: 0)
+        result = 31 * result + (options?.hashCode() ?: 0)
+        return result
+    }
+}
+
+class SingleFileCodeTemplate {
+    var pathRegex: String? = null
+    var name: String? = null
+    var title: String? = null
+        var formFields: ArrayList<TemplateFormField>? = null
+
+    override fun toString(): String {
+        return "SingleFileCodeTemplate(filePath=$pathRegex, name=$name, title=$title, formFields=$formFields)"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as SingleFileCodeTemplate
+
+        if (pathRegex != other.pathRegex) return false
+        if (name != other.name) return false
+        if (title != other.title) return false
+        if (formFields != other.formFields) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = pathRegex?.hashCode() ?: 0
+        result = 31 * result + (name?.hashCode() ?: 0)
+        result = 31 * result + (title?.hashCode() ?: 0)
+        result = 31 * result + (formFields?.hashCode() ?: 0)
+        return result
+    }
+}
+
 @State(
     name = "PSAAutocompleteSettings",
     storages = [Storage("psa.xml")]
@@ -24,7 +94,7 @@ class Settings : PersistentStateComponent<Settings> {
     @Nullable
     var supportedLanguages: String? = ""
     @Nullable
-    var pluginVersion: String? = null
+    var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
 
     @Nullable
     @Override

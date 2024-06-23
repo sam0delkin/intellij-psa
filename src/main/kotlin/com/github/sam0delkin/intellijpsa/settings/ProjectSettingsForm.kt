@@ -38,6 +38,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
     private lateinit var supportedLanguages: Cell<JTextField>
     private lateinit var goToElementFilter: Cell<JTextField>
     private lateinit var infoButton: Cell<ActionButton>
+    private var changed: Boolean = false
 
     fun createComponents(): DialogPanel {
         val self = this
@@ -66,40 +67,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                     @Suppress("DialogTitleCapitalization")
                     val action = object : DumbAwareAction("Get info from your executable script", "", AllIcons.General.BalloonInformation) {
                         override fun actionPerformed(e: AnActionEvent) {
-                            val service = project.service<CompletionService>()
-                            try {
-                                self.goToElementFilter.component.setText("")
-                                self.supportedLanguages.component.setText("")
-                                val info = service.getInfo(settings, project, self.scriptPath.component.text)
-                                var filter = ""
-                                var languages = ""
-                                if (info.containsKey("goto_element_filter")) {
-                                    filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
-                                        .joinToString(",")
-                                    self.goToElementFilter.component.setText(filter)
-                                }
-                                if (info.containsKey("supported_languages")) {
-                                    languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
-                                        .joinToString(",")
-                                    self.supportedLanguages.component.setText(languages)
-                                }
-
-                                val tooltip = com.intellij.ui.GotItTooltip(
-                                    "PSA",
-                                    "Successfully retrieved info: <br />Supported Languages: $languages<br />GoTo Element Filter: $filter"
-                                )
-                                    .withIcon(AllIcons.General.BalloonInformation)
-                                    .withButtonLabel("OK")
-                                tooltip.createAndShow(self.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
-                            } catch (e: Exception) {
-                                val tooltip = com.intellij.ui.GotItTooltip(
-                                    "PSA",
-                                    "Error during retrieve info: <br />" + e.message + "<br /><br /> For help, please " +
-                                            "check the <a href=\"https://github.com/sam0delkin/intellij-psa#documentation\">documentation</a>"
-                                ).withIcon(AllIcons.General.BalloonError)
-                                    .withButtonLabel("OK")
-                                tooltip.createAndShow(self.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
-                            }
+                            self.getInfo()
                         }
                     }
                     infoButton = actionButton(action)
@@ -124,6 +92,57 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         return panel
     }
 
+    private fun getInfo() {
+        val service = project.service<CompletionService>()
+        try {
+            this.goToElementFilter.component.setText("")
+            this.supportedLanguages.component.setText("")
+            val info = service.getInfo(settings, project, this.scriptPath.component.text)
+            var filter: List<String> = listOf()
+            var languages: List<String> = listOf()
+            var templateCount = 0
+
+            if (info.containsKey("goto_element_filter")) {
+                filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
+                this.goToElementFilter.component.setText(filter.joinToString(","))
+            }
+
+            if (info.containsKey("supported_languages")) {
+                languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
+                this.supportedLanguages.component.setText(languages.joinToString(","))
+            }
+
+            if (info.containsKey("templates")) {
+                val templates = info.get("templates") as JsonArray
+                templateCount = templates.size
+                this.changed = true
+            }
+
+            service.updateInfo(settings, info)
+            val languagesString = "<ul>" + languages.map { i -> "<li>- $i</li>" }.joinToString("") + "<ul>"
+            val filterString = "<ul>" + filter.map { i -> "<li>- $i</li>" }.joinToString("") + "<ul>"
+
+            val tooltip = com.intellij.ui.GotItTooltip(
+                "PSA",
+                "Successfully retrieved info: <br />" +
+                        "Supported Languages: $languagesString<br />" +
+                        "GoTo Element Filter: $filterString<br />" +
+                        "Template Count: ${templateCount}"
+            )
+                .withIcon(AllIcons.General.BalloonInformation)
+                .withButtonLabel("OK")
+            tooltip.createAndShow(this.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
+        } catch (e: Exception) {
+            val tooltip = com.intellij.ui.GotItTooltip(
+                "PSA",
+                "Error during retrieve info: <br />" + e.message + "<br /><br /> For help, please " +
+                        "check the <a href=\"https://github.com/sam0delkin/intellij-psa#documentation\">documentation</a>"
+            ).withIcon(AllIcons.General.BalloonError)
+                .withButtonLabel("OK")
+            tooltip.createAndShow(this.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
+        }
+    }
+
     override fun createComponent(): JComponent {
         return this.createComponents()
     }
@@ -143,6 +162,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                     ?.joinToString(",")
                         || supportedLanguages.component.text != settings.supportedLanguages
                         || goToElementFilter.component.text != settings.goToFilter
+                        || changed
 
                 )
     }
@@ -159,6 +179,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         settings.pathMappings = pathMappings.component.mappingSettings.pathMappings.toTypedArray()
         settings.supportedLanguages = supportedLanguages.component.text
         settings.goToFilter = goToElementFilter.component.text
+        changed = false
     }
 
     private fun updateUIFromSettings() {
@@ -169,6 +190,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
         supportedLanguages.component.setText(settings.supportedLanguages)
         goToElementFilter.component.setText(settings.goToFilter)
+        changed = false
     }
 
     private val settings: Settings

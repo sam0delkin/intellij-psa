@@ -12,14 +12,39 @@ Small plugin which adds support for custom autocomplete & GoTo on the language y
 Currently, supports:
 * Custom autocomplete based on your code (Ctrl + Space)
 * Custom GoTo based on your code (Ctrl/Command + Click)
+* Custom code templates (with variables) based on your code
 
 ### Supported Languages
 Any language that your IDE supports will be supported by plugin.
 
-To check how to add custom autocomplete, please read [documentation](https://github.com/sam0delkin/intellij-psa#documentation) 
+To check how to add custom autocomplete, GoTo and custom code templates, please read 
+[documentation](https://github.com/sam0delkin/intellij-psa#documentation) 
 <!-- Plugin description end -->
 
-![example](https://github.com/sam0delkin/intellij-psa/raw/main/src/main/resources/doc/images/autocomplete_example.png)
+![example](doc/images/autocomplete_example.png)
+
+Table of Contents
+=================
+
+* [Supported Languages](#supported-languages)
+* [Installation](#installation)
+* [Idea](#idea)
+  * [Introduction](#introduction)
+  * [How it works?](#how-it-works)
+* [Documentation](#documentation)
+  * [Configuration](#configuration)
+  * [Custom autocomplete info](#custom-autocomplete-info)
+  * [Completions &amp; GoTo](#completions--goto)
+    * [Debug](#debug)
+      * [Completions](#completions)
+      * [GoTo](#goto)
+  * [Code Templates](#code-templates)
+    * [Single File Template](#single-file-template)
+  * [Performance considerations](#performance-considerations)
+    * [General](#general)
+    * [GoTo optimizations](#goto-optimizations)
+* [Ideas / ToDo](#ideas--todo)
+* [FAQ / How To](#faq--how-to)
 
 ## Installation
 
@@ -325,7 +350,7 @@ then you'll receive the following JSON in the filepath, passed from `PSA_CONTEXT
 ## Documentation
 
 ### Configuration
-![settings](src/main/resources/doc/images/settings.png)
+![settings](doc/images/settings.png)
 1) Is plugin enabled or not
 2) Is debug enabled or not. Passed as `PSA_DEBUG` into the executable script
 3) Path to the PSA executable script. Must be an executable file
@@ -339,14 +364,14 @@ as project root.
 To configure your autocomplete, follow these actions:
 1) Check the `Plugin Enabled` checkbox (1) for enable plugin
 2) Specify a path to your executable in the `Script Path` field (3)
-3) Click the ![info](src/main/resources/doc/images/balloonInformation.svg) icon right to the `Script Path` field to retrieve info from your executable
+3) Click the ![info](doc/images/balloonInformation.svg) icon right to the `Script Path` field to retrieve info from your executable
 4) After that fields `Supported Languages` (5) and optionally `GoTo Element Filter` (6) will be filled automatically in
 case of your script is return data in valid format
 5) Save settings
 
 ### Custom autocomplete info
 
-When you installed and enabled plugin, and you click the ![info](src/main/resources/doc/images/balloonInformation.svg) icon right to the `Script Path` field, IDE will run
+When you installed and enabled plugin, and you click the ![info](doc/images/balloonInformation.svg) icon right to the `Script Path` field, IDE will run
 your executable script to retrieve supported languages + GoTo element filter (for 
 [performance optimizations](#goto-optimizations)). In this case only 2 ENV variables would be passed to your executable:
 * `PSA_TYPE` - will be `Info`.
@@ -359,7 +384,23 @@ As a result, your script should return an array of supported languages:
 ```JSON
 {
   "supported_languages": "array of strings. List of supported programming languages.",
-  "goto_element_filter": "optional, array of strings. Used for filter element types where GoTo will work. Performance optimization."
+  "goto_element_filter": "optional, array of strings. Used for filter element types where GoTo will work. Performance optimization.",
+  "templates": [
+    {
+      "type": "string, required. For now, only `single_file` is supported.",
+      "name": "string, required. Name of the template for reference. Will be passed in `PSA_CONTEXT` during template generation.",
+      "title": "string, required. Title of the template. This text will be shown in IDE.",
+      "path_regex": "string, optional. Regular expression. Used to filer path where this code template is available.",
+      "fields": [
+        {
+          "name": "string, required. Name of the form field. Will be passed in `PSA_CONTEXT` during template generation.",
+          "title": "string, required. Title of the field which will be displayed in form.",
+          "type": "string, required. Allowed values are `Text`, `Checkbox`, `Select`. Type of the form field.",
+          "options": "array of strings. Required only if `type` is `Select`. Array of select options."
+        }
+      ]
+    }
+  ]
 }
 ```
 </details>
@@ -481,18 +522,18 @@ And the full working example:
 
 In case of your executable will respond with the JSON above, result completion will look like:
 
-![example](src/main/resources/doc/images/full_message_1.png)
+![example](doc/images/full_message_1.png)
 
 And the following notification will be shown:
 
-![example](src/main/resources/doc/images/notification_example.png)
+![example](doc/images/notification_example.png)
 
 For working examples on different languages, check out the [examples](examples) folder.
 
 > [!NOTE]
 > In case of `PSA_TYPE` is `GoTo`, you should return only one completion with the link to reference.
 
-### Debug
+#### Debug
 
 It's almost impossible to describe the full structure of `PSA_CONTEXT`, especially all `options` passed to the context,
 due to its very dynamic and based on the language you're using. Of course, you can just write JSON into the tmp file
@@ -504,7 +545,7 @@ need to debug autocomplete. For this purpose a `PSA_DEBUG` option is passing to 
 [PHP](examples/php/psa.sh), [JavaScript](examples/js/psa.sh), [TypeScript](examples/ts/psa.sh) are shown in the 
 [examples](examples) folder.
 
-#### Completions
+##### Completions
 
 When `Debug` option is set in the plugin settings, and you try to autocomplete something in some supported language,
 debug will break on your breakpoint (if specified). So you can debug autocomplete script like you usually debugging your
@@ -513,19 +554,19 @@ app (on PHP, JavaScript, TypeScript, etc.). See examples for PHP and JavaScript:
 <details>
   <summary>PHP Debug</summary>
 
-![example_debug_php_invoke](src/main/resources/doc/images/debug_php_invoke.png)
-![example_debug_php](src/main/resources/doc/images/debug_php.png)
+![example_debug_php_invoke](doc/images/debug_php_invoke.png)
+![example_debug_php](doc/images/debug_php.png)
 </details>
 
 <details>
   <summary>JavaScript Debug</summary>
 
-![example_debug_js_invoke](src/main/resources/doc/images/debug_js_invoke.png)
-![example_debug_js](src/main/resources/doc/images/debug_js.png)
+![example_debug_js_invoke](doc/images/debug_js_invoke.png)
+![example_debug_js](doc/images/debug_js.png)
 </details>
 
 
-#### GoTo
+##### GoTo
 
 GoTo debugging is working absolutely same as completion debugging, except one thing: when IDE is running completion,
 execution may be interrupted (user may click on other element, or press Escape key), and it means that it's ok to run
@@ -533,11 +574,11 @@ long command during autocomplete and IDE will not freeze during this execution. 
 interrupted and executing synchronously, so when you will try to run GoTo with debug enabled, you'll see the following
 window:
 
-![resolving_reference](src/main/resources/doc/images/resolving_reference.png)
+![resolving_reference](doc/images/resolving_reference.png)
 
 And when you press `Cancel`, you'll see the following window:
 
-![operation_too_complex](src/main/resources/doc/images/operation_too_complex.png)
+![operation_too_complex](doc/images/operation_too_complex.png)
 
 It's ok, and when you'll press `OK`, you will be able to debug your completion and execution will be stopped on 
 breakpoint.
@@ -551,7 +592,111 @@ breakpoint.
 > Keep `Debug` option disabled in plugin settings such as it has a strong impact on performance. Enable debug only in
 > case of you want to debug your autocomplete (write new completion, or check why some old is not working).
 
+### Code Templates
 
+Most of the languages provides some general file templates, like `PHP Class` in PHP or `TypeScript File`
+in TypeScript. Plugin allows you to create custom file templates which will have variables passed from form.
+For support of file templates you must specify all supported templates in your executable script in
+`templates` section. Check out [autocomplete info](#custom-autocomplete-info) section for more info.
+
+#### Single File Template
+
+In case of you need to create a single file template, in info request your JSON should contain template with the
+following fields:
+- `type` - string, required. For now, only `single_file` is supported.
+- `name` - string, required. Name of the template for reference. Will be passed in `PSA_CONTEXT` during template generation.
+- `title` - "string, required. Title of the template. This text will be shown in IDE.
+- `path_regex` - string, optional. Regula
+- `fields` - array of objects with the following structure:
+  - `name` - string, required. Name of the form field. Will be passed in `PSA_CONTEXT` during template generation.
+  - `title` - string, required. Title of the field which will be displayed in form.
+  - `type` - string, required. Allowed values are `Text`, `Checkbox`, `Select`. Type of the form field.
+  - `options` - array of strings. Required only if `type` is `Select`. Array of select options.
+
+For example, for some simple PHP Class you can use the following structure:
+<details>
+  <summary>Expand</summary>
+
+```JSON
+{
+  "templates": [
+    {
+      "type": "single_file",
+      "name": "my_awesome_template",
+      "title": "My Awesome Template",
+      "path_regex": "^\/src\/[^\/]\/$",
+      "fields": [
+        {
+          "name": "className",
+          "title": "Class Name",
+          "type": "Text",
+          "options": []
+        },
+        {
+          "name": "abstract",
+          "title": "Is Abstract",
+          "type": "Checkbox",
+          "options": []
+        },
+        {
+          "name": "comment",
+          "title": "Comment",
+          "type": "Select",
+          "options": ["Option A", "Option B", "Option C"]
+        }
+      ]
+    }
+  ]
+}
+```
+</details>
+
+And in case of your autocomplete script will return template like above, you will have the following menu option to
+generate a new file from template on any path in project structure (path may be filtered by `path_regex` option):
+<details>
+  <summary>Expand</summary>
+
+![file_template_example](doc/images/file_template_menu_example.png)
+</details>
+
+When You click on the action, you'll see the following form:
+<details>
+  <summary>Expand</summary>
+
+![file_template_example](doc/images/file_template_preview_example.png)
+</details>
+
+On this form you can modify any of your variables described above. Preview is updated automatically after you change
+the value of any variable.
+
+After clicking `OK` button, the file will be generated in the folder where you initialed the action.
+
+After opening the form, after changing any of the variable and on clicking OK, plugin will send a request for code
+generation to your autocomplete script with the following variables:
+
+- `PSA_TYPE` - will be always `GenerateFileFromTemplate`
+- `PSA_CONTEXT` - like with completion, it's a path to file with JSON of following structure:
+  ```JSON
+  {
+    "templateName": "string, name of the template for generate.",
+    "actionPath": "string, relative path from project root when the action were initiated.",
+    "formFields": {
+      "name": "value"
+    }
+  }
+  ```
+> [!NOTE]
+> `formFields` - will be a JSON object where each key is a field name, and value will be a value of the form field.
+
+As a result, your script should return a simple JSON object with 2 fields:
+```JSON
+{
+  "file_name": "string, required. Filename of the newly generated file.",
+  "content": "string, required. Content of the file."
+}
+```
+Some examples for [PHP](examples/php/psa.php), [JavaScript](examples/js/psa.js), [TypeScript](examples/ts/psa.ts) 
+are shown in the [examples](examples/README.md) folder.
 
 ### Performance considerations
 
@@ -608,7 +753,8 @@ the types provided.
 
 - [x] Add support of autocomplete
 - [x] Add support of GoTo
-- [ ] Add support of custom code templates with variables
+- [x] Add support of single-file custom code templates with variables
+- [ ] Add support of multi-file custom code templates with variables
 - [ ] Add support of intentions
 
 ## FAQ / How To
@@ -625,6 +771,11 @@ solution: you can implement some route, which will be accessible in DEV environm
 See [example](examples/api).
 
 **Q: What if I want to use some feature that is not yet supported?**
+
+**A:** Please, create an [issue](https://github.com/sam0delkin/intellij-psa/issues/new) for that. Describe the problem 
+very thoroughly.
+
+**Q: What if I want to implement some feature that is not yet supported?**
 
 **A:** That's really great 😊. Please, [fork](https://github.com/sam0delkin/intellij-psa/fork) the repository and then
 create a [pull request](https://github.com/sam0delkin/intellij-psa/compare).

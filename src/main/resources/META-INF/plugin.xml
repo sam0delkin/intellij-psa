@@ -23,5 +23,21 @@
         <gotoDeclarationHandler implementation="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$GotoDeclaration"/>
         <notificationGroup id="PSA Notification"
                            displayType="BALLOON"/>
+        <statusBarWidgetFactory id="psa.statusBar.widget_factory" implementation="com.github.sam0delkin.intellijpsa.statusBar.PsaStatusBarWidgetFactory" />
     </extensions>
+    <actions>
+        <group
+                id="com.github.sam0delkin.intellijpsa.action.PsaTemplateActionGroup"
+                class="com.github.sam0delkin.intellijpsa.action.PsaTemplateActionGroup"
+                popup="true"
+                text="PSA Templates"
+                description="Project Specific Autocomplete templates returned by your completion script"
+                icon="com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon">
+            <add-to-group
+                    group-id="NewGroup"
+                    anchor="after"
+                    relative-to-action="NewFile"
+                    />
+        </group>
+    </actions>
 </idea-plugin>

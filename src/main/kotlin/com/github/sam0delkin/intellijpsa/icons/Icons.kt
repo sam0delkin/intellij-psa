@@ -1,11 +1,10 @@
 package com.github.sam0delkin.intellijpsa.icons
 
-import com.intellij.openapi.util.IconLoader.getIcon
-import javax.swing.Icon
+import com.intellij.openapi.util.IconLoader
 
-
-class Icons {
-    companion object {
-        val PluginIcon: Icon  = getIcon("/icons/pluginIcon_16.svg", Icons::class.java)
-    }
+object Icons {
+    @JvmField
+    val PluginIcon = IconLoader.getIcon("/icons/pluginIcon_16.svg", javaClass)
+    val PluginActiveIcon = IconLoader.getIcon("/icons/pluginIcon_active_16.svg", javaClass)
+    val PluginErrorIcon = IconLoader.getIcon("/icons/pluginIcon_error_16.svg", javaClass)
 }

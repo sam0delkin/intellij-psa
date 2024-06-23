@@ -3,6 +3,9 @@
 package com.github.sam0delkin.intellijpsa.services
 
 import com.github.sam0delkin.intellijpsa.settings.Settings
+import com.github.sam0delkin.intellijpsa.settings.SingleFileCodeTemplate
+import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
+import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
 import com.intellij.execution.util.ExecUtil
@@ -10,24 +13,30 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.components.service
-import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.elementType
 import com.jetbrains.rd.util.string.printToString
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.*
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
 import java.lang.reflect.Method
 import kotlin.reflect.full.memberFunctions
+
+@Serializable
+data class GenerateFileFromTemplateData(
+    val actionPath: String,
+    val templateName: String,
+    val formFields: Map<String, String>
+)
 
 @Serializable
 data class PsiElementModelChild(
@@ -78,7 +87,7 @@ data class PsiElementModel(
 )
 
 enum class RequestType {
-    Completion, GoTo, Info
+    Completion, GoTo, Info, GenerateFileFromTemplate
 }
 
 private const val MAX_STRING_LENGTH = 250
@@ -97,6 +106,8 @@ class CompletionService(project: Project) {
         "copyElement"
     )
     private val elementIgnoredMethods = HashMap<String, List<Method>>()
+    var lastResultSucceed: Boolean = true
+    var lastResultMessage: String = ""
 
     init {
         this.project = project
@@ -108,25 +119,185 @@ class CompletionService(project: Project) {
 
     fun getInfo(settings: Settings, project: Project, path: String): JsonObject {
         val commandLine: GeneralCommandLine?
-        val result: ProcessOutput?
+        var result: ProcessOutput? = null
 
 
         commandLine = GeneralCommandLine(path)
         commandLine.environment.put("PSA_TYPE", RequestType.Info.toString())
         commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
+        val indicator = EmptyProgressIndicator()
 
-        result = ExecUtil.execAndGetOutput(
-            commandLine,
-            5000
-        )
+        ApplicationUtil.runWithCheckCanceled({
+            result = runBlocking {
+                ExecUtil.execAndGetOutput(
+                    commandLine, 5000
+                )
+            }
+        }, indicator)
 
-
-        if (0 != result.exitCode) {
-           throw Exception(result.stdout + "\n" + result.stderr)
+        if (null === result) {
+            throw Exception("Failed to get info")
         }
 
-        return Json.parseToJsonElement(result.stdout).jsonObject
+
+        if (0 != result!!.exitCode) {
+           throw Exception(result!!.stdout + "\n" + result!!.stderr)
+        }
+
+        return Json.parseToJsonElement(result!!.stdout).jsonObject
+    }
+
+    fun updateInfo(settings: Settings, info: JsonObject) {
+        val filter: List<String>
+        val languages: List<String>
+
+        try {
+            if (info.containsKey("supported_languages")) {
+                languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
+                settings.supportedLanguages = languages.joinToString(",")
+            } else {
+                throw Exception("`supported_languages` not found in JSON")
+            }
+
+            if (info.containsKey("goto_element_filter")) {
+                filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
+                settings.goToFilter = filter.joinToString(",")
+            }
+
+            if (info.containsKey("templates")) {
+                if (info.get("templates") !is JsonArray) {
+                    throw Exception("`templates` must be an array")
+                }
+
+                val templates = info.get("templates") as JsonArray
+                settings.singleFileCodeTemplates = ArrayList()
+                for (template in templates) {
+                    if (template !is JsonObject) {
+                        throw Exception("`templates` must be an array of objects")
+                    }
+                    if (template.jsonObject.containsKey("type")) {
+                        if (template.jsonObject["type"]!!.jsonPrimitive.content != "single_file") {
+                            continue
+                        }
+                    } else {
+                        throw Exception("`templates` must be an array of objects with `type` field")
+                    }
+
+                    val templateObject = SingleFileCodeTemplate()
+                    if (template.jsonObject.containsKey("path_regex")) {
+                        templateObject.pathRegex = template.jsonObject["path_regex"]!!.jsonPrimitive.content
+                    }
+
+                    if (template.jsonObject.containsKey("name")) {
+                        templateObject.name = template.jsonObject["name"]!!.jsonPrimitive.content
+                    } else {
+                        throw Exception("`templates` must be an array of objects with `name` field")
+                    }
+
+                    if (template.jsonObject.containsKey("title")) {
+                        templateObject.title = template.jsonObject["title"]!!.jsonPrimitive.content
+                    } else {
+                        throw Exception("`templates` must be an array of objects with `title` field")
+                    }
+
+                    if (template.jsonObject.containsKey("fields")) {
+                        templateObject.formFields = ArrayList()
+                        val fields = template.jsonObject["fields"]!!.jsonArray
+
+                        for (field in fields) {
+                            val fieldObject = TemplateFormField()
+                            fieldObject.options = ArrayList()
+                            if (field.jsonObject.containsKey("name")) {
+                                fieldObject.name = field.jsonObject["name"]!!.jsonPrimitive.content
+                            } else {
+                                throw Exception("`fields` must be an object with `name` field")
+                            }
+                            if (field.jsonObject.containsKey("title")) {
+                                fieldObject.title = field.jsonObject["title"]!!.jsonPrimitive.content
+                            } else {
+                                throw Exception("`fields` must be an object with `title` field")
+                            }
+                            if (field.jsonObject.containsKey("type")) {
+                                fieldObject.type =
+                                    TemplateFormFieldType.valueOf(field.jsonObject["type"]!!.jsonPrimitive.content)
+                            } else {
+                                throw Exception("`fields` must be an object with `type` field")
+                            }
+                            if (field.jsonObject.containsKey("options")) {
+                                val options = field.jsonObject["options"]!!.jsonArray
+                                for (option in options) {
+                                    fieldObject.options!!.add(option.jsonPrimitive.content)
+                                }
+                            }
+                            templateObject.formFields!!.add(fieldObject)
+                        }
+                    } else {
+                        throw Exception("`templates` must be an array of objects with `fields` field")
+                    }
+
+                    settings.singleFileCodeTemplates!!.add(templateObject)
+                }
+            }
+        } catch (e: Exception) {
+            throw Exception("Failed to update info: " + e.message)
+        }
+    }
+
+    fun generateTemplateCode(
+        settings: Settings,
+        project: Project,
+        actionPath: String,
+        templateName: String,
+        formFields: Map<String, String>
+    ): JsonObject? {
+        val commandLine: GeneralCommandLine?
+        var result: ProcessOutput? = null
+
+
+        try {
+            val data = Json.encodeToString(GenerateFileFromTemplateData(actionPath, templateName, formFields))
+            val filePath = this.writeToFile("psa_tmp", data)
+            commandLine = GeneralCommandLine(settings.scriptPath)
+            commandLine.environment.put("PSA_CONTEXT", filePath)
+            commandLine.environment.put("PSA_TYPE", RequestType.GenerateFileFromTemplate.toString())
+            commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
+            commandLine.setWorkDirectory(project.guessProjectDir()?.path)
+            val indicator = EmptyProgressIndicator()
+
+            ApplicationUtil.runWithCheckCanceled({
+                result = runBlocking {
+                    ExecUtil.execAndGetOutput(
+                        commandLine, 5000
+                    )
+                }
+            }, indicator)
+
+            if (null === result) {
+                return null
+            }
+
+
+            if (0 != result!!.exitCode) {
+                throw Exception(result!!.stdout + "\n" + result!!.stderr)
+            }
+
+            this.lastResultSucceed = true
+            this.lastResultMessage = ""
+
+            return Json.parseToJsonElement(result!!.stdout).jsonObject
+        } catch (e: Exception) {
+            this.lastResultSucceed = false
+            this.lastResultMessage = e.message ?: ""
+            if (settings.debug) {
+                NotificationGroupManager.getInstance()
+                    .getNotificationGroup("PSA Notification")
+                    .createNotification("Template generation returned not valid JSON<br/>" + e.message, NotificationType.ERROR)
+                    .notify(project)
+            }
+        }
+
+        return null
     }
 
     fun getCompletions(
@@ -160,7 +331,7 @@ class CompletionService(project: Project) {
         val filePath = this.writeToFile("psa_tmp", data)
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
-        val indicator = ProgressManager.getGlobalProgressIndicator()
+        val indicator = EmptyProgressIndicator()
 
 
         commandLine = GeneralCommandLine(settings.scriptPath)
@@ -172,10 +343,15 @@ class CompletionService(project: Project) {
         commandLine.setWorkDirectory(element.project.guessProjectDir()?.path)
 
         ApplicationUtil.runWithCheckCanceled({
-            result = ExecUtil.execAndGetOutput(
-                commandLine
-            )
-        }, indicator!!)
+            result = runBlocking {
+                ExecUtil.execAndGetOutput(
+                    commandLine
+                )
+            }
+        }, indicator)
+
+        this.lastResultSucceed = true
+        this.lastResultMessage = ""
 
         try {
             val fileVal = File(filePath)
@@ -191,6 +367,9 @@ class CompletionService(project: Project) {
         }
 
         if (0 != result!!.exitCode) {
+            this.lastResultSucceed = false
+            this.lastResultMessage = result!!.stdout + "\n" + result!!.stderr
+
             if (settings.debug) {
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("PSA Notification")
