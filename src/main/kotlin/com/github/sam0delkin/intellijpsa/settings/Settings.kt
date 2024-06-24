@@ -8,7 +8,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 import org.jetbrains.annotations.Nullable
 
 enum class TemplateFormFieldType {
-    Text, Checkbox, Select
+    Text, RichText, Checkbox, Select, Collection
 }
 
 class TemplateFormField {
@@ -95,6 +95,7 @@ class Settings : PersistentStateComponent<Settings> {
     var supportedLanguages: String? = ""
     @Nullable
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
+    var executionTimeout: Int = 5000
 
     @Nullable
     @Override

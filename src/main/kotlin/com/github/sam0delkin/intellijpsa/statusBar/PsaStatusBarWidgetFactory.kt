@@ -2,24 +2,25 @@ package com.github.sam0delkin.intellijpsa.statusBar
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm
+import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.ListPopup
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
-import com.intellij.ui.popup.PopupFactoryImpl.ActionGroupPopup
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Consumer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -75,7 +76,25 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
 
             fun createPopup(context: DataContext): ListPopup {
                 val actionGroup = DefaultActionGroup("PSA", false)
-                actionGroup.add(object: AnAction("Update Info") {
+                actionGroup.add(object: AnAction("Settings", "", AllIcons.General.Settings) {
+                    override fun actionPerformed(e: AnActionEvent) {
+                        ShowSettingsUtil.getInstance().editConfigurable(project, ProjectSettingsForm(project))
+                    }
+                })
+                if (settings.debug) {
+                    actionGroup.add(object: AnAction("Disable Debug", "", AllIcons.Actions.RestartDebugger) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            settings.debug = false
+                        }
+                    })
+                } else {
+                    actionGroup.add(object: AnAction("Enable Debug", "", AllIcons.Actions.StartDebugger) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            settings.debug = true
+                        }
+                    })
+                }
+                actionGroup.add(object: AnAction("Update Info", "", AllIcons.General.BalloonInformation) {
                     override fun actionPerformed(e: AnActionEvent) {
                         if (null !== settings.scriptPath) {
                             val thread = Thread {
@@ -129,7 +148,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                     }
 
                 })
-                actionGroup.add(object: AnAction("Show Last Error") {
+                actionGroup.add(object: AnAction("Show Last Error", "", AllIcons.Debugger.Db_exception_breakpoint) {
                     override fun actionPerformed(e: AnActionEvent) {
                         if ("" !== completionService.lastResultMessage) {
                             NotificationGroupManager.getInstance()
@@ -140,18 +159,12 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                     }
 
                 })
-                return ActionGroupPopup(
+                return JBPopupFactory.getInstance().createActionGroupPopup(
                     "Project Specific Autocomplete",
                     actionGroup,
                     context,
-                    false,
-                    false,
-                    false,
-                    true,
-                    null,
-                    -1,
-                    null,
-                    null
+                    JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
+                    false
                 )
             }
 
@@ -164,12 +177,9 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
             }
 
             override fun getClickConsumer(): Consumer<MouseEvent> {
-                val dataContext: DataContext = SimpleDataContext.builder()
-                    .add(CommonDataKeys.PROJECT, project)
-                    .add(PlatformDataKeys.CONTEXT_COMPONENT, IdeFocusManager.getInstance(project).focusOwner)
-                    .build()
+                val dataContext: DataContext = SimpleDataContext.builder().build()
 
-                return Consumer<MouseEvent> { createPopup(dataContext).showInBestPositionFor(dataContext) }
+                return Consumer<MouseEvent> { e -> createPopup(dataContext).show(RelativePoint(e)) }
             }
 
             override fun getIcon(): Icon {

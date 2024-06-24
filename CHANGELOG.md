@@ -3,6 +3,10 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Fixed freezes during debug enabled
+- Added `Collection` file template field type
+- Added `Timout` option to the settings form
+- Improved widget icon menu
 
 ## [0.0.7] - 2024-06-23
 - Added support of custom `single_file` file templates

@@ -3,6 +3,7 @@ package com.github.sam0delkin.intellijpsa.action
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
+import com.github.sam0delkin.intellijpsa.ui.components.JTextFieldCollection
 import com.intellij.ide.IdeView
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -48,6 +49,7 @@ class SingleFileTemplateAction(
     private var loadingIcon: Cell<JLabel>? = null
     private var navigateToFile: Cell<JCheckBox>? = null
     private val formFields: HashMap<String, Cell<JComponent>> = HashMap()
+    private val richTextEditors = ArrayList<EditorTextField>()
 
     override fun actionPerformed(e: AnActionEvent) {
         val completionService = e.project?.service<CompletionService>()
@@ -93,6 +95,15 @@ class SingleFileTemplateAction(
 
             SwingUtilities.invokeLater {
                 ApplicationManager.getApplication().runWriteAction {
+                    if (!templateData.containsKey("file_name")) {
+                        return@runWriteAction
+                    }
+
+                    val newFileType = FileTypeManager.getInstance()
+                        .getFileTypeByFileName(templateData.get("file_name")!!.jsonPrimitive.content)
+                    richTextEditors.forEach {
+                        it.fileType = newFileType
+                    }
                     if (templateData.containsKey("file_name")) {
                         if (null !== fileNameField) {
                             fileNameField!!.component.text = templateData.get("file_name")!!.jsonPrimitive.content
@@ -100,8 +111,6 @@ class SingleFileTemplateAction(
                     }
                     if (templateData.containsKey("content")) {
                         if (null !== previewTextField) {
-                            val newFileType = FileTypeManager.getInstance()
-                                .getFileTypeByFileName(templateData.get("file_name")!!.jsonPrimitive.content)
                             if (newFileType !== previewTextField!!.component.fileType) {
                                 previewTextField!!.component.fileType = newFileType
                             }
@@ -161,6 +170,29 @@ class SingleFileTemplateAction(
                         }
                         formField.component.selectedItem = field.options!![0]
                         formFields[field.name!!] = formField
+                    } else if (field.type == TemplateFormFieldType.Collection) {
+                        val coll = JTextFieldCollection()
+                        coll.setValues(listOf(""))
+                        val formField = cell(coll)
+                        coll.addValuesChangeListener { e ->
+                            val newValue = e.newValue as List<*>
+                            changeListener(field, newValue.joinToString(","))
+                        }
+                        formFields[field.name!!] = formField
+                    } else if (field.type == TemplateFormFieldType.RichText) {
+                        val reachText = EditorTextField(
+                            EditorFactory.getInstance().createDocument(
+                                StringUtil.convertLineSeparators("")
+                            ), e.project, FileTypes.PLAIN_TEXT, false, true)
+                        reachText.addSettingsProvider { editor ->
+                            run {
+                                editor.settings.isAutoCodeFoldingEnabled = true
+                            }
+                        }
+                        reachText.preferredSize = Dimension(200, 30)
+                        reachText.maximumSize = Dimension(600, 40)
+                        richTextEditors.add(reachText)
+                        cell(reachText)
                     }
                 }
             }

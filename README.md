@@ -610,7 +610,7 @@ following fields:
 - `fields` - array of objects with the following structure:
   - `name` - string, required. Name of the form field. Will be passed in `PSA_CONTEXT` during template generation.
   - `title` - string, required. Title of the field which will be displayed in form.
-  - `type` - string, required. Allowed values are `Text`, `Checkbox`, `Select`. Type of the form field.
+  - `type` - string, required. Allowed values are `Text`, `Checkbox`, `Select`, `Collection`. Type of the form field.
   - `options` - array of strings. Required only if `type` is `Select`. Array of select options.
 
 For example, for some simple PHP Class you can use the following structure:
@@ -643,6 +643,12 @@ For example, for some simple PHP Class you can use the following structure:
           "title": "Comment",
           "type": "Select",
           "options": ["Option A", "Option B", "Option C"]
+        },
+        {
+          "name": "properties",
+          "title": "Properties",
+          "type": "Collection",
+          "options": []
         }
       ]
     }

@@ -6,8 +6,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.components.service
-import com.intellij.openapi.fileChooser.FileChooser
-import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
@@ -15,7 +13,6 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.components.JBCheckBox
@@ -23,12 +20,12 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.annotations.Nls
 import java.awt.Point
-import java.awt.event.ActionEvent
 import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JTextField
 import com.intellij.ui.dsl.builder.*
 import java.awt.Dimension
+import javax.swing.JSpinner
 
 class ProjectSettingsForm(private val project: Project) : Configurable {
     private lateinit var enabled: Cell<JBCheckBox>
@@ -38,6 +35,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
     private lateinit var supportedLanguages: Cell<JTextField>
     private lateinit var goToElementFilter: Cell<JTextField>
     private lateinit var infoButton: Cell<ActionButton>
+    private lateinit var executionTimeout: Cell<JSpinner>
     private var changed: Boolean = false
 
     fun createComponents(): DialogPanel {
@@ -51,19 +49,30 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                     debug = checkBox("")
                 }.rowComment("Debug mode. Passed as `PSA_DEBUG` into the executable script")
                 row("Script Path") {
-                    scriptPath = textFieldWithBrowseButton()
+                    scriptPath = textFieldWithBrowseButton(
+                        "Choose PSA Executable FIle",
+                        project,
+                        FileChooserDescriptorFactory
+                            .createSingleFileDescriptor()
+                            .withFileFilter { e ->
+                                java.nio.file.Files.isExecutable(Path.of(e.path))
+                            }
+                            .withShowHiddenFiles(true)
+                    ) { chosenFile ->
+                        run {
+                            val projectDirectory = project.guessProjectDir()
+                            assert(projectDirectory != null)
+                            var path = VfsUtil.getRelativePath(chosenFile, projectDirectory!!, '/')
+                            if (null == path) {
+                                path = chosenFile.path
+                            }
+                            updateInfoButtonEnabled()
+
+                            path
+                        }
+                    }
                         .gap(RightGap.SMALL)
-                    scriptPath.component.addBrowseFolderListener(
-                        createBrowseFolderListener(
-                            scriptPath.component.textField,
-                            FileChooserDescriptorFactory
-                                .createSingleFileDescriptor()
-                                .withShowHiddenFiles(true)
-                                .withFileFilter { e ->
-                                    java.nio.file.Files.isExecutable(Path.of(e.path))
-                                }
-                        )
-                    )
+
                     @Suppress("DialogTitleCapitalization")
                     val action = object : DumbAwareAction("Get info from your executable script", "", AllIcons.General.BalloonInformation) {
                         override fun actionPerformed(e: AnActionEvent) {
@@ -72,6 +81,9 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                     }
                     infoButton = actionButton(action)
                 }.rowComment("Path to the PSA executable script. Must be an executable file")
+                row("Execution Timeout") {
+                    executionTimeout = cell(JSpinner())
+                }
                 row("Path Mappings") {
                     val pathMappingsComponent = PathMappingsComponent()
                     pathMappingsComponent.text = ""
@@ -162,6 +174,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                     ?.joinToString(",")
                         || supportedLanguages.component.text != settings.supportedLanguages
                         || goToElementFilter.component.text != settings.goToFilter
+                        || executionTimeout.component.value != settings.executionTimeout
                         || changed
 
                 )
@@ -179,6 +192,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         settings.pathMappings = pathMappings.component.mappingSettings.pathMappings.toTypedArray()
         settings.supportedLanguages = supportedLanguages.component.text
         settings.goToFilter = goToElementFilter.component.text
+        settings.executionTimeout = executionTimeout.component.value as Int
         changed = false
     }
 
@@ -190,36 +204,12 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
         supportedLanguages.component.setText(settings.supportedLanguages)
         goToElementFilter.component.setText(settings.goToFilter)
+        executionTimeout.component.value = settings.executionTimeout
         changed = false
     }
 
     private val settings: Settings
         get() = project.service<CompletionService>().getSettings()
-
-    private fun createBrowseFolderListener(
-        textField: JTextField,
-        fileChooserDescriptor: FileChooserDescriptor
-    ): TextBrowseFolderListener {
-        val currentProject = project
-        return object : TextBrowseFolderListener(fileChooserDescriptor) {
-            override fun actionPerformed(e: ActionEvent) {
-                val projectDirectory = currentProject.guessProjectDir()
-                val selectedFile = FileChooser.chooseFile(
-                    fileChooserDescriptor,
-                    currentProject,
-                    VfsUtil.findRelativeFile(textField.text, projectDirectory)
-                )
-                    ?: return  // Ignore but keep the previous path
-                assert(projectDirectory != null)
-                var path = VfsUtil.getRelativePath(selectedFile, projectDirectory!!, '/')
-                if (null == path) {
-                    path = selectedFile.path
-                }
-                textField.text = path
-                updateInfoButtonEnabled()
-            }
-        }
-    }
 
     override fun getDisplayName(): @Nls String {
         return "Project Specific Autocomplete"

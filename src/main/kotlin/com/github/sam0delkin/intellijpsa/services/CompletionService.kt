@@ -14,6 +14,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.progress.ProgressIndicatorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.PsiElement
@@ -126,12 +127,12 @@ class CompletionService(project: Project) {
         commandLine.environment.put("PSA_TYPE", RequestType.Info.toString())
         commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
-        val indicator = EmptyProgressIndicator()
+        val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
         ApplicationUtil.runWithCheckCanceled({
             result = runBlocking {
                 ExecUtil.execAndGetOutput(
-                    commandLine, 5000
+                    commandLine, settings.executionTimeout
                 )
             }
         }, indicator)
@@ -263,12 +264,12 @@ class CompletionService(project: Project) {
             commandLine.environment.put("PSA_TYPE", RequestType.GenerateFileFromTemplate.toString())
             commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
             commandLine.setWorkDirectory(project.guessProjectDir()?.path)
-            val indicator = EmptyProgressIndicator()
+            val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
             ApplicationUtil.runWithCheckCanceled({
                 result = runBlocking {
                     ExecUtil.execAndGetOutput(
-                        commandLine, 5000
+                        commandLine, settings.executionTimeout
                     )
                 }
             }, indicator)
@@ -331,7 +332,7 @@ class CompletionService(project: Project) {
         val filePath = this.writeToFile("psa_tmp", data)
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
-        val indicator = EmptyProgressIndicator()
+        val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
 
         commandLine = GeneralCommandLine(settings.scriptPath)
@@ -345,7 +346,8 @@ class CompletionService(project: Project) {
         ApplicationUtil.runWithCheckCanceled({
             result = runBlocking {
                 ExecUtil.execAndGetOutput(
-                    commandLine
+                    commandLine,
+                    settings.executionTimeout
                 )
             }
         }, indicator)
