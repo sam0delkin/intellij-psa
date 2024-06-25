@@ -24,6 +24,7 @@
         <notificationGroup id="PSA Notification"
                            displayType="BALLOON"/>
         <statusBarWidgetFactory id="psa.statusBar.widget_factory" implementation="com.github.sam0delkin.intellijpsa.statusBar.PsaStatusBarWidgetFactory" />
+        <vfs.asyncListener implementation="com.github.sam0delkin.intellijpsa.fileListener.PsaFileListener" />
     </extensions>
     <actions>
         <group

@@ -3,6 +3,7 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Added file watcher so any change in a PSA script dir will automatically update info
 
 ## [0.0.8] - 2024-06-24
 - Fixed freezes during debug enabled

@@ -118,14 +118,15 @@ class CompletionService(project: Project) {
         return this.project.service<Settings>()
     }
 
-    fun getInfo(settings: Settings, project: Project, path: String): JsonObject {
+    fun getInfo(settings: Settings, project: Project, path: String, debug: Boolean? = null): JsonObject {
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
+        val innerDebug = if (null !== debug) debug else settings.debug
 
 
         commandLine = GeneralCommandLine(path)
         commandLine.environment.put("PSA_TYPE", RequestType.Info.toString())
-        commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
+        commandLine.environment.put("PSA_DEBUG", if (innerDebug) "1" else "0")
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
         val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
