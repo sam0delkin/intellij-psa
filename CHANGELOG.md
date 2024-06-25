@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.8] - 2024-06-24
 - Fixed freezes during debug enabled
 - Added `Collection` file template field type
 - Added `Timout` option to the settings form
@@ -54,7 +56,8 @@
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.4...v0.0.5
