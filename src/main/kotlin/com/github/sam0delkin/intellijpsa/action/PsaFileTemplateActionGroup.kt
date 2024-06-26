@@ -9,7 +9,7 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiDirectory
 
-class PsaTemplateActionGroup: ActionGroup() {
+class PsaFileTemplateActionGroup: ActionGroup() {
 
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
         val completionService = e?.project?.service<CompletionService>() ?: return arrayOf()

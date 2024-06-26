@@ -610,8 +610,10 @@ following fields:
 - `fields` - array of objects with the following structure:
   - `name` - string, required. Name of the form field. Will be passed in `PSA_CONTEXT` during template generation.
   - `title` - string, required. Title of the field which will be displayed in form.
-  - `type` - string, required. Allowed values are `Text`, `Checkbox`, `Select`, `Collection`. Type of the form field.
-  - `options` - array of strings. Required only if `type` is `Select`. Array of select options.
+  - `type` - string, required. Allowed values are `Text`, `Checkbox`, `Select`, `Collection`, `RichText`. Type of the form field.
+  - `options` - array of strings.
+    - Required if `type` is `Select`. Array of select options.
+    - Required if `type` is `RichText`. Array of completions.
 
 For example, for some simple PHP Class you can use the following structure:
 <details>
@@ -750,10 +752,11 @@ if (!checkElement($context)) {
 
 When you're clicking (Ctrl/Command + Click) by **any** element in the IDE editor, IDE is calling all GoTo
 contributors, regardless of language or any other things. And there is no way to know - does your custom autocomplete
-will resolve the reference or not. For these purposes, there is an additional option were added: `goto_element_filter`.
-Here your script should return an array of element types to filter GoTo references. It will be saved first time your
-script will be called with [Info](#custom-autocomplete-info) call and then will ignore all elements that are not matching
-the types provided.
+will resolve the reference or not. This will lead to freezes in IDE UI when you're trying to GoTo in some place which 
+your custom autocomplete is not support. TO overcome this problem, there is an additional option were added:
+`goto_element_filter`. Here your script should return an array of element types to filter GoTo references. It will be 
+saved first time your script will be called with [Info](#custom-autocomplete-info) call and then will ignore all 
+elements that are not matching the types provided.
 
 ## Ideas / ToDo
 

@@ -28,8 +28,8 @@
     </extensions>
     <actions>
         <group
-                id="com.github.sam0delkin.intellijpsa.action.PsaTemplateActionGroup"
-                class="com.github.sam0delkin.intellijpsa.action.PsaTemplateActionGroup"
+                id="com.github.sam0delkin.intellijpsa.action.PsaFileTemplateActionGroup"
+                class="com.github.sam0delkin.intellijpsa.action.PsaFileTemplateActionGroup"
                 popup="true"
                 text="PSA Templates"
                 description="Project Specific Autocomplete templates returned by your completion script"

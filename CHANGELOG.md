@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 - Added file watcher so any change in a PSA script dir will automatically update info
+- Added `RichText` file template field type to support completions. You can provide array of completions in `options` 
+field
+- Misc improvements
 
 ## [0.0.8] - 2024-06-24
 - Fixed freezes during debug enabled
