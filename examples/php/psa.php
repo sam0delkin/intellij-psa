@@ -33,15 +33,27 @@ if ('Info' === $type) {
                     'options' => [],
                 ],
                 [
-
                     'name' => 'returnType',
                     'title' => 'Return Type',
                     'type' => 'Select',
                     'options' => ['TypeA', 'TypeB', 'TypeC']
+                ],
+                [
+                    'name' => 'richText',
+                    'title' => 'Rich Text with Completion',
+                    'type' => 'RichText',
+                    'options' => ['Completion A', 'Completion B', 'Completion C']
+                ],
+                [
+
+                    'name' => 'collection',
+                    'title' => 'Collection of text fields',
+                    'type' => 'Collection',
+                    'options' => []
                 ]
             ],
         ]],
-    ]);
+    ])a;
     die;
 }
 
@@ -57,6 +69,11 @@ if ('GenerateFileFromTemplate' === $type) {
     echo json_encode([
         'file_name' => $formFields['className'] . '.php',
         'content' => $content,
+        'form_fields' => [
+            'richText' => [
+                'options' => ['Completion A', 'Completion B', 'Completion C'],
+            ],
+        ],
     ]);
 
     exit(0);

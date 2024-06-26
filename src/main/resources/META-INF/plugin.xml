@@ -25,6 +25,7 @@
                            displayType="BALLOON"/>
         <statusBarWidgetFactory id="psa.statusBar.widget_factory" implementation="com.github.sam0delkin.intellijpsa.statusBar.PsaStatusBarWidgetFactory" />
         <vfs.asyncListener implementation="com.github.sam0delkin.intellijpsa.fileListener.PsaFileListener" />
+        <backgroundPostStartupActivity implementation="com.github.sam0delkin.intellijpsa.activity.PsaStartupActivity" />
     </extensions>
     <actions>
         <group

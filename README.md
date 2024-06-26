@@ -43,6 +43,7 @@ Table of Contents
   * [Performance considerations](#performance-considerations)
     * [General](#general)
     * [GoTo optimizations](#goto-optimizations)
+  * [StatusBar Icon](#statusbar-icon)
 * [Ideas / ToDo](#ideas--todo)
 * [FAQ / How To](#faq--how-to)
 
@@ -647,8 +648,14 @@ For example, for some simple PHP Class you can use the following structure:
           "options": ["Option A", "Option B", "Option C"]
         },
         {
-          "name": "properties",
-          "title": "Properties",
+          "name": "richText",
+          "title": "Rich Text with Completion",
+          "type": "RichText",
+          "options": ["Completion A", "Completion B", "Completion C"]
+        },
+        {
+          "name": "collection",
+          "title": "Collection of text fields",
           "type": "Collection",
           "options": []
         }
@@ -696,13 +703,21 @@ generation to your autocomplete script with the following variables:
 > [!NOTE]
 > `formFields` - will be a JSON object where each key is a field name, and value will be a value of the form field.
 
-As a result, your script should return a simple JSON object with 2 fields:
+As a result, your script should return a simple JSON object with the following fields:
 ```JSON
 {
   "file_name": "string, required. Filename of the newly generated file.",
-  "content": "string, required. Content of the file."
+  "content": "string, required. Content of the file.",
+  "form_fields": {
+    "{field_name}": {
+      "options": "Array of strings, optional. Here you can override array of `RichText` completions."
+    }
+  }
 }
 ```
+> [!NOTE]
+> `form_fields` - is a optional field. Each inner value of `form_fields` is optional as well.
+
 Some examples for [PHP](examples/php/psa.php), [JavaScript](examples/js/psa.js), [TypeScript](examples/ts/psa.ts) 
 are shown in the [examples](examples/README.md) folder.
 
@@ -757,6 +772,19 @@ your custom autocomplete is not support. TO overcome this problem, there is an a
 `goto_element_filter`. Here your script should return an array of element types to filter GoTo references. It will be 
 saved first time your script will be called with [Info](#custom-autocomplete-info) call and then will ignore all 
 elements that are not matching the types provided.
+
+### StatusBar Icon
+Plugin provides a status bar icon which is showing current status of autocomplete. Icon is showing only in case of 
+plugin is enabled in settings. Also, if you want, you can hide it by right-click on the status bar.
+Icon is showing either green ![active_image](src/main/resources/icons/pluginIcon_active_16.svg) or 
+red ![active_image](src/main/resources/icons/pluginIcon_error_16.svg) dot on the left top corner, showing the result of
+last PSA operation. If result wee succeed, icon will be green and red otherwise.
+
+Also if you click on the icon, a quick plugin actions menu will be show:
+
+![widget_menu](doc/images/psa_widget_popup_menu.png)
+
+where you can see plugin actions menu.
 
 ## Ideas / ToDo
 

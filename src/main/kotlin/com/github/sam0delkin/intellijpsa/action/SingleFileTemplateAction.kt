@@ -32,14 +32,15 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.HorizontalScrollBarEditorCustomization
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.util.textCompletion.TextCompletionValueDescriptor
-import com.intellij.util.textCompletion.TextFieldWithCompletion
-import com.intellij.util.textCompletion.ValuesCompletionProvider
+import com.intellij.util.textCompletion.*
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.awt.Dimension
 import java.util.*
 import java.util.Timer
 import javax.swing.*
+import kotlin.collections.ArrayList
 
 
 class SingleFileTemplateAction(
@@ -55,6 +56,7 @@ class SingleFileTemplateAction(
     private var loadingIcon: Cell<JLabel>? = null
     private var navigateToFile: Cell<JCheckBox>? = null
     private val formFields: HashMap<String, Cell<JComponent>> = HashMap()
+    private val richTextEditorValues = HashMap<String, MutableList<String>>()
 
     override fun actionPerformed(e: AnActionEvent) {
         val completionService = e.project?.service<CompletionService>()
@@ -77,7 +79,8 @@ class SingleFileTemplateAction(
         if (directories.isEmpty()) {
             return
         }
-        val directoryPath = VfsUtil.getRelativePath(directories[0].virtualFile, e.project!!.guessProjectDir()!!, '/').toString()
+        val directoryPath =
+            VfsUtil.getRelativePath(directories[0].virtualFile, e.project!!.guessProjectDir()!!, '/').toString()
         val formFieldData = HashMap<String, String>()
         template.formFields!!.map { event -> formFieldData[event.name!!] = "" }
 
@@ -111,6 +114,23 @@ class SingleFileTemplateAction(
                             fileNameField!!.component.text = templateData.get("file_name")!!.jsonPrimitive.content
                         }
                     }
+
+                    if (templateData.containsKey("form_fields")) {
+                        if (templateData.get("form_fields") is JsonObject) {
+                            val fields = templateData.get("form_fields") as JsonObject
+
+                            for (fieldName in fields.keys) {
+                                val value = fields.get(fieldName)
+
+                                if (value is JsonObject && value.containsKey("options")) {
+                                    if (richTextEditorValues.containsKey(fieldName)) {
+                                        richTextEditorValues[fieldName]!!.addAll((value.get("options") as JsonArray).map { e -> e.jsonPrimitive.content })
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if (templateData.containsKey("content")) {
                         if (null !== previewTextField) {
                             if (newFileType !== previewTextField!!.component.fileType) {
@@ -128,13 +148,13 @@ class SingleFileTemplateAction(
             loadingIcon?.visible(false)
         }
 
-        val changeListener = fun (field: TemplateFormField?, value: String?) {
+        val changeListener = fun(field: TemplateFormField?, value: String?) {
             changed = true
             loadingIcon?.visible(true)
             if (field !== null && value !== null) {
                 formFieldData[field.name!!] = value
             }
-            ApplicationManager.getApplication().invokeLater{
+            ApplicationManager.getApplication().invokeLater {
                 if (null !== timer) {
                     timer?.cancel()
                 }
@@ -182,22 +202,32 @@ class SingleFileTemplateAction(
                         }
                         formFields[field.name!!] = formField
                     } else if (field.type == TemplateFormFieldType.RichText) {
-                        val richText = TextFieldWithCompletion(e.project!!, ValuesCompletionProvider<String>(object: TextCompletionValueDescriptor<String> {
-                            override fun compare(o1: String?, o2: String?): Int {
-                                return o1!!.compareTo(o2!!)
-                            }
+                        val values = ArrayList<String>()
+                        values.addAll(if (null !== field.options) field.options!!.toList() else listOf())
+                        val richText = TextFieldWithCompletion(
+                            e.project!!,
+                            ValuesCompletionProvider(object : TextCompletionValueDescriptor<String> {
+                                override fun compare(o1: String?, o2: String?): Int {
+                                    return o1!!.compareTo(o2!!)
+                                }
 
-                            override fun createLookupBuilder(item: String): LookupElementBuilder {
-                                return LookupElementBuilder.create(item)
-                            }
+                                override fun createLookupBuilder(item: String): LookupElementBuilder {
+                                    return LookupElementBuilder.create(item)
+                                }
 
-                        }, if(null !== field.options) field.options!!.toList() else listOf()), "", true, true, true)
+                            }, values),
+                            "",
+                            true,
+                            true,
+                            true
+                        )
                         richText.preferredSize = Dimension(204, 30)
-                        richText.document.addDocumentListener(object: DocumentListener {
+                        richText.document.addDocumentListener(object : DocumentListener {
                             override fun documentChanged(event: DocumentEvent) {
                                 changeListener(field, event.document.text)
                             }
                         })
+                        richTextEditorValues[field.name!!] = values
                         cell(richText)
                     }
                 }
@@ -209,12 +239,13 @@ class SingleFileTemplateAction(
                 label("Preview")
                 loadingIcon = icon(AnimatedIcon.Default()).visible(false)
             }
-            row {  }
+            row { }
             row {
                 val previewTextFieldComponent = EditorTextField(
                     EditorFactory.getInstance().createDocument(
                         StringUtil.convertLineSeparators("")
-                    ), e.project, FileTypes.PLAIN_TEXT, true, false)
+                    ), e.project, FileTypes.PLAIN_TEXT, true, false
+                )
                 previewTextFieldComponent.addSettingsProvider { editor ->
                     run {
                         editor.settings.isLineNumbersShown = true

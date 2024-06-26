@@ -20,6 +20,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
+import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Consumer
 import kotlinx.serialization.json.JsonArray
@@ -29,7 +30,11 @@ import java.util.*
 import javax.swing.Icon
 
 
-class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
+class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
+    companion object {
+        const val WIDGET_ID = "psa.status_bar"
+    }
+
     override fun getId(): String {
         return "psa.statusBar.widget_factory"
     }
@@ -59,7 +64,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
             }
 
             override fun ID(): String {
-                return "psa.status_bar"
+                return WIDGET_ID
             }
 
             override fun install(statusBar: StatusBar) {
@@ -142,6 +147,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                         .createNotification(completionService.lastResultMessage, NotificationType.ERROR)
                                         .notify(project)
                                 }
+                                project.service<StatusBarWidgetsManager>().updateAllWidgets()
                             }
                             thread.start()
                         }

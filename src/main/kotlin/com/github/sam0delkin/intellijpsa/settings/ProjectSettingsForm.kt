@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.settings
 
 import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.statusBar.PsaStatusBarWidgetFactory
 import com.intellij.execution.util.PathMappingsComponent
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -15,10 +16,10 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import com.intellij.ui.components.JBCheckBox
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
-import org.jetbrains.annotations.Nls
 import java.awt.Point
 import java.nio.file.Path
 import javax.swing.JComponent
@@ -186,6 +187,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
 
     @Throws(ConfigurationException::class)
     override fun apply() {
+        val completionService = project.service<CompletionService>()
         settings.pluginEnabled = enabled.component.isSelected
         settings.debug = debug.component.isSelected
         settings.scriptPath = scriptPath.component.text.trim()
@@ -194,6 +196,19 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         settings.goToFilter = goToElementFilter.component.text
         settings.executionTimeout = executionTimeout.component.value as Int
         changed = false
+        if (!settings.pluginEnabled && completionService.lastResultSucceed) {
+            completionService.lastResultSucceed = false
+            completionService.lastResultMessage = ""
+        } else if (settings.pluginEnabled && completionService.lastResultSucceed) {
+            completionService.lastResultSucceed = true
+            completionService.lastResultMessage = ""
+        }
+
+        val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
+        if (null === project.service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
+            project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
+        }
+        project.service<StatusBarWidgetsManager>().updateAllWidgets()
     }
 
     private fun updateUIFromSettings() {
@@ -211,7 +226,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
     private val settings: Settings
         get() = project.service<CompletionService>().getSettings()
 
-    override fun getDisplayName(): @Nls String {
+    override fun getDisplayName(): String {
         return "Project Specific Autocomplete"
     }
 }

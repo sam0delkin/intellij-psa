@@ -3,6 +3,12 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Added StatusBar icon
+- Added option to update completions for `RichText` field type during template generation
+- PSA now will update status after project start
+- PSA will ask to update plugin if it is not yet enabled, and executable script found and `.psa/psa.sh`
+- Documentation and examples update
+- Misc fixes and improvements
 
 ## [0.0.9] - 2024-06-26
 - Added file watcher so any change in a PSA script dir will automatically update info

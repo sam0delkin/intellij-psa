@@ -35,6 +35,18 @@ if (type === 'Info') {
             title: "Comment",
             type: "Select",
             options: ["OptionA", "OptionB", "OptionC"]
+          },
+          {
+            name: "richText",
+            title: "Rich Text with Completion",
+            type: "RichText",
+            options: ['Completion A', 'Completion B', 'Completion C']
+          },
+          {
+            name: "collection",
+            title: "Collection of text fields",
+            type: "Collection",
+            options: []
           }
         ]
       }
@@ -51,6 +63,11 @@ if (type === 'GenerateFileFromTemplate') {
     console.log(JSON.stringify({
         'file_name': context['formFields']['className'] + '.class.ts',
         'content': generateMyAwesomeTemplate(context['formFields']),
+        'form_fields': {
+          richText: {
+            options: ['Completion A', 'Completion B', 'Completion C']
+          }
+        }
     }));
 
     process.exit(0)

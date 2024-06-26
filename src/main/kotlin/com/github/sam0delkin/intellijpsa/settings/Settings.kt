@@ -5,7 +5,6 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.PathMappingSettings.PathMapping
 import com.intellij.util.xmlb.XmlSerializerUtil
-import org.jetbrains.annotations.Nullable
 
 enum class TemplateFormFieldType {
     Text, RichText, Checkbox, Select, Collection
@@ -84,20 +83,13 @@ class SingleFileCodeTemplate {
 class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false
     var debug: Boolean = false
-
-    @Nullable
     var scriptPath: String? = ".psa/psa.php"
-    @Nullable
     var pathMappings: Array<PathMapping>? = arrayOf()
-    @Nullable
     var goToFilter: String? = ""
-    @Nullable
     var supportedLanguages: String? = ""
-    @Nullable
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
     var executionTimeout: Int = 5000
 
-    @Nullable
     @Override
     override fun getState(): Settings {
         return this
