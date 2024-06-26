@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.9] - 2024-06-26
 - Added file watcher so any change in a PSA script dir will automatically update info
 - Added `RichText` file template field type to support completions. You can provide array of completions in `options` 
 field
@@ -60,7 +62,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.8...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.9...HEAD
+[0.0.9]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.5...v0.0.6
