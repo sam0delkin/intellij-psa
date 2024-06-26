@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.10] - 2024-06-26
 - Added StatusBar icon
 - Added option to update completions for `RichText` field type during template generation
 - PSA now will update status after project start
@@ -68,7 +70,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.9...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.10...HEAD
+[0.0.10]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.6...v0.0.7
