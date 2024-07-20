@@ -1,8 +1,11 @@
 package com.github.sam0delkin.intellijpsa.completion
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
+import com.github.sam0delkin.intellijpsa.index.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.services.RequestType
+import com.github.sam0delkin.intellijpsa.settings.Settings
+import com.github.sam0delkin.intellijpsa.util.PsiUtils
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
@@ -10,6 +13,7 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.patterns.PlatformPatterns
@@ -32,6 +36,10 @@ class AnyCompletionContributor() {
                         context: ProcessingContext,
                         resultSet: CompletionResultSet
                     ) {
+                        if (null === parameters.originalPosition) {
+                            return
+                        }
+
                         val project = parameters.position.project
                         val completionService = project.service<CompletionService>()
                         val settings = completionService.getSettings()
@@ -41,14 +49,24 @@ class AnyCompletionContributor() {
                             languageString = language.baseLanguage!!.id
                         }
 
+                        val model = completionService.psiElementToModel(parameters.originalPosition!!)
+
                         val json = completionService.getCompletions(
                             settings,
-                            parameters.originalPosition,
-                            parameters.originalFile,
+                            arrayOf(
+                                IndexedPsiElementModel(
+                                    model,
+                                    PsiUtils.getPsiElementPath(parameters.originalPosition!!),
+                                    PsiUtils.getPsiElementLabel(parameters.originalPosition!!),
+                                    parameters.originalPosition!!.text,
+                                    parameters.originalPosition!!.textRange.printToString()
+                                )
+                            ),
+                            parameters.originalPosition!!.containingFile.virtualFile,
                             RequestType.Completion,
                             languageString,
                             parameters.offset
-                        )
+                        )?.jsonObject
 
                         if (null === json) {
                             return
@@ -115,6 +133,7 @@ class AnyCompletionContributor() {
             val settings = completionService.getSettings()
             val language = sourceElement.containingFile.language
             var languageString = language.id
+            val psiElements = ArrayList<PsiElement>()
             if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
                 languageString = language.baseLanguage!!.id
             }
@@ -122,54 +141,35 @@ class AnyCompletionContributor() {
             if (!settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString())) {
                 return null
             }
+            val model = completionService.psiElementToModel(sourceElement)
 
             val json =
                 completionService.getCompletions(
                     settings,
-                    sourceElement,
-                    sourceElement.containingFile,
+                    arrayOf(
+                        IndexedPsiElementModel(
+                            model,
+                            PsiUtils.getPsiElementPath(sourceElement),
+                            PsiUtils.getPsiElementLabel(sourceElement),
+                            sourceElement.text,
+                            sourceElement.textRange.printToString()
+                        )
+                    ),
+                    sourceElement.containingFile.virtualFile,
                     RequestType.GoTo,
                     languageString,
                     offset
-                )
+                )?.jsonObject
 
             if (null === json) {
                 return null
             }
 
-            val psiElements = ArrayList<PsiElement>()
-            val fm = VirtualFileManager.getInstance()
-            val pm = PsiManager.getInstance(project)
-
             if (json.containsKey("completions")) {
                 for (i in json.get("completions") as JsonArray) {
                     val linkData = i.jsonObject.get("link")?.jsonPrimitive!!.content
-                    val link = linkData.split(':')
-                    val path = settings.replacePathMappings(link[0])
-                    val virtualFile = fm.findFileByUrl(project.guessProjectDir().toString() + path)
-                    if (null !== virtualFile) {
-                        val psiFile = pm.findFile(virtualFile)
-                        if (null !== psiFile) {
-                            if (link.count() > 1) {
-                                val position =
-                                    StringUtils.ordinalIndexOf(psiFile.originalFile.text, "\n", link[1].toInt())
-                                val element = psiFile.findElementAt(position)
-                                if (null !== element) {
-                                    psiElements.add(element)
-                                } else {
-                                    psiElements.add(psiFile.firstChild)
-                                }
-                            } else {
-                                psiElements.add(psiFile.firstChild)
-                            }
-                        }
-                    }
+                    processLink(linkData, settings, project, psiElements)
                 }
-            }
-
-            if (json.containsKey("goto_element_filter")) {
-                val filter = (json.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }.joinToString(",")
-                settings.setElementFilter(filter)
             }
 
             if (json.containsKey("notifications")) {
@@ -188,7 +188,37 @@ class AnyCompletionContributor() {
                 }
             }
 
-            return psiElements.toList().toTypedArray()
+            return psiElements.toTypedArray()
+        }
+
+        private fun processLink(
+            linkData: String,
+            settings: Settings,
+            project: Project,
+            psiElements: ArrayList<PsiElement>
+        ) {
+            val fm = VirtualFileManager.getInstance()
+            val pm = PsiManager.getInstance(project)
+            val link = linkData.split(':')
+            val path = settings.replacePathMappings(link[0])
+            val virtualFile = fm.findFileByUrl(project.guessProjectDir().toString() + path)
+            if (null !== virtualFile) {
+                val psiFile = pm.findFile(virtualFile)
+                if (null !== psiFile) {
+                    if (link.count() > 1) {
+                        val position =
+                            StringUtils.ordinalIndexOf(psiFile.originalFile.text, "\n", link[1].toInt())
+                        val element = psiFile.findElementAt(position)
+                        if (null !== element) {
+                            psiElements.add(element)
+                        } else {
+                            psiElements.add(psiFile.firstChild)
+                        }
+                    } else {
+                        psiElements.add(psiFile.firstChild)
+                    }
+                }
+            }
         }
     }
 }

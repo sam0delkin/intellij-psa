@@ -13,6 +13,7 @@ Currently, supports:
 * Custom autocomplete based on your code (Ctrl + Space)
 * Custom GoTo based on your code (Ctrl/Command + Click)
 * Custom code templates (with variables) based on your code
+* Indexing of completions/GoTo to increase performance
 
 ### Supported Languages
 Any language that your IDE supports will be supported by plugin.
@@ -355,12 +356,16 @@ then you'll receive the following JSON in the filepath, passed from `PSA_CONTEXT
 1) Is plugin enabled or not
 2) Is debug enabled or not. Passed as `PSA_DEBUG` into the executable script
 3) Path to the PSA executable script. Must be an executable file
-4) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
-as project root.
-5) Programming languages supported by your autocompletion. Separated by comma, read-only
-6) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
+4) ![info](doc/images/balloonInformation.svg) button to update info from your PSA script
+5) Indexing concurrency. Controls number of processes which may be run in parallel during indexing
+6) Maximum script execution timeout. If script will execute longer that this value, execution will be interrupted
+7) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
+as project root. 
+8) Programming languages supported by your autocompletion. Separated by comma, read-only
+9) ![info](doc/images/balloonInformation.svg) button to get all the languages supported by your IDE. Comma separated. 
+Only one of these languages allowed to be passed in `supported_languages` value
+10) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
 [performance](#goto-optimizations) section.
-7) Info notification popup which was retrieved from your custom autocomplete.
 
 To configure your autocomplete, follow these actions:
 1) Check the `Plugin Enabled` checkbox (1) for enable plugin
@@ -401,7 +406,8 @@ As a result, your script should return an array of supported languages:
         }
       ]
     }
-  ]
+  ],
+  "supports_batch": "optional, boolean. Specifies does batch processing is supported by your script. Useful for speed-up indexing."
 }
 ```
 </details>
@@ -458,8 +464,6 @@ the following structure:
 
 By analyzing element and it's parents + some options you may find how to check that the caret is on the element
 which may be autocompleted.
-
-
 
 As a result your script should return:
 
@@ -593,6 +597,102 @@ breakpoint.
 > Keep `Debug` option disabled in plugin settings such as it has a strong impact on performance. Enable debug only in
 > case of you want to debug your autocomplete (write new completion, or check why some old is not working).
 
+### Indexing
+
+#### Introduction & Internals
+Intellij provides extension points for multiple index types like
+example, [FileBasedIndex](https://plugins.jetbrains.com/docs/intellij/file-based-indexes.html), 
+[Stub Indexes](https://plugins.jetbrains.com/docs/intellij/stub-indexes.html) but all of them are not fit plugin needs
+because of various problems (they are running in [Dumb Mode](https://plugins.jetbrains.com/docs/intellij/indexing-and-psi-stubs.html#dumb-mode), 
+which are significantly decrease PsiElement options resolving, or even running on raw AST Tree). The main idea of the
+plugin is to provide custom autocomplete & GoTo on the currently opened files. So whe one even need to index the whole
+file tree, while we can index only opened files? For these reasons, [Gists](https://plugins.jetbrains.com/docs/intellij/indexing-and-psi-stubs.html#gists)
+were chosen as index type for the PSA.
+
+#### Indexing process
+When you're opening any project with PSA configured and enabled, plugin getting all the currently opened files and 
+indexing them asynchronously in background. This process will be visible on the status bar and you even can interrupt 
+indexing of any file if you want. As well as when you're opening any new file, it will be indexed as well.
+Additionally, by Gist indexing nature, any file change will cause reindexing of the whole file.
+Old, non-indexed autocomplete & GoTo will still be available and work during indexing.
+
+Indexing is working in iterative way. When you will configure it for the project at first time, it will not index any
+element, but when you will try to autocomplete or GoTo to any element which is supported by your PSA script, plugin will
+remember element type and element text, and will index elements with same type and text in all opened files next time.
+As well as if your request were a completion request, it will remember all completions and will index them in other
+files.
+
+Such as indexing is a time-consuming process, plugin is doing it asynchronously and in parallel. You can configure
+concurrency level in the plugin settings, by default it set to the number of CPU cores in your system.
+
+#### Batch processing
+As it already said, indexing is a time-consuming and slow process, so it would be nice to minimize external process
+calls. For this purpose a batch processing were introduced. It is working absolutely same as usual Completion or GoTo
+request, but `PSA_CONTEXT` is now actually contain an array of contexts: one for each element being indexed.
+
+To support batch processing your PSA script `Info` result should return an optional config value `supports_batch` and
+if it's value is `true`, plugin will use batch processing during indexing.
+
+There are 2 new `PSA_TYPE` values: `BatchGoTo` and `BatchCompletion`. They are working absolutely same, but there is an 
+array of contexts will be passed to your script instead of single context, and your script should return an array of
+results instead of single one. So, `PSA_CONTEXT` will be:
+<details>
+  <summary>Expand</summary>
+
+```json
+[
+  {
+    "elementType": "right single quote",
+    "elementName": null,
+    "elementFqn": null,
+    "text": "'",
+    "...": "..."
+  },
+  {
+    "elementType": "right single quote",
+    "elementName": null,
+    "elementFqn": null,
+    "text": "'",
+    "...": "..."
+  }
+]
+```
+</details>
+
+and your script should return values in the following format:
+<details>
+  <summary>Expand</summary>
+
+```json
+[
+  {
+    "completions": [
+      {
+        "text": "My Completion For First Element",
+        "link": "/path/to/file.php:123:123",
+        "bold": false,
+        "priority": 123,
+        "type": "MyType"
+      }
+    ],
+    "notifications": []
+  },
+  {
+    "completions": [
+      {
+        "text": "My Completion For Second Element",
+        "link": "/path/to/file.php:123:123",
+        "bold": false,
+        "priority": 123,
+        "type": "MyType"
+      }
+    ],
+    "notifications": []
+  }
+]
+```
+</details>
+
 ### Code Templates
 
 Most of the languages provides some general file templates, like `PHP Class` in PHP or `TypeScript File`
@@ -697,7 +797,8 @@ generation to your autocomplete script with the following variables:
     "actionPath": "string, relative path from project root when the action were initiated.",
     "formFields": {
       "name": "value"
-    }
+    },
+    "originatorFieldName": "string, optional. If template regeneration were cause by some field change, this option will contain this field name."
   }
   ```
 > [!NOTE]
@@ -710,7 +811,8 @@ As a result, your script should return a simple JSON object with the following f
   "content": "string, required. Content of the file.",
   "form_fields": {
     "{field_name}": {
-      "options": "Array of strings, optional. Here you can override array of `RichText` completions."
+      "options": "Array of strings, optional. Here you can override array of `RichText` completions.",
+      "value": "String, optional. Here you can override current value of any form field if needed."
     }
   }
 }
@@ -780,7 +882,7 @@ Icon is showing either green ![active_image](src/main/resources/icons/pluginIcon
 red ![active_image](src/main/resources/icons/pluginIcon_error_16.svg) dot on the left top corner, showing the result of
 last PSA operation. If result wee succeed, icon will be green and red otherwise.
 
-Also if you click on the icon, a quick plugin actions menu will be show:
+Also, if you click on the icon, a quick plugin actions menu will be show:
 
 ![widget_menu](doc/images/psa_widget_popup_menu.png)
 
@@ -796,7 +898,7 @@ where you can see plugin actions menu.
 
 ## FAQ / How To
 
-**Q: What if i run my project in Docker?**
+**Q: What if I run my project in Docker?**
 
 **A:** It's no problem. You can easily use it with the plugin. See examples for 
 [docker-compose](examples/docker-compose) or [docker](examples/docker).

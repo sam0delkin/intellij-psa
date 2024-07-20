@@ -84,8 +84,12 @@ class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false
     var debug: Boolean = false
     var scriptPath: String? = ".psa/psa.php"
+    var indexingConcurrency: Int = Runtime.getRuntime().availableProcessors()
+    var elementPaths: HashMap<String, Boolean> = HashMap()
+    var elementTypes: HashMap<String, Boolean> = HashMap()
     var pathMappings: Array<PathMapping>? = arrayOf()
     var goToFilter: String? = ""
+    var supportsBatch: Boolean = false
     var supportedLanguages: String? = ""
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
     var executionTimeout: Int = 5000
@@ -134,9 +138,5 @@ class Settings : PersistentStateComponent<Settings> {
         }
 
         return goToFilter.split(",").any { e -> e == str }
-    }
-
-    fun setElementFilter(filter: String) {
-        this.goToFilter = filter
     }
 }

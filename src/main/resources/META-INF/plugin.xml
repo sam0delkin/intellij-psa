@@ -8,6 +8,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.settings.Settings"/>
+        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.index.PsaIndex"/>
 
         <projectConfigurable
                 parentId="tools"
@@ -27,6 +28,9 @@
         <vfs.asyncListener implementation="com.github.sam0delkin.intellijpsa.fileListener.PsaFileListener" />
         <backgroundPostStartupActivity implementation="com.github.sam0delkin.intellijpsa.activity.PsaStartupActivity" />
     </extensions>
+    <applicationListeners>
+        <listener class="com.github.sam0delkin.intellijpsa.listener.PsaOpenedFileListener" topic="com.intellij.openapi.fileEditor.FileEditorManagerListener" />
+    </applicationListeners>
     <actions>
         <group
                 id="com.github.sam0delkin.intellijpsa.action.PsaFileTemplateActionGroup"

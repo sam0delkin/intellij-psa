@@ -3,6 +3,16 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Added support of completion/GoTo indexing. Now all completions and GoTo are running instantly, without any delays, 
+right after currently opened file will be indexed
+- Added support of `BatchGoTo` and `BatchCompletion` operations to speed-up processing during indexing
+- Added support of returning value for form fields in single file template generation. This way you can pre-populate
+form field with a needed value
+- Added `originatorFieldName` into the context of single file generation. Will contain a field name which value change
+caused regeneration of the template content
+- Added info icon on the settings to get all the languages supported by your IDE. Useful in case of you don't know how
+to exactly need to specify the language in `supported_languages` option.
+- A lot of bug fixes and performance improvements
 
 ## [0.0.10] - 2024-06-26
 - Added StatusBar icon

@@ -2,40 +2,51 @@
 
 package com.github.sam0delkin.intellijpsa.services
 
+import com.github.sam0delkin.intellijpsa.index.IndexedPsiElementModel
+import com.github.sam0delkin.intellijpsa.index.PsaIndex
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.settings.SingleFileCodeTemplate
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
+import com.github.sam0delkin.intellijpsa.util.FileUtils
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
 import com.intellij.execution.util.ExecUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicatorProvider
+import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.*
 import com.intellij.psi.util.elementType
+import com.intellij.util.gist.GistManager
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
-import java.io.BufferedWriter
 import java.io.File
-import java.io.FileWriter
+import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
+import java.util.*
+import kotlin.NoSuchElementException
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 import kotlin.reflect.full.memberFunctions
 
 @Serializable
 data class GenerateFileFromTemplateData(
     val actionPath: String,
     val templateName: String,
+    val originatorFieldName: String?,
     val formFields: Map<String, String>
 )
 
@@ -79,19 +90,21 @@ data class PsiElementModel(
     var options: MutableMap<String, PsiElementModelChild>,
     var elementName: String?,
     var elementFqn: String?,
+    var elementSignature: Array<String>?,
     var text: String?,
     var parent: PsiElementModel?,
     var prev: PsiElementModel?,
     var next: PsiElementModel?,
     @Contextual
     var textRange: PsiElementModelTextRange?,
+    var filePath: String? = null
 )
 
 enum class RequestType {
-    Completion, GoTo, Info, GenerateFileFromTemplate
+    Completion, BatchCompletion, GoTo, BatchGoTo, Info, GenerateFileFromTemplate
 }
 
-private const val MAX_STRING_LENGTH = 250
+private const val MAX_STRING_LENGTH = 1000
 
 class CompletionService(project: Project) {
     private val project: Project
@@ -115,7 +128,7 @@ class CompletionService(project: Project) {
     }
 
     fun getSettings(): Settings {
-        return this.project.service<Settings>()
+        return this.project.service()
     }
 
     fun getInfo(settings: Settings, project: Project, path: String, debug: Boolean? = null): JsonObject {
@@ -144,7 +157,7 @@ class CompletionService(project: Project) {
 
 
         if (0 != result!!.exitCode) {
-           throw Exception(result!!.stdout + "\n" + result!!.stderr)
+            throw Exception(result!!.stdout + "\n" + result!!.stderr)
         }
 
         return Json.parseToJsonElement(result!!.stdout).jsonObject
@@ -166,6 +179,8 @@ class CompletionService(project: Project) {
                 filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
                 settings.goToFilter = filter.joinToString(",")
             }
+            settings.supportsBatch =
+                info.containsKey("supports_batch") && (info.get("supports_batch") as JsonElement).jsonPrimitive.boolean
 
             if (info.containsKey("templates")) {
                 if (info.get("templates") !is JsonArray) {
@@ -251,6 +266,7 @@ class CompletionService(project: Project) {
         project: Project,
         actionPath: String,
         templateName: String,
+        originatorFieldName: String?,
         formFields: Map<String, String>
     ): JsonObject? {
         val commandLine: GeneralCommandLine?
@@ -258,8 +274,15 @@ class CompletionService(project: Project) {
 
 
         try {
-            val data = Json.encodeToString(GenerateFileFromTemplateData(actionPath, templateName, formFields))
-            val filePath = this.writeToFile("psa_tmp", data)
+            val data = Json.encodeToString(
+                GenerateFileFromTemplateData(
+                    actionPath,
+                    templateName,
+                    originatorFieldName,
+                    formFields
+                )
+            )
+            val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
             commandLine = GeneralCommandLine(settings.scriptPath)
             commandLine.environment.put("PSA_CONTEXT", filePath)
             commandLine.environment.put("PSA_TYPE", RequestType.GenerateFileFromTemplate.toString())
@@ -290,11 +313,14 @@ class CompletionService(project: Project) {
             return Json.parseToJsonElement(result!!.stdout).jsonObject
         } catch (e: Exception) {
             this.lastResultSucceed = false
-            this.lastResultMessage = e.message ?: ""
+            this.lastResultMessage = e.message ?: "Unexpected Error"
             if (settings.debug) {
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("PSA Notification")
-                    .createNotification("Template generation returned not valid JSON<br/>" + e.message, NotificationType.ERROR)
+                    .createNotification(
+                        "Template generation returned not valid JSON<br/>" + e.message,
+                        NotificationType.ERROR
+                    )
                     .notify(project)
             }
         }
@@ -302,37 +328,40 @@ class CompletionService(project: Project) {
         return null
     }
 
-    fun getCompletions(
+    private fun getCompletionsOutput(
         settings: Settings,
-        element: PsiElement?,
-        file: PsiFile?,
+        model: Array<IndexedPsiElementModel>,
         requestType: RequestType,
         language: String,
-        editorOffset: Int? = null
-    ): JsonObject? {
+        editorOffset: Int? = null,
+        debug: Boolean? = null,
+        fromIndex: Boolean = false,
+    ): ProcessOutput? {
         if (!settings.pluginEnabled) {
-            return null
-        }
-
-        if (null === element) {
             return null
         }
 
         if (!settings.isLanguageSupported(language)) {
             return null
         }
-        if (
-            file?.name?.indexOf("example") != 0
-            && file?.containingDirectory.toString().indexOf(settings.getScriptDir()!!) >= 0
+        val data: String
+        if (model.size == 1 && requestType !in arrayOf(RequestType.BatchGoTo, RequestType.BatchCompletion)) {
+            val firstModel = model[0]
+            val file = File(firstModel.model.filePath!!)
+            if (
+                firstModel.model.filePath?.indexOf("example") != 0
+                && file.parent.indexOf(settings.getScriptDir()!!) >= 0
             ) {
-            return null
+                return null
+            }
+            data = Json.encodeToString(firstModel.model)
+        } else {
+            data = Json.encodeToString(model.map { e -> e.model })
         }
-
-        val model = psiElementToModel(element)
-        val data = Json.encodeToString(model)
-        val filePath = this.writeToFile("psa_tmp", data)
+        val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
+        val debugValue = if (null !== debug) debug else settings.debug
         val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
 
@@ -341,20 +370,24 @@ class CompletionService(project: Project) {
         commandLine.environment.put("PSA_TYPE", requestType.toString())
         commandLine.environment.put("PSA_LANGUAGE", language)
         commandLine.environment.put("PSA_OFFSET", if (null !== editorOffset) editorOffset.toString() else "")
-        commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
-        commandLine.setWorkDirectory(element.project.guessProjectDir()?.path)
+        commandLine.environment.put("PSA_DEBUG", if (debugValue) "1" else "0")
+        commandLine.setWorkDirectory(project.guessProjectDir()?.path)
 
-        ApplicationUtil.runWithCheckCanceled({
-            result = runBlocking {
-                ExecUtil.execAndGetOutput(
-                    commandLine,
-                    settings.executionTimeout
-                )
-            }
-        }, indicator)
-
-        this.lastResultSucceed = true
-        this.lastResultMessage = ""
+        if (fromIndex) {
+            result = ExecUtil.execAndGetOutput(
+                commandLine,
+                settings.executionTimeout
+            )
+        } else {
+            ApplicationUtil.runWithCheckCanceled({
+                result = runBlocking {
+                    ExecUtil.execAndGetOutput(
+                        commandLine,
+                        settings.executionTimeout
+                    )
+                }
+            }, indicator)
+        }
 
         try {
             val fileVal = File(filePath)
@@ -364,29 +397,96 @@ class CompletionService(project: Project) {
         } catch (_: Throwable) {
         }
 
+        return result
+    }
+
+    fun getCompletions(
+        settings: Settings,
+        model: Array<IndexedPsiElementModel>,
+        file: VirtualFile?,
+        requestType: RequestType,
+        language: String,
+        editorOffset: Int? = null,
+        debug: Boolean? = null,
+        useIndex: Boolean = true,
+        fromIndex: Boolean = false,
+    ): JsonElement? {
+        val index = project.service<PsaIndex>()
+        val values = if (fromIndex) {
+            listOf()
+        } else {
+            var indexValue: String? = null
+            if (model.size == 1) {
+                indexValue = index.get(PsaIndex.generateKeyByRequestType(requestType, model[0]))
+            }
+            if (null !== indexValue) listOf(indexValue) else listOf()
+        }
+
+        if (values.isNotEmpty() && useIndex) {
+            return Json.parseToJsonElement(values[0]) as JsonObject
+        }
+
+        val result = getCompletionsOutput(
+            settings,
+            model,
+            requestType,
+            language,
+            editorOffset,
+            debug,
+            fromIndex
+        )
+
+        this.lastResultSucceed = true
+        this.lastResultMessage = ""
+
 
         if (null === result) {
             return null
         }
 
-        if (0 != result!!.exitCode) {
+        if (0 != result.exitCode) {
+            if (result.isTimeout) {
+                this.lastResultMessage = "Process Execution Timeout exceeded."
+            } else {
+                this.lastResultMessage = result.stdout + "\n" + result.stderr
+            }
             this.lastResultSucceed = false
-            this.lastResultMessage = result!!.stdout + "\n" + result!!.stderr
 
             if (settings.debug) {
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("PSA Notification")
-                    .createNotification(result!!.stdout + "\n" + result!!.stderr, NotificationType.ERROR)
-                    .notify(element.project)
+                    .createNotification(this.lastResultMessage, NotificationType.ERROR)
+                    .notify(project)
             }
 
             return null
         }
 
-        return Json.parseToJsonElement(result!!.stdout).jsonObject
+        val jsonResult = Json.parseToJsonElement(result.stdout)
+        if (jsonResult is JsonObject && jsonResult.containsKey("completions") && null !== jsonResult.get("completions")) {
+            val completions = jsonResult.get("completions") as JsonArray
+            if (!completions.isEmpty()) {
+                if (!fromIndex && useIndex && model.size == 1) {
+                    val firstModel = model[0]
+                    if (!settings.elementPaths.contains(firstModel.label)) {
+                        settings.elementPaths[firstModel.label] = true
+                        if (null !== file) {
+                            ApplicationManager.getApplication().invokeLater {
+                                GistManager.getInstance().invalidateData(file)
+                            }
+                        }
+                    }
+                    if (!settings.elementTypes.contains(firstModel.model.elementType)) {
+                        settings.elementTypes[firstModel.model.elementType] = true
+                    }
+                }
+            }
+        }
+
+        return jsonResult
     }
 
-    private fun psiElementToModel(
+    fun psiElementToModel(
         element: PsiElement,
         processParent: Boolean = true,
         processOptions: Boolean = true,
@@ -395,6 +495,7 @@ class CompletionService(project: Project) {
         processPrev: Boolean = true,
         processedElements: ArrayList<PsiElement>? = null
     ): PsiElementModel {
+        val filePath = if (null === processedElements) element.containingFile.virtualFile.path else null
         val currentProcessedElements = if (null !== processedElements) processedElements else ArrayList()
         val options = mutableMapOf<String, PsiElementModelChild>()
         val elementType = element.elementType.printToString()
@@ -416,7 +517,8 @@ class CompletionService(project: Project) {
         try {
             val nameMethod = element.javaClass.methods.first { el -> el.name === "name" }
             elementName = nameMethod.invoke(element) as String
-        } catch (_: NoSuchElementException) {}
+        } catch (_: NoSuchElementException) {
+        }
 
         var elementText = element.text
         if (elementText.length > MAX_STRING_LENGTH) {
@@ -426,6 +528,14 @@ class CompletionService(project: Project) {
         var nextElement: PsiElementModel? = null
         var prevElement: PsiElementModel? = null
         val hashCode: String = System.identityHashCode(element).toString()
+        val signature: ArrayList<String> = ArrayList()
+        val signatureMethods = element.javaClass.methods.filter { m -> m.name === "getSignature" }
+        if (signatureMethods.isNotEmpty()) {
+            val method = signatureMethods.first()
+            var signatureValue = method.invoke(element) as String
+            signatureValue = signatureValue.replace(Regex("#."), "")
+            signature.addAll(signatureValue.split("|"))
+        }
 
         if (currentProcessedElements.contains(element)) {
             return PsiElementModel(
@@ -434,6 +544,7 @@ class CompletionService(project: Project) {
                 options,
                 elementName,
                 elementFqn,
+                signature.toTypedArray(),
                 elementText,
                 null,
                 null,
@@ -499,6 +610,12 @@ class CompletionService(project: Project) {
                     }
                     options[optionName] = PsiElementModelChild(null, null, arr)
                 }
+            } catch (e: InvocationTargetException) {
+                if (e.targetException is IndexNotReadyException) {
+                    throw e.targetException
+                }
+            } catch (e: IndexNotReadyException) {
+                throw e
             } catch (e: Throwable) {
                 continue
             }
@@ -545,6 +662,7 @@ class CompletionService(project: Project) {
             options,
             elementName,
             elementFqn,
+            signature.toTypedArray(),
             elementText,
             parentElement,
             prevElement,
@@ -553,18 +671,8 @@ class CompletionService(project: Project) {
                 element.textRange.startOffset,
                 element.textRange.endOffset
             ) else null,
+            filePath,
         )
-    }
-
-    fun writeToFile(pFilename: String, sb: String): String {
-        val tempDir = File(System.getProperty("java.io.tmpdir"))
-        val tempFile: File = File.createTempFile(pFilename, ".tmp", tempDir)
-        val fileWriter = FileWriter(tempFile, true)
-        val bw = BufferedWriter(fileWriter)
-        bw.write(sb)
-        bw.close()
-
-        return tempFile.absolutePath
     }
 
     private fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>> {

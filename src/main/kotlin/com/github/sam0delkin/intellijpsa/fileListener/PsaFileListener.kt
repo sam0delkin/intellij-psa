@@ -30,8 +30,8 @@ class PsaFileListener: AsyncFileListener {
             if (null === projectDir) {
                 continue
             }
-            scriptDir = projectDir.path + '/' + scriptDir
 
+            scriptDir = projectDir.path + '/' + scriptDir
             if (events.filter { e -> e.path.indexOf(scriptDir) >= 0 }.isEmpty()) {
                 continue
             }

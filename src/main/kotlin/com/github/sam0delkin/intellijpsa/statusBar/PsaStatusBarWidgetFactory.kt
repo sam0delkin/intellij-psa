@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.statusBar
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
+import com.github.sam0delkin.intellijpsa.index.PsaIndex
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm
 import com.intellij.icons.AllIcons
@@ -12,6 +13,7 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -21,8 +23,10 @@ import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Consumer
+import com.intellij.util.gist.GistManager
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.awt.event.MouseEvent
@@ -44,10 +48,14 @@ class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
     }
 
     override fun isAvailable(project: Project): Boolean {
-        val completionService = project.service<CompletionService>()
-        val settings = completionService.getSettings()
+        return try {
+            val completionService = project.service<CompletionService>()
+            val settings = completionService.getSettings()
 
-        return settings.pluginEnabled
+            settings.pluginEnabled
+        } catch (e: IllegalStateException) {
+            false
+        }
     }
 
     override fun createWidget(project: Project): StatusBarWidget {
@@ -98,6 +106,19 @@ class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
                             settings.debug = true
                         }
                     })
+                }
+                val currentDoc = FileEditorManager.getInstance(project).getSelectedTextEditor()?.getDocument()
+                if (null !== currentDoc) {
+                    val file = PsiDocumentManager.getInstance(project).getPsiFile(currentDoc)
+                    if (null !== file) {
+                        actionGroup.add(object : AnAction("Reindex Current File", "", AllIcons.Actions.Refresh) {
+                            override fun actionPerformed(e: AnActionEvent) {
+                                GistManager.getInstance().invalidateData(file.virtualFile)
+                                val psaIndex = project.service<PsaIndex>()
+                                psaIndex.getForFile(file)
+                            }
+                        })
+                    }
                 }
                 actionGroup.add(object: AnAction("Update Info", "", AllIcons.General.BalloonInformation) {
                     override fun actionPerformed(e: AnActionEvent) {

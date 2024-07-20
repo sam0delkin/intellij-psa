@@ -11,6 +11,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -18,7 +19,10 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.fileTypes.FileTypes
+import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.util.NlsActions
 import com.intellij.openapi.util.text.StringUtil
@@ -30,6 +34,8 @@ import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.HorizontalScrollBarEditorCustomization
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.textCompletion.*
@@ -57,6 +63,7 @@ class SingleFileTemplateAction(
     private var navigateToFile: Cell<JCheckBox>? = null
     private val formFields: HashMap<String, Cell<JComponent>> = HashMap()
     private val richTextEditorValues = HashMap<String, MutableList<String>>()
+    private var indicator = EmptyProgressIndicator()
 
     override fun actionPerformed(e: AnActionEvent) {
         val completionService = e.project?.service<CompletionService>()
@@ -84,7 +91,7 @@ class SingleFileTemplateAction(
         val formFieldData = HashMap<String, String>()
         template.formFields!!.map { event -> formFieldData[event.name!!] = "" }
 
-        fun updateData() {
+        fun updateData(originatorFieldName: String?) {
             if (!changed) {
                 return
             }
@@ -94,6 +101,7 @@ class SingleFileTemplateAction(
                 e.project!!,
                 directoryPath,
                 template.name!!,
+                originatorFieldName,
                 formFieldData
             )
 
@@ -125,6 +133,23 @@ class SingleFileTemplateAction(
                                 if (value is JsonObject && value.containsKey("options")) {
                                     if (richTextEditorValues.containsKey(fieldName)) {
                                         richTextEditorValues[fieldName]!!.addAll((value.get("options") as JsonArray).map { e -> e.jsonPrimitive.content })
+                                    }
+                                }
+                                if (value is JsonObject && value.containsKey("value")) {
+                                    if (formFields.containsKey(fieldName)) {
+                                        val component = formFields[fieldName]!!.component
+                                        if (component is TextFieldWithCompletion) {
+                                            component.document.setText(value.get("value")!!.jsonPrimitive.content)
+                                        }
+                                        if (component is JBTextField) {
+                                            component.text = value.get("value")!!.jsonPrimitive.content
+                                        }
+                                        if (component is JBCheckBox) {
+                                            component.isSelected = value.get("value")!!.jsonPrimitive.content.toBoolean()
+                                        }
+                                        if (component is ComboBox<*>) {
+                                            component.selectedItem = value.get("value")!!.jsonPrimitive.content
+                                        }
                                     }
                                 }
                             }
@@ -159,10 +184,17 @@ class SingleFileTemplateAction(
                     timer?.cancel()
                 }
 
+                indicator.cancel()
+                indicator = EmptyProgressIndicator()
+
                 timer = Timer()
                 timer!!.schedule(object : TimerTask() {
                     override fun run() {
-                        updateData()
+                        try {
+                            ApplicationUtil.runWithCheckCanceled({
+                                updateData(field?.name)
+                            }, indicator)
+                        } catch (_: ProcessCanceledException) {}
                     }
                 }, 500)
             }
