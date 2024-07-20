@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.11] - 2024-07-20
 - Added support of completion/GoTo indexing. Now all completions and GoTo are running instantly, without any delays, 
 right after currently opened file will be indexed
 - Added support of `BatchGoTo` and `BatchCompletion` operations to speed-up processing during indexing
@@ -80,7 +82,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.10...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.11...HEAD
+[0.0.11]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.7...v0.0.8
