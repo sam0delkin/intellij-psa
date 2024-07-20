@@ -869,7 +869,8 @@ if (!checkElement($context)) {
 
 When you're clicking (Ctrl/Command + Click) by **any** element in the IDE editor, IDE is calling all GoTo
 contributors, regardless of language or any other things. And there is no way to know - does your custom autocomplete
-will resolve the reference or not. This will lead to freezes in IDE UI when you're trying to GoTo in some place which 
+will resolve the reference or not. So plugin will still try to call your script to check that element may be resolved, 
+and GoTO reference provided. This will lead to freezes in IDE UI when you're trying to GoTo in some place which 
 your custom autocomplete is not support. TO overcome this problem, there is an additional option were added:
 `goto_element_filter`. Here your script should return an array of element types to filter GoTo references. It will be 
 saved first time your script will be called with [Info](#custom-autocomplete-info) call and then will ignore all 
