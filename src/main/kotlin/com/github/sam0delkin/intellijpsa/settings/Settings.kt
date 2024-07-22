@@ -85,6 +85,7 @@ class Settings : PersistentStateComponent<Settings> {
     var debug: Boolean = false
     var scriptPath: String? = ".psa/psa.php"
     var indexingConcurrency: Int = Runtime.getRuntime().availableProcessors()
+    var indexingEnabled: Boolean = true
     var elementPaths: HashMap<String, Boolean> = HashMap()
     var elementTypes: HashMap<String, Boolean> = HashMap()
     var pathMappings: Array<PathMapping>? = arrayOf()

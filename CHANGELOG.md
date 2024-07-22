@@ -3,6 +3,10 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Make indexing optional. Can be disabled in settings
+- If file is successfully indexed, PSA will not try to do any completions without using index
+- Indexing file progress is now more informative
+- Performance improvements in indexing process
 
 ## [0.0.11] - 2024-07-20
 - Added support of completion/GoTo indexing. Now all completions and GoTo are running instantly, without any delays, 

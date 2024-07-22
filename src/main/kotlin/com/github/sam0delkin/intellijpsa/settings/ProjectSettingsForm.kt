@@ -34,6 +34,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
     private lateinit var enabled: Cell<JBCheckBox>
     private lateinit var debug: Cell<JBCheckBox>
     private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
+    private lateinit var indexingEnabled: Cell<JBCheckBox>
     private lateinit var indexingConcurrency: Cell<JSpinner>
     private lateinit var pathMappings: Cell<PathMappingsComponent>
     private lateinit var supportedLanguages: Cell<JTextField>
@@ -90,11 +91,15 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
                     }
                     infoButton = actionButton(action)
                 }.rowComment("Path to the PSA executable script. Must be an executable file")
+                row("Indexing Enabled") {
+                    indexingEnabled = checkBox("")
+                }.rowComment("Is indexing of currently opened files enabled")
                 row("Indexing Concurrency") {
                     val availableProcessors = Runtime.getRuntime().availableProcessors()
                     indexingConcurrency =
                         cell(JSpinner(SpinnerNumberModel(availableProcessors, 1, availableProcessors, 1)))
                 }
+                    .enabledIf(indexingEnabled.selected)
                     .rowComment("Maximum concurrency level for indexing. Default: Count of CPU cores in your system")
                 row("Execution Timeout") {
                     executionTimeout = cell(JSpinner(SpinnerNumberModel(5000, 0, 100000, 1000)))
@@ -216,6 +221,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
 
                         || scriptPath.component.text != settings.scriptPath
                         || indexingConcurrency.component.value != settings.indexingConcurrency
+                        || indexingEnabled.component.isSelected != settings.indexingEnabled
                         || pathMappings.component.mappingSettings.pathMappings.map { el -> el.localRoot + " ->" + el.remoteRoot }
                     .joinToString(",") != settings.pathMappings?.map { el -> el.localRoot + " ->" + el.remoteRoot }
                     ?.joinToString(",")
@@ -238,6 +244,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         settings.debug = debug.component.isSelected
         settings.scriptPath = scriptPath.component.text.trim()
         settings.indexingConcurrency = indexingConcurrency.component.value as Int
+        settings.indexingEnabled = indexingEnabled.component.isSelected
         settings.pathMappings = pathMappings.component.mappingSettings.pathMappings.toTypedArray()
         settings.supportedLanguages = supportedLanguages.component.text
         settings.goToFilter = goToElementFilter.component.text
@@ -265,6 +272,7 @@ class ProjectSettingsForm(private val project: Project) : Configurable {
         debug.component.setSelected(settings.debug)
         scriptPath.component.setText(settings.scriptPath)
         indexingConcurrency.component.value = settings.indexingConcurrency
+        indexingEnabled.component.isSelected = settings.indexingEnabled
         settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
         pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
         supportedLanguages.component.setText(settings.supportedLanguages)

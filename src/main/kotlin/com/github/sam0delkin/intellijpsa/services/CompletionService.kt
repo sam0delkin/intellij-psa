@@ -14,18 +14,15 @@ import com.intellij.execution.process.ProcessOutput
 import com.intellij.execution.util.ExecUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicatorProvider
-import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.util.elementType
-import com.intellij.util.gist.GistManager
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
@@ -41,6 +38,7 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.reflect.full.memberFunctions
+import com.github.sam0delkin.intellijpsa.exception.Exception.*
 
 @Serializable
 data class GenerateFileFromTemplateData(
@@ -412,12 +410,23 @@ class CompletionService(project: Project) {
         fromIndex: Boolean = false,
     ): JsonElement? {
         val index = project.service<PsaIndex>()
+        var indexingEnabled = settings.indexingEnabled
+        var indexReady = true
         val values = if (fromIndex) {
             listOf()
         } else {
             var indexValue: String? = null
             if (model.size == 1) {
-                indexValue = index.get(PsaIndex.generateKeyByRequestType(requestType, model[0]))
+                try {
+                    indexValue = index.get(PsaIndex.generateKeyByRequestType(requestType, model[0]))
+                } catch (e: IndexNotReadyException) {
+                    indexReady = false
+                } catch (e: IndexingDisabledException) {
+                    indexingEnabled = false
+                }
+                if (null === indexValue && indexingEnabled && indexReady) {
+                    return null
+                }
             }
             if (null !== indexValue) listOf(indexValue) else listOf()
         }
@@ -466,18 +475,17 @@ class CompletionService(project: Project) {
         if (jsonResult is JsonObject && jsonResult.containsKey("completions") && null !== jsonResult.get("completions")) {
             val completions = jsonResult.get("completions") as JsonArray
             if (!completions.isEmpty()) {
-                if (!fromIndex && useIndex && model.size == 1) {
+                if (!fromIndex && useIndex) {
                     val firstModel = model[0]
                     if (!settings.elementPaths.contains(firstModel.label)) {
                         settings.elementPaths[firstModel.label] = true
-                        if (null !== file) {
-                            ApplicationManager.getApplication().invokeLater {
-                                GistManager.getInstance().invalidateData(file)
-                            }
-                        }
                     }
                     if (!settings.elementTypes.contains(firstModel.model.elementType)) {
                         settings.elementTypes[firstModel.model.elementType] = true
+                    }
+
+                    if (null !== file && indexReady) {
+                        index.reindexFile(file)
                     }
                 }
             }
@@ -532,7 +540,7 @@ class CompletionService(project: Project) {
         val signatureMethods = element.javaClass.methods.filter { m -> m.name === "getSignature" }
         if (signatureMethods.isNotEmpty()) {
             val method = signatureMethods.first()
-            var signatureValue = method.invoke(element) as String
+            var signatureValue = try { method.invoke(element) as String} catch (e: InvocationTargetException) { "" }
             signatureValue = signatureValue.replace(Regex("#."), "")
             signature.addAll(signatureValue.split("|"))
         }

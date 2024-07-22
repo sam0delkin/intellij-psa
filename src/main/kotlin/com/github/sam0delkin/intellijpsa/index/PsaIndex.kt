@@ -5,7 +5,7 @@ package com.github.sam0delkin.intellijpsa.index
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.services.PsiElementModel
 import com.github.sam0delkin.intellijpsa.services.RequestType
-import com.github.sam0delkin.intellijpsa.util.FileUtils
+import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.util.PsiUtils
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.application.runReadAction
@@ -33,6 +33,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import com.github.sam0delkin.intellijpsa.exception.Exception.*
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.vfs.VirtualFile
 
 @Serializable
 data class IndexedPsiElementModel(
@@ -53,26 +56,26 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
         return@newPsiFileGist existingData
     }
     val project = it.project
-
-    if (DumbService.isDumb(project)) {
-        DumbService.getInstance(project).runWhenSmart {
-            GistManager.getInstance().invalidateData(it.virtualFile)
-            val psaIndex = project.service<PsaIndex>()
-            psaIndex.getForFile(it)
-        }
-
-        return@newPsiFileGist "{}"
-    }
-
     val progressManager = ProgressManager.getInstance()
     val completionService = project.service<CompletionService>()
     val settings = completionService.getSettings()
-    val completionResultFilePaths = HashMap<String, String>()
-    val goToResultFilePaths = HashMap<String, String>()
+
+    if (!settings.indexingEnabled) {
+        return@newPsiFileGist "null"
+    }
+
+    if (DumbService.isDumb(project)) {
+        DumbService.getInstance(project).runWhenSmart {
+            val psaIndex = project.service<PsaIndex>()
+            psaIndex.reindexFile(it)
+        }
+
+        return@newPsiFileGist "null"
+    }
     val file = it
     val elements = ArrayList<String>()
     val processor =
-        PsiFileProcessor(completionService, elements, completionResultFilePaths, goToResultFilePaths, HashMap())
+        PsiFileProcessor(completionService, elements)
 
     PsiTreeUtil.processElements(it, processor)
     progressManager.run(object : Backgroundable(project, "PSA: Indexing File " + it.name + "...") {
@@ -80,6 +83,7 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
             try {
                 ApplicationUtil.runWithCheckCanceled({
                     val workerPool: ExecutorService = Executors.newFixedThreadPool(settings.indexingConcurrency)
+                    val modelsWorkerPool: ExecutorService = Executors.newFixedThreadPool(settings.indexingConcurrency)
                     if (indicator.isCanceled) {
                         workerPool.shutdownNow()
                         return@runWithCheckCanceled
@@ -102,30 +106,39 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                     val elementModels = ArrayList<IndexedPsiElementModel>()
                     for (currentElement in elements) {
                         val data = currentElement.split("::")
-                        thread {
+                        indicator.text2 = "Parsing elements..."
+                        modelsWorkerPool.submit {
                             runReadAction {
-                                val innerElement = file.findElementAt(data[1].toInt())
+                                var innerElement: PsiElement? = null
+                                runReadAction {
+                                    innerElement = file.findElementAt(data[1].toInt())
+                                }
                                 if (null === innerElement) {
                                     return@runReadAction
                                 }
 
-                                val currentModel = completionService.psiElementToModel(innerElement)
+                                val currentModel = completionService.psiElementToModel(innerElement!!)
                                 elementModels.add(
                                     IndexedPsiElementModel(
                                         currentModel,
-                                        PsiUtils.getPsiElementPath(innerElement),
-                                        PsiUtils.getPsiElementLabel(innerElement),
-                                        innerElement.text,
-                                        innerElement.textRange.printToString()
+                                        PsiUtils.getPsiElementPath(innerElement!!),
+                                        PsiUtils.getPsiElementLabel(innerElement!!),
+                                        innerElement!!.text,
+                                        innerElement!!.textRange.printToString()
                                     )
                                 )
 
                             }
-                        }.join()
+                        }
                     }
+
+                    modelsWorkerPool.shutdown()
+                    modelsWorkerPool.awaitTermination(1, TimeUnit.HOURS)
 
                     val batchCount = 20
                     var batchCurrent = 0
+                    var processed = 0
+                    indicator.text2 = "Processing elements..."
 
                     while (true) {
                         if (indicator.isCanceled) {
@@ -166,18 +179,16 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                                                 "completions"
                                             )?.jsonArray?.isEmpty()!!
                                         ) {
-                                            val innerElement =
-                                                model.model.textRange?.let { file.findElementAt(it.startOffset) }
+                                            var innerElement: PsiElement? = null
+                                            runReadAction {
+                                                innerElement = file.findElementAt(model.model.textRange!!.startOffset)
+                                            }
                                             if (null === innerElement) {
                                                 continue
                                             }
-                                            val tmpPath = FileUtils.writeToTmpFile(
-                                                "go_to",
-                                                Json.encodeToString(completionsObject)
-                                            )
-                                            goToResultFilePaths[PsaIndex.generateGoToKeyByModel(
+                                            map[PsaIndex.generateGoToKeyByModel(
                                                 model
-                                            )] = tmpPath
+                                            )] = Json.encodeToString(completionsObject)
                                         }
                                     }
                                 }
@@ -202,18 +213,16 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                                                 "completions"
                                             )?.jsonArray?.isEmpty()!!
                                         ) {
-                                            val innerElement =
-                                                model.model.textRange?.let { file.findElementAt(it.startOffset) }
+                                            var innerElement: PsiElement? = null
+                                            runReadAction {
+                                                innerElement = file.findElementAt(model.model.textRange!!.startOffset)
+                                            }
                                             if (null === innerElement) {
                                                 continue
                                             }
-                                            val tmpPath = FileUtils.writeToTmpFile(
-                                                "completion",
-                                                Json.encodeToString(completionsObject)
-                                            )
-                                            completionResultFilePaths[PsaIndex.generateCompletionsKeyByModel(
+                                            map[PsaIndex.generateCompletionsKeyByModel(
                                                 model
-                                            )] = tmpPath
+                                            )] = Json.encodeToString(completionsObject)
                                             for (completion in completionsObject.get("completions")?.jsonArray!!) {
                                                 val newLabel = model.label.replace(
                                                     model.text,
@@ -226,7 +235,8 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                                         }
                                     }
                                 }
-                                indicator.fraction = batchCurrent.toDouble() / elementModels.size
+                                processed += batchCount
+                                indicator.fraction = processed.toDouble() / elementModels.size
                             }
                         } else {
                             var i = 0
@@ -245,16 +255,14 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                                     )?.jsonObject
                                     if (null !== goToCompletions) {
                                         if (goToCompletions.containsKey("completions") && !goToCompletions.get("completions")?.jsonArray?.isEmpty()!!) {
-                                            val innerElement =
-                                                model.model.textRange?.let { file.findElementAt(it.startOffset) }
+                                            var innerElement: PsiElement? = null
+                                            runReadAction {
+                                                innerElement = file.findElementAt(model.model.textRange!!.startOffset)
+                                            }
                                             if (null !== innerElement) {
-                                                val tmpPath = FileUtils.writeToTmpFile(
-                                                    "go_to",
-                                                    Json.encodeToString(goToCompletions)
-                                                )
-                                                goToResultFilePaths[PsaIndex.generateGoToKeyByModel(
+                                                map[PsaIndex.generateGoToKeyByModel(
                                                     model
-                                                )] = tmpPath
+                                                )] = Json.encodeToString(goToCompletions)
                                             }
                                         }
                                     }
@@ -272,16 +280,14 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                                     )?.jsonObject
                                     if (null !== completions) {
                                         if (completions.containsKey("completions") && !completions.get("completions")?.jsonArray?.isEmpty()!!) {
-                                            val innerElement =
-                                                model.model.textRange?.let { file.findElementAt(it.startOffset) }
+                                            var innerElement: PsiElement? = null
+                                            runReadAction {
+                                                innerElement = file.findElementAt(model.model.textRange!!.startOffset)
+                                            }
                                             if (null !== innerElement) {
-                                                val tmpPath = FileUtils.writeToTmpFile(
-                                                    "completion",
-                                                    Json.encodeToString(completions)
-                                                )
-                                                completionResultFilePaths[PsaIndex.generateGoToKeyByModel(
+                                                map[PsaIndex.generateGoToKeyByModel(
                                                     model
-                                                )] = tmpPath
+                                                )] = Json.encodeToString(completions)
 
                                                 for (completion in completions.get("completions")?.jsonArray!!) {
                                                     val newLabel = model.label.replace(
@@ -296,7 +302,8 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                                         }
                                     }
 
-                                    indicator.fraction = (batchCurrent.toDouble() + i) / elementModels.size
+                                    processed += batchCount
+                                    indicator.fraction = (processed.toDouble() + i) / elementModels.size
                                     i++
                                 }
                             }
@@ -312,19 +319,9 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
                     }
 
                     runReadAction {
-                        val newProcessor =
-                            PsiFileProcessor(
-                                completionService,
-                                elements,
-                                completionResultFilePaths,
-                                goToResultFilePaths,
-                                map
-                            )
-                        PsiTreeUtil.processElements(it, newProcessor)
                         file.putUserData(psaFileKey, Json.encodeToString(map))
-                        GistManager.getInstance().invalidateData(file.virtualFile)
                         val psaIndex = project.service<PsaIndex>()
-                        psaIndex.getForFile(file)
+                        psaIndex.reindexFile(file)
                     }
                 }, indicator)
             } catch (_: ProcessCanceledException) {
@@ -332,19 +329,13 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
         }
     })
 
-    return@newPsiFileGist "{}"
+    return@newPsiFileGist "null"
 }
 
 class PsaIndex(private val project: Project) {
     companion object {
-        val generateGoToKey = fun(element: PsiElement): String {
-            return "PSA_GOTO:" + element.textRange.printToString() + ":" + element.containingFile.originalFile.virtualFile.path
-        }
         val generateGoToKeyByModel = fun(model: IndexedPsiElementModel): String {
             return "PSA_GOTO:" + model.textRange + ":" + model.model.filePath
-        }
-        val generateCompletionsKey = fun(element: PsiElement): String {
-            return "PSA_COMPLETIONS:" + element.textRange.printToString() + ":" + element.containingFile.originalFile.virtualFile.path
         }
         val generateCompletionsKeyByModel = fun(model: IndexedPsiElementModel): String {
             return "PSA_COMPLETIONS:" + model.textRange + ":" + model.model.filePath
@@ -358,6 +349,10 @@ class PsaIndex(private val project: Project) {
     }
 
     fun get(key: String): String? {
+        if (!this.project.service<Settings>().indexingEnabled) {
+            throw IndexingDisabledException()
+        }
+
         val parts = key.split(":")
         if (parts.size > 1) {
             val virtualFile = VirtualFileManager.getInstance().findFileByUrl("file://" + parts[2])
@@ -371,6 +366,7 @@ class PsaIndex(private val project: Project) {
                             return map[key]
                         }
                     } catch (_: Exception) {
+                        throw IndexNotReadyException()
                     }
                 }
             }
@@ -381,5 +377,27 @@ class PsaIndex(private val project: Project) {
 
     fun getForFile(file: PsiFile): String? {
         return gist.getFileData(file)
+    }
+
+    fun reindexFile(file: PsiFile) {
+        ApplicationManager.getApplication().invokeLater {
+            thread {
+                GistManager.getInstance().invalidateData(file.virtualFile)
+
+                val psaIndex = project.service<PsaIndex>()
+                runReadAction {
+                    psaIndex.getForFile(file)
+                }
+            }
+        }
+    }
+
+    fun reindexFile(file: VirtualFile) {
+        val psiFile = PsiManager.getInstance(project).findFile(file)
+        if (null === psiFile) {
+            return
+        }
+
+        this.reindexFile(psiFile)
     }
 }

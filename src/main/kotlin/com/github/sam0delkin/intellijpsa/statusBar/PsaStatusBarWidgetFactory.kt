@@ -26,7 +26,6 @@ import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Consumer
-import com.intellij.util.gist.GistManager
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.awt.event.MouseEvent
@@ -113,9 +112,8 @@ class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
                     if (null !== file) {
                         actionGroup.add(object : AnAction("Reindex Current File", "", AllIcons.Actions.Refresh) {
                             override fun actionPerformed(e: AnActionEvent) {
-                                GistManager.getInstance().invalidateData(file.virtualFile)
                                 val psaIndex = project.service<PsaIndex>()
-                                psaIndex.getForFile(file)
+                                psaIndex.reindexFile(file)
                             }
                         })
                     }
