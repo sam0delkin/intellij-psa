@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.12] - 2024-07-22
 - Make indexing optional. Can be disabled in settings
 - If file is successfully indexed, PSA will not try to do any completions without using index
 - Indexing file progress is now more informative
@@ -86,7 +88,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.11...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.12...HEAD
+[0.0.12]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.8...v0.0.9
