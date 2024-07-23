@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.13] - 2024-07-23
 - Fixed bug that cause autocomplete not working when plugin is disabled
 
 ## [0.0.12] - 2024-07-22
@@ -89,7 +91,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.12...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.13...HEAD
+[0.0.13]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.9...v0.0.10
