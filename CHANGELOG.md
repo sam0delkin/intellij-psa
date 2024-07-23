@@ -3,6 +3,7 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Fixed bug that cause autocomplete not working when plugin is disabled
 
 ## [0.0.12] - 2024-07-22
 - Make indexing optional. Can be disabled in settings

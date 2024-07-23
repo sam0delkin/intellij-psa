@@ -60,8 +60,8 @@ private val gist = GistManager.getInstance().newPsiFileGist("PSA", 1, Enumerator
     val completionService = project.service<CompletionService>()
     val settings = completionService.getSettings()
 
-    if (!settings.indexingEnabled) {
-        return@newPsiFileGist "null"
+    if (!settings.pluginEnabled || !settings.indexingEnabled) {
+        return@newPsiFileGist "{}"
     }
 
     if (DumbService.isDumb(project)) {
