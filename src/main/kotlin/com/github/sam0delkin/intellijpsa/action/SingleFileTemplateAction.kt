@@ -38,21 +38,26 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.util.textCompletion.*
+import com.intellij.util.textCompletion.TextCompletionValueDescriptor
+import com.intellij.util.textCompletion.TextFieldWithCompletion
+import com.intellij.util.textCompletion.ValuesCompletionProvider
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.awt.Dimension
-import java.util.*
 import java.util.Timer
-import javax.swing.*
+import java.util.TimerTask
+import javax.swing.Icon
+import javax.swing.JCheckBox
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.SwingUtilities
 import kotlin.collections.ArrayList
-
 
 class SingleFileTemplateAction(
     text: @NlsActions.ActionText String?,
     description: @NlsActions.ActionDescription String?,
-    icon: Icon?
+    icon: Icon?,
 ) : AnAction(text, description, icon) {
     var templateName: String? = null
     private var changed: Boolean = true
@@ -96,14 +101,15 @@ class SingleFileTemplateAction(
                 return
             }
 
-            val templateData = completionService.generateTemplateCode(
-                settings,
-                e.project!!,
-                directoryPath,
-                template.name!!,
-                originatorFieldName,
-                formFieldData
-            )
+            val templateData =
+                completionService.generateTemplateCode(
+                    settings,
+                    e.project!!,
+                    directoryPath,
+                    template.name!!,
+                    originatorFieldName,
+                    formFieldData,
+                )
 
             if (null === templateData) {
                 return
@@ -115,8 +121,10 @@ class SingleFileTemplateAction(
                         return@runWriteAction
                     }
 
-                    val newFileType = FileTypeManager.getInstance()
-                        .getFileTypeByFileName(templateData.get("file_name")!!.jsonPrimitive.content)
+                    val newFileType =
+                        FileTypeManager
+                            .getInstance()
+                            .getFileTypeByFileName(templateData.get("file_name")!!.jsonPrimitive.content)
                     if (templateData.containsKey("file_name")) {
                         if (null !== fileNameField) {
                             fileNameField!!.component.text = templateData.get("file_name")!!.jsonPrimitive.content
@@ -132,7 +140,11 @@ class SingleFileTemplateAction(
 
                                 if (value is JsonObject && value.containsKey("options")) {
                                     if (richTextEditorValues.containsKey(fieldName)) {
-                                        richTextEditorValues[fieldName]!!.addAll((value.get("options") as JsonArray).map { e -> e.jsonPrimitive.content })
+                                        richTextEditorValues[fieldName]!!.addAll(
+                                            (value.get("options") as JsonArray).map { e ->
+                                                e.jsonPrimitive.content
+                                            },
+                                        )
                                     }
                                 }
                                 if (value is JsonObject && value.containsKey("value")) {
@@ -145,7 +157,11 @@ class SingleFileTemplateAction(
                                             component.text = value.get("value")!!.jsonPrimitive.content
                                         }
                                         if (component is JBCheckBox) {
-                                            component.isSelected = value.get("value")!!.jsonPrimitive.content.toBoolean()
+                                            component.isSelected =
+                                                value
+                                                    .get("value")!!
+                                                    .jsonPrimitive.content
+                                                    .toBoolean()
                                         }
                                         if (component is ComboBox<*>) {
                                             component.selectedItem = value.get("value")!!.jsonPrimitive.content
@@ -162,7 +178,7 @@ class SingleFileTemplateAction(
                                 previewTextField!!.component.fileType = newFileType
                             }
                             previewTextField!!.component.document.setText(
-                                StringUtil.convertLineSeparators(templateData.get("content")!!.jsonPrimitive.content)
+                                StringUtil.convertLineSeparators(templateData.get("content")!!.jsonPrimitive.content),
                             )
                         }
                     }
@@ -173,7 +189,10 @@ class SingleFileTemplateAction(
             loadingIcon?.visible(false)
         }
 
-        val changeListener = fun(field: TemplateFormField?, value: String?) {
+        val changeListener = fun(
+            field: TemplateFormField?,
+            value: String?,
+        ) {
             changed = true
             loadingIcon?.visible(true)
             if (field !== null && value !== null) {
@@ -188,126 +207,147 @@ class SingleFileTemplateAction(
                 indicator = EmptyProgressIndicator()
 
                 timer = Timer()
-                timer!!.schedule(object : TimerTask() {
-                    override fun run() {
-                        try {
-                            ApplicationUtil.runWithCheckCanceled({
-                                updateData(field?.name)
-                            }, indicator)
-                        } catch (_: ProcessCanceledException) {}
-                    }
-                }, 500)
+                timer!!.schedule(
+                    object : TimerTask() {
+                        override fun run() {
+                            try {
+                                ApplicationUtil.runWithCheckCanceled({
+                                    updateData(field?.name)
+                                }, indicator)
+                            } catch (_: ProcessCanceledException) {
+                            }
+                        }
+                    },
+                    500,
+                )
             }
         }
 
-        val dialogBuilder = DialogBuilder().centerPanel(panel {
-            for (field in template.formFields!!) {
-                row(field.title!!) {
-                    if (field.type == TemplateFormFieldType.Text) {
-                        val formField = textField()
-                        formField.validationOnInput {
-                            changeListener(field, it.text)
-                            null
-                        }
-                        formFields[field.name!!] = formField
-                    } else if (field.type == TemplateFormFieldType.Checkbox) {
-                        val formField = checkBox("")
-                        formField.validationOnInput {
-                            changeListener(field, formField.component.isSelected.toString())
-                            null
-                        }
-                        formFields[field.name!!] = formField
-                    } else if (field.type == TemplateFormFieldType.Select) {
-                        val formField = comboBox(field.options!!)
-                        formField.component.addActionListener {
-                            changeListener(field, formField.component.selectedItem!!.toString())
-                        }
-                        formField.component.selectedItem = field.options!![0]
-                        formFields[field.name!!] = formField
-                    } else if (field.type == TemplateFormFieldType.Collection) {
-                        val coll = JTextFieldCollection()
-                        coll.setValues(listOf(""))
-                        val formField = cell(coll)
-                        coll.addValuesChangeListener { e ->
-                            val newValue = e.newValue as List<*>
-                            changeListener(field, newValue.joinToString(","))
-                        }
-                        formFields[field.name!!] = formField
-                    } else if (field.type == TemplateFormFieldType.RichText) {
-                        val values = ArrayList<String>()
-                        values.addAll(if (null !== field.options) field.options!!.toList() else listOf())
-                        val richText = TextFieldWithCompletion(
-                            e.project!!,
-                            ValuesCompletionProvider(object : TextCompletionValueDescriptor<String> {
-                                override fun compare(o1: String?, o2: String?): Int {
-                                    return o1!!.compareTo(o2!!)
+        val dialogBuilder =
+            DialogBuilder().centerPanel(
+                panel {
+                    for (field in template.formFields!!) {
+                        row(field.title!!) {
+                            if (field.type == TemplateFormFieldType.Text) {
+                                val formField = textField()
+                                formField.validationOnInput {
+                                    changeListener(field, it.text)
+                                    null
                                 }
-
-                                override fun createLookupBuilder(item: String): LookupElementBuilder {
-                                    return LookupElementBuilder.create(item)
+                                formFields[field.name!!] = formField
+                            } else if (field.type == TemplateFormFieldType.Checkbox) {
+                                val formField = checkBox("")
+                                formField.validationOnInput {
+                                    changeListener(field, formField.component.isSelected.toString())
+                                    null
                                 }
+                                formFields[field.name!!] = formField
+                            } else if (field.type == TemplateFormFieldType.Select) {
+                                val formField = comboBox(field.options!!)
+                                formField.component.addActionListener {
+                                    changeListener(field, formField.component.selectedItem!!.toString())
+                                }
+                                formField.component.selectedItem = field.options!![0]
+                                formFields[field.name!!] = formField
+                            } else if (field.type == TemplateFormFieldType.Collection) {
+                                val coll = JTextFieldCollection()
+                                coll.setValues(listOf(""))
+                                val formField = cell(coll)
+                                coll.addValuesChangeListener { e ->
+                                    val newValue = e.newValue as List<*>
+                                    changeListener(field, newValue.joinToString(","))
+                                }
+                                formFields[field.name!!] = formField
+                            } else if (field.type == TemplateFormFieldType.RichText) {
+                                val values = ArrayList<String>()
+                                values.addAll(if (null !== field.options) field.options!!.toList() else listOf())
+                                val richText =
+                                    TextFieldWithCompletion(
+                                        e.project!!,
+                                        ValuesCompletionProvider(
+                                            object : TextCompletionValueDescriptor<String> {
+                                                override fun compare(
+                                                    o1: String?,
+                                                    o2: String?,
+                                                ): Int = o1!!.compareTo(o2!!)
 
-                            }, values),
-                            "",
-                            true,
-                            true,
-                            true
-                        )
-                        richText.preferredSize = Dimension(204, 30)
-                        richText.document.addDocumentListener(object : DocumentListener {
-                            override fun documentChanged(event: DocumentEvent) {
-                                changeListener(field, event.document.text)
+                                                override fun createLookupBuilder(item: String): LookupElementBuilder =
+                                                    LookupElementBuilder.create(item)
+                                            },
+                                            values,
+                                        ),
+                                        "",
+                                        true,
+                                        true,
+                                        true,
+                                    )
+                                richText.preferredSize = Dimension(204, 30)
+                                richText.document.addDocumentListener(
+                                    object : DocumentListener {
+                                        override fun documentChanged(event: DocumentEvent) {
+                                            changeListener(field, event.document.text)
+                                        }
+                                    },
+                                )
+                                richTextEditorValues[field.name!!] = values
+                                cell(richText)
                             }
-                        })
-                        richTextEditorValues[field.name!!] = values
-                        cell(richText)
+                        }
                     }
-                }
-            }
-            row("File Name") {
-                fileNameField = label("")
-            }
-            row {
-                label("Preview")
-                loadingIcon = icon(AnimatedIcon.Default()).visible(false)
-            }
-            row { }
-            row {
-                val previewTextFieldComponent = EditorTextField(
-                    EditorFactory.getInstance().createDocument(
-                        StringUtil.convertLineSeparators("")
-                    ), e.project, FileTypes.PLAIN_TEXT, true, false
-                )
-                previewTextFieldComponent.addSettingsProvider { editor ->
-                    run {
-                        editor.settings.isLineNumbersShown = true
-                        editor.setVerticalScrollbarVisible(true)
-                        HorizontalScrollBarEditorCustomization.ENABLED.customize(editor)
-
+                    row("File Name") {
+                        fileNameField = label("")
                     }
-                }
-                previewTextFieldComponent.preferredSize = Dimension(800, 600)
-                previewTextFieldComponent.minimumSize = Dimension(800, 200)
-                previewTextFieldComponent.maximumSize = Dimension(-1, 600)
-                previewTextField = cell(previewTextFieldComponent)
-            }.resizableRow()
-            row("Navigate to file after creation") {
-                navigateToFile = checkBox("")
-                navigateToFile!!.component.isSelected = true
-            }
-            SwingUtilities.invokeLater { changeListener(null, null) }
-        })
+                    row {
+                        label("Preview")
+                        loadingIcon = icon(AnimatedIcon.Default()).visible(false)
+                    }
+                    row { }
+                    row {
+                        val previewTextFieldComponent =
+                            EditorTextField(
+                                EditorFactory.getInstance().createDocument(
+                                    StringUtil.convertLineSeparators(""),
+                                ),
+                                e.project,
+                                FileTypes.PLAIN_TEXT,
+                                true,
+                                false,
+                            )
+                        previewTextFieldComponent.addSettingsProvider { editor ->
+                            run {
+                                editor.settings.isLineNumbersShown = true
+                                editor.setVerticalScrollbarVisible(true)
+                                HorizontalScrollBarEditorCustomization.ENABLED.customize(editor)
+                            }
+                        }
+                        previewTextFieldComponent.preferredSize = Dimension(800, 600)
+                        previewTextFieldComponent.minimumSize = Dimension(800, 200)
+                        previewTextFieldComponent.maximumSize = Dimension(-1, 600)
+                        previewTextField = cell(previewTextFieldComponent)
+                    }.resizableRow()
+                    row("Navigate to file after creation") {
+                        navigateToFile = checkBox("")
+                        navigateToFile!!.component.isSelected = true
+                    }
+                    SwingUtilities.invokeLater { changeListener(null, null) }
+                },
+            )
         dialogBuilder.setTitle("Create " + template.title)
         if (dialogBuilder.showAndGet()) {
             ApplicationManager.getApplication().runWriteAction {
-                val fileFromText: PsiFile = PsiFileFactory.getInstance(e.project)
-                    .createFileFromText(
-                        fileNameField!!.component.text,
-                        previewTextField!!.component.fileType,
-                        previewTextField!!.component.document.text
-                    )
-                val el = PsiDirectoryFactory.getInstance(e.project).createDirectory(directories[0].virtualFile)
-                    .add(fileFromText)
+                val fileFromText: PsiFile =
+                    PsiFileFactory
+                        .getInstance(e.project)
+                        .createFileFromText(
+                            fileNameField!!.component.text,
+                            previewTextField!!.component.fileType,
+                            previewTextField!!.component.document.text,
+                        )
+                val el =
+                    PsiDirectoryFactory
+                        .getInstance(e.project)
+                        .createDirectory(directories[0].virtualFile)
+                        .add(fileFromText)
 
                 if (navigateToFile!!.component.isSelected) {
                     OpenFileDescriptor(e.project!!, el.containingFile.virtualFile, 0).navigate(true)

@@ -7,7 +7,11 @@ import com.intellij.util.PathMappingSettings.PathMapping
 import com.intellij.util.xmlb.XmlSerializerUtil
 
 enum class TemplateFormFieldType {
-    Text, RichText, Checkbox, Select, Collection
+    Text,
+    RichText,
+    Checkbox,
+    Select,
+    Collection,
 }
 
 class TemplateFormField {
@@ -16,9 +20,7 @@ class TemplateFormField {
     var type: TemplateFormFieldType? = null
     var options: ArrayList<String>? = null
 
-    override fun toString(): String {
-        return "TemplateFormField(name=$name, title=$title, type=$type, options=$options)"
-    }
+    override fun toString(): String = "TemplateFormField(name=$name, title=$title, type=$type, options=$options)"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -47,11 +49,9 @@ class SingleFileCodeTemplate {
     var pathRegex: String? = null
     var name: String? = null
     var title: String? = null
-        var formFields: ArrayList<TemplateFormField>? = null
+    var formFields: ArrayList<TemplateFormField>? = null
 
-    override fun toString(): String {
-        return "SingleFileCodeTemplate(filePath=$pathRegex, name=$name, title=$title, formFields=$formFields)"
-    }
+    override fun toString(): String = "SingleFileCodeTemplate(filePath=$pathRegex, name=$name, title=$title, formFields=$formFields)"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -78,15 +78,17 @@ class SingleFileCodeTemplate {
 
 @State(
     name = "PSAAutocompleteSettings",
-    storages = [Storage("psa.xml")]
+    storages = [Storage("psa.xml")],
 )
 class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false
     var debug: Boolean = false
     var scriptPath: String? = ".psa/psa.php"
-    var indexingConcurrency: Int = Runtime.getRuntime().availableProcessors()
     var indexingEnabled: Boolean = true
-    var elementPaths: HashMap<String, Boolean> = HashMap()
+    var indexingConcurrency: Int = Runtime.getRuntime().availableProcessors()
+    var indexingBatchCount: Int = 50
+    var indexingMaxElements: Int = 2000
+    var indexingUseOnlyIndexedElements: Boolean = true
     var elementTypes: HashMap<String, Boolean> = HashMap()
     var pathMappings: Array<PathMapping>? = arrayOf()
     var goToFilter: String? = ""
@@ -96,17 +98,14 @@ class Settings : PersistentStateComponent<Settings> {
     var executionTimeout: Int = 5000
 
     @Override
-    override fun getState(): Settings {
-        return this
-    }
+    override fun getState(): Settings = this
 
     override fun loadState(settings: Settings) {
         XmlSerializerUtil.copyBean(settings, this)
     }
 
-    fun isLanguageSupported(language: String): Boolean {
-        return this.pluginEnabled && this.supportedLanguages?.split(",")?.contains(language) == true
-    }
+    fun isLanguageSupported(language: String): Boolean =
+        this.pluginEnabled && this.supportedLanguages?.split(",")?.contains(language) == true
 
     fun getScriptDir(): String? {
         val path = this.scriptPath
@@ -122,8 +121,8 @@ class Settings : PersistentStateComponent<Settings> {
     fun replacePathMappings(str: String): String {
         var resultStr = str
         if (
-            this.pluginEnabled
-            && null !== this.pathMappings
+            this.pluginEnabled &&
+            null !== this.pathMappings
         ) {
             this.pathMappings!!.map { el -> resultStr = el.mapToLocal(resultStr) }
         }

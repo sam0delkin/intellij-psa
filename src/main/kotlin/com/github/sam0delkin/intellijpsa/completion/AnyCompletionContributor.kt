@@ -5,8 +5,12 @@ import com.github.sam0delkin.intellijpsa.index.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.services.RequestType
 import com.github.sam0delkin.intellijpsa.settings.Settings
-import com.github.sam0delkin.intellijpsa.util.PsiUtils
-import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.completion.CompletionContributor
+import com.intellij.codeInsight.completion.CompletionParameters
+import com.intellij.codeInsight.completion.CompletionProvider
+import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.CompletionType
+import com.intellij.codeInsight.completion.PrioritizedLookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.notification.NotificationGroupManager
@@ -22,19 +26,24 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.jetbrains.rd.util.string.printToString
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import org.apache.commons.lang3.StringUtils
 
-class AnyCompletionContributor() {
+class AnyCompletionContributor {
     class Completion : CompletionContributor() {
         init {
             extend(
-                CompletionType.BASIC, PlatformPatterns.psiElement(),
+                CompletionType.BASIC,
+                PlatformPatterns.psiElement(),
                 object : CompletionProvider<CompletionParameters>() {
                     override fun addCompletions(
                         parameters: CompletionParameters,
                         context: ProcessingContext,
-                        resultSet: CompletionResultSet
+                        resultSet: CompletionResultSet,
                     ) {
                         if (null === parameters.originalPosition) {
                             return
@@ -51,22 +60,21 @@ class AnyCompletionContributor() {
 
                         val model = completionService.psiElementToModel(parameters.originalPosition!!)
 
-                        val json = completionService.getCompletions(
-                            settings,
-                            arrayOf(
-                                IndexedPsiElementModel(
-                                    model,
-                                    PsiUtils.getPsiElementPath(parameters.originalPosition!!),
-                                    PsiUtils.getPsiElementLabel(parameters.originalPosition!!),
-                                    parameters.originalPosition!!.text,
-                                    parameters.originalPosition!!.textRange.printToString()
-                                )
-                            ),
-                            parameters.originalPosition!!.containingFile.virtualFile,
-                            RequestType.Completion,
-                            languageString,
-                            parameters.offset
-                        )?.jsonObject
+                        val json =
+                            completionService
+                                .getCompletions(
+                                    settings,
+                                    arrayOf(
+                                        IndexedPsiElementModel(
+                                            model,
+                                            parameters.originalPosition!!.textRange.printToString(),
+                                        ),
+                                    ),
+                                    parameters.originalPosition!!.containingFile.virtualFile,
+                                    RequestType.Completion,
+                                    languageString,
+                                    parameters.offset,
+                                )?.jsonObject
 
                         if (null === json) {
                             return
@@ -76,18 +84,38 @@ class AnyCompletionContributor() {
                             for (i in json.get("completions") as JsonArray) {
                                 var priority = 0.0
                                 var element =
-                                    LookupElementBuilder.create(i.jsonObject.get("text")?.jsonPrimitive!!.content)
+                                    LookupElementBuilder.create(
+                                        i.jsonObject
+                                            .get("text")
+                                            ?.jsonPrimitive!!
+                                            .content,
+                                    )
                                 element = element.withIcon(Icons.PluginIcon)
 
-                                if (i.jsonObject.get("bold")?.jsonPrimitive!!.boolean) {
+                                if (i.jsonObject
+                                        .get("bold")
+                                        ?.jsonPrimitive!!
+                                        .boolean
+                                ) {
                                     element = element.bold()
                                     priority = 100.0
                                 }
 
-                                element = element.withTypeText(i.jsonObject.get("type")?.jsonPrimitive!!.content)
+                                element =
+                                    element.withTypeText(
+                                        i.jsonObject
+                                            .get("type")
+                                            ?.jsonPrimitive!!
+                                            .content,
+                                    )
 
                                 if (i.jsonObject.containsKey("priority")) {
-                                    priority = i.jsonObject.get("priority")?.jsonPrimitive!!.long.toDouble()
+                                    priority =
+                                        i.jsonObject
+                                            .get("priority")
+                                            ?.jsonPrimitive!!
+                                            .long
+                                            .toDouble()
                                 }
 
                                 resultSet.addElement(PrioritizedLookupElement.withPriority(element, priority))
@@ -97,23 +125,31 @@ class AnyCompletionContributor() {
                         if (null !== json.get("notifications")) {
                             for (i in json.get("notifications") as JsonArray) {
                                 var notificationType = NotificationType.INFORMATION
-                                when (i.jsonObject.get("type")?.jsonPrimitive!!.content) {
+                                when (
+                                    i.jsonObject
+                                        .get("type")
+                                        ?.jsonPrimitive!!
+                                        .content
+                                ) {
                                     "info" -> notificationType = NotificationType.INFORMATION
                                     "warning" -> notificationType = NotificationType.WARNING
                                     "error" -> notificationType = NotificationType.ERROR
                                 }
 
-                                NotificationGroupManager.getInstance()
+                                NotificationGroupManager
+                                    .getInstance()
                                     .getNotificationGroup("PSA Notification")
                                     .createNotification(
-                                        i.jsonObject.get("text")?.jsonPrimitive!!.content,
-                                        notificationType
-                                    )
-                                    .notify(parameters.originalFile.project)
+                                        i.jsonObject
+                                            .get("text")
+                                            ?.jsonPrimitive!!
+                                            .content,
+                                        notificationType,
+                                    ).notify(parameters.originalFile.project)
                             }
                         }
                     }
-                }
+                },
             )
         }
     }
@@ -122,7 +158,7 @@ class AnyCompletionContributor() {
         override fun getGotoDeclarationTargets(
             sourceElement: PsiElement?,
             offset: Int,
-            editor: Editor?
+            editor: Editor?,
         ): Array<PsiElement>? {
             if (sourceElement === null) {
                 return null
@@ -144,22 +180,20 @@ class AnyCompletionContributor() {
             val model = completionService.psiElementToModel(sourceElement)
 
             val json =
-                completionService.getCompletions(
-                    settings,
-                    arrayOf(
-                        IndexedPsiElementModel(
-                            model,
-                            PsiUtils.getPsiElementPath(sourceElement),
-                            PsiUtils.getPsiElementLabel(sourceElement),
-                            sourceElement.text,
-                            sourceElement.textRange.printToString()
-                        )
-                    ),
-                    sourceElement.containingFile.virtualFile,
-                    RequestType.GoTo,
-                    languageString,
-                    offset
-                )?.jsonObject
+                completionService
+                    .getCompletions(
+                        settings,
+                        arrayOf(
+                            IndexedPsiElementModel(
+                                model,
+                                sourceElement.textRange.printToString(),
+                            ),
+                        ),
+                        sourceElement.containingFile.virtualFile,
+                        RequestType.GoTo,
+                        languageString,
+                        offset,
+                    )?.jsonObject
 
             if (null === json) {
                 return null
@@ -167,7 +201,11 @@ class AnyCompletionContributor() {
 
             if (json.containsKey("completions")) {
                 for (i in json.get("completions") as JsonArray) {
-                    val linkData = i.jsonObject.get("link")?.jsonPrimitive!!.content
+                    val linkData =
+                        i.jsonObject
+                            .get("link")
+                            ?.jsonPrimitive!!
+                            .content
                     processLink(linkData, settings, project, psiElements)
                 }
             }
@@ -175,16 +213,27 @@ class AnyCompletionContributor() {
             if (json.containsKey("notifications")) {
                 for (i in json.get("notifications") as JsonArray) {
                     var notificationType = NotificationType.INFORMATION
-                    when (i.jsonObject.get("type")?.jsonPrimitive!!.content) {
+                    when (
+                        i.jsonObject
+                            .get("type")
+                            ?.jsonPrimitive!!
+                            .content
+                    ) {
                         "info" -> notificationType = NotificationType.INFORMATION
                         "warning" -> notificationType = NotificationType.WARNING
                         "error" -> notificationType = NotificationType.ERROR
                     }
 
-                    NotificationGroupManager.getInstance()
+                    NotificationGroupManager
+                        .getInstance()
                         .getNotificationGroup("PSA Notification")
-                        .createNotification(i.jsonObject.get("text")?.jsonPrimitive!!.content, notificationType)
-                        .notify(sourceElement.containingFile.project)
+                        .createNotification(
+                            i.jsonObject
+                                .get("text")
+                                ?.jsonPrimitive!!
+                                .content,
+                            notificationType,
+                        ).notify(sourceElement.containingFile.project)
                 }
             }
 
@@ -195,7 +244,7 @@ class AnyCompletionContributor() {
             linkData: String,
             settings: Settings,
             project: Project,
-            psiElements: ArrayList<PsiElement>
+            psiElements: ArrayList<PsiElement>,
         ) {
             val fm = VirtualFileManager.getInstance()
             val pm = PsiManager.getInstance(project)

@@ -1,22 +1,26 @@
-@file:Suppress("PLUGIN_IS_NOT_ENABLED")
+@file:Suppress("PLUGIN_IS_NOT_ENABLED", "ktlint:standard:no-wildcard-imports")
 
 package com.github.sam0delkin.intellijpsa.services
 
+import com.github.sam0delkin.intellijpsa.exception.IndexNotReadyException
+import com.github.sam0delkin.intellijpsa.exception.IndexingDisabledException
 import com.github.sam0delkin.intellijpsa.index.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.index.PsaIndex
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.settings.SingleFileCodeTemplate
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
+import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.github.sam0delkin.intellijpsa.util.FileUtils
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
-import com.intellij.execution.util.ExecUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicatorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -32,27 +36,25 @@ import kotlinx.serialization.json.*
 import java.io.File
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
-import java.util.*
 import kotlin.NoSuchElementException
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.reflect.full.memberFunctions
-import com.github.sam0delkin.intellijpsa.exception.Exception.*
 
 @Serializable
 data class GenerateFileFromTemplateData(
     val actionPath: String,
     val templateName: String,
     val originatorFieldName: String?,
-    val formFields: Map<String, String>
+    val formFields: Map<String, String>,
 )
 
 @Serializable
 data class PsiElementModelChild(
     val model: PsiElementModel? = null,
     var string: String? = null,
-    var array: Array<PsiElementModel?>? = null
+    var array: Array<PsiElementModel?>? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -65,7 +67,9 @@ data class PsiElementModelChild(
         if (array != null) {
             if (other.array == null) return false
             if (!array.contentEquals(other.array)) return false
-        } else if (other.array != null) return false
+        } else if (other.array != null) {
+            return false
+        }
 
         return true
     }
@@ -79,7 +83,10 @@ data class PsiElementModelChild(
 }
 
 @Serializable
-data class PsiElementModelTextRange(var startOffset: Int, var endOffset: Int)
+data class PsiElementModelTextRange(
+    var startOffset: Int,
+    var endOffset: Int,
+)
 
 @Serializable()
 data class PsiElementModel(
@@ -95,28 +102,36 @@ data class PsiElementModel(
     var next: PsiElementModel?,
     @Contextual
     var textRange: PsiElementModelTextRange?,
-    var filePath: String? = null
+    var filePath: String? = null,
 )
 
 enum class RequestType {
-    Completion, BatchCompletion, GoTo, BatchGoTo, Info, GenerateFileFromTemplate
+    Completion,
+    BatchCompletion,
+    GoTo,
+    BatchGoTo,
+    Info,
+    GenerateFileFromTemplate,
 }
 
 private const val MAX_STRING_LENGTH = 1000
 
-class CompletionService(project: Project) {
+class CompletionService(
+    project: Project,
+) {
     private val project: Project
     private val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
-    private val ignoredMethods = arrayOf(
-        "clone",
-        "getPsi",
-        "getPrevPsiSibling",
-        "getNextPsiSibling",
-        "getFirstPsiChild",
-        "getTreePrev",
-        "getTreeNext",
-        "copyElement"
-    )
+    private val ignoredMethods =
+        arrayOf(
+            "clone",
+            "getPsi",
+            "getPrevPsiSibling",
+            "getNextPsiSibling",
+            "getFirstPsiChild",
+            "getTreePrev",
+            "getTreeNext",
+            "copyElement",
+        )
     private val elementIgnoredMethods = HashMap<String, List<Method>>()
     var lastResultSucceed: Boolean = true
     var lastResultMessage: String = ""
@@ -125,15 +140,17 @@ class CompletionService(project: Project) {
         this.project = project
     }
 
-    fun getSettings(): Settings {
-        return this.project.service()
-    }
+    fun getSettings(): Settings = this.project.service()
 
-    fun getInfo(settings: Settings, project: Project, path: String, debug: Boolean? = null): JsonObject {
+    fun getInfo(
+        settings: Settings,
+        project: Project,
+        path: String,
+        debug: Boolean? = null,
+    ): JsonObject {
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
         val innerDebug = if (null !== debug) debug else settings.debug
-
 
         commandLine = GeneralCommandLine(path)
         commandLine.environment.put("PSA_TYPE", RequestType.Info.toString())
@@ -142,17 +159,19 @@ class CompletionService(project: Project) {
         val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
         ApplicationUtil.runWithCheckCanceled({
-            result = runBlocking {
-                ExecUtil.execAndGetOutput(
-                    commandLine, settings.executionTimeout
-                )
-            }
+            result =
+                runBlocking {
+                    ExecutionUtils.executeWithIndicatorAndTimeout(
+                        commandLine,
+                        indicator,
+                        settings.executionTimeout,
+                    )
+                }
         }, indicator)
 
         if (null === result) {
             throw Exception("Failed to get info")
         }
-
 
         if (0 != result!!.exitCode) {
             throw Exception(result!!.stdout + "\n" + result!!.stderr)
@@ -161,7 +180,10 @@ class CompletionService(project: Project) {
         return Json.parseToJsonElement(result!!.stdout).jsonObject
     }
 
-    fun updateInfo(settings: Settings, info: JsonObject) {
+    fun updateInfo(
+        settings: Settings,
+        info: JsonObject,
+    ) {
         val filter: List<String>
         val languages: List<String>
 
@@ -178,7 +200,10 @@ class CompletionService(project: Project) {
                 settings.goToFilter = filter.joinToString(",")
             }
             settings.supportsBatch =
-                info.containsKey("supports_batch") && (info.get("supports_batch") as JsonElement).jsonPrimitive.boolean
+                info.containsKey("supports_batch") &&
+                (info.get("supports_batch") as JsonElement).jsonPrimitive.boolean
+
+            settings.singleFileCodeTemplates = ArrayList()
 
             if (info.containsKey("templates")) {
                 if (info.get("templates") !is JsonArray) {
@@ -186,7 +211,6 @@ class CompletionService(project: Project) {
                 }
 
                 val templates = info.get("templates") as JsonArray
-                settings.singleFileCodeTemplates = ArrayList()
                 for (template in templates) {
                     if (template !is JsonObject) {
                         throw Exception("`templates` must be an array of objects")
@@ -265,21 +289,21 @@ class CompletionService(project: Project) {
         actionPath: String,
         templateName: String,
         originatorFieldName: String?,
-        formFields: Map<String, String>
+        formFields: Map<String, String>,
     ): JsonObject? {
         val commandLine: GeneralCommandLine?
-        var result: ProcessOutput? = null
-
+        val result: ProcessOutput?
 
         try {
-            val data = Json.encodeToString(
-                GenerateFileFromTemplateData(
-                    actionPath,
-                    templateName,
-                    originatorFieldName,
-                    formFields
+            val data =
+                Json.encodeToString(
+                    GenerateFileFromTemplateData(
+                        actionPath,
+                        templateName,
+                        originatorFieldName,
+                        formFields,
+                    ),
                 )
-            )
             val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
             commandLine = GeneralCommandLine(settings.scriptPath)
             commandLine.environment.put("PSA_CONTEXT", filePath)
@@ -288,38 +312,36 @@ class CompletionService(project: Project) {
             commandLine.setWorkDirectory(project.guessProjectDir()?.path)
             val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
-            ApplicationUtil.runWithCheckCanceled({
-                result = runBlocking {
-                    ExecUtil.execAndGetOutput(
-                        commandLine, settings.executionTimeout
-                    )
-                }
-            }, indicator)
+            result =
+                ExecutionUtils.executeWithIndicatorAndTimeout(
+                    commandLine,
+                    indicator,
+                    settings.executionTimeout,
+                )
 
-            if (null === result) {
-                return null
+            if (result.isCancelled) {
+                throw ProcessCanceledException()
             }
 
-
-            if (0 != result!!.exitCode) {
-                throw Exception(result!!.stdout + "\n" + result!!.stderr)
+            if (0 != result.exitCode) {
+                throw Exception(result.stdout + "\n" + result.stderr)
             }
 
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
-            return Json.parseToJsonElement(result!!.stdout).jsonObject
+            return Json.parseToJsonElement(result.stdout).jsonObject
         } catch (e: Exception) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
             if (settings.debug) {
-                NotificationGroupManager.getInstance()
+                NotificationGroupManager
+                    .getInstance()
                     .getNotificationGroup("PSA Notification")
                     .createNotification(
                         "Template generation returned not valid JSON<br/>" + e.message,
-                        NotificationType.ERROR
-                    )
-                    .notify(project)
+                        NotificationType.ERROR,
+                    ).notify(project)
             }
         }
 
@@ -334,6 +356,7 @@ class CompletionService(project: Project) {
         editorOffset: Int? = null,
         debug: Boolean? = null,
         fromIndex: Boolean = false,
+        indicator: ProgressIndicator? = null,
     ): ProcessOutput? {
         if (!settings.pluginEnabled) {
             return null
@@ -347,8 +370,8 @@ class CompletionService(project: Project) {
             val firstModel = model[0]
             val file = File(firstModel.model.filePath!!)
             if (
-                firstModel.model.filePath?.indexOf("example") != 0
-                && file.parent.indexOf(settings.getScriptDir()!!) >= 0
+                firstModel.model.filePath?.indexOf("example") != 0 &&
+                file.parent.indexOf(settings.getScriptDir()!!) >= 0
             ) {
                 return null
             }
@@ -360,8 +383,7 @@ class CompletionService(project: Project) {
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
         val debugValue = if (null !== debug) debug else settings.debug
-        val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
-
+        val normalizedIndicator = indicator ?: (ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator())
 
         commandLine = GeneralCommandLine(settings.scriptPath)
         commandLine.environment.put("PSA_CONTEXT", filePath)
@@ -372,19 +394,23 @@ class CompletionService(project: Project) {
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
 
         if (fromIndex) {
-            result = ExecUtil.execAndGetOutput(
-                commandLine,
-                settings.executionTimeout
-            )
+            result =
+                ExecutionUtils.executeWithIndicatorAndTimeout(
+                    commandLine,
+                    normalizedIndicator,
+                    settings.executionTimeout,
+                )
         } else {
             ApplicationUtil.runWithCheckCanceled({
-                result = runBlocking {
-                    ExecUtil.execAndGetOutput(
-                        commandLine,
-                        settings.executionTimeout
-                    )
-                }
-            }, indicator)
+                result =
+                    runBlocking {
+                        ExecutionUtils.executeWithIndicatorAndTimeout(
+                            commandLine,
+                            normalizedIndicator,
+                            settings.executionTimeout,
+                        )
+                    }
+            }, normalizedIndicator)
         }
 
         try {
@@ -408,48 +434,58 @@ class CompletionService(project: Project) {
         debug: Boolean? = null,
         useIndex: Boolean = true,
         fromIndex: Boolean = false,
+        indicator: ProgressIndicator? = null,
     ): JsonElement? {
         val index = project.service<PsaIndex>()
-        var indexingEnabled = settings.indexingEnabled
         var indexReady = true
-        val values = if (fromIndex) {
-            listOf()
-        } else {
-            var indexValue: String? = null
-            if (model.size == 1) {
-                try {
-                    indexValue = index.get(PsaIndex.generateKeyByRequestType(requestType, model[0]))
-                } catch (e: IndexNotReadyException) {
-                    indexReady = false
-                } catch (e: IndexingDisabledException) {
-                    indexingEnabled = false
+        val values =
+            if (fromIndex) {
+                listOf()
+            } else {
+                var indexValue: String? = null
+                if (model.size == 1) {
+                    try {
+                        indexValue = index.get(PsaIndex.generateKeyByRequestType(requestType, model[0]))
+                    } catch (e: IndexNotReadyException) {
+                        indexReady = false
+                    } catch (_: IndexingDisabledException) {
+                        indexReady = false
+                    }
                 }
-                if (null === indexValue && indexingEnabled && indexReady) {
-                    return null
-                }
+                if (null !== indexValue) listOf(indexValue) else listOf()
             }
-            if (null !== indexValue) listOf(indexValue) else listOf()
-        }
 
         if (values.isNotEmpty() && useIndex) {
             return Json.parseToJsonElement(values[0]) as JsonObject
         }
 
-        val result = getCompletionsOutput(
-            settings,
-            model,
-            requestType,
-            language,
-            editorOffset,
-            debug,
-            fromIndex
-        )
+        if (useIndex && indexReady && !fromIndex && settings.indexingUseOnlyIndexedElements) {
+            return null
+        }
+
+        val result =
+            getCompletionsOutput(
+                settings,
+                model,
+                requestType,
+                language,
+                editorOffset,
+                debug,
+                fromIndex,
+                indicator,
+            )
 
         this.lastResultSucceed = true
         this.lastResultMessage = ""
 
-
         if (null === result) {
+            return null
+        }
+
+        if (result.isCancelled) {
+            this.lastResultMessage = "Process Execution Cancelled."
+            this.lastResultSucceed = false
+
             return null
         }
 
@@ -462,7 +498,8 @@ class CompletionService(project: Project) {
             this.lastResultSucceed = false
 
             if (settings.debug) {
-                NotificationGroupManager.getInstance()
+                NotificationGroupManager
+                    .getInstance()
                     .getNotificationGroup("PSA Notification")
                     .createNotification(this.lastResultMessage, NotificationType.ERROR)
                     .notify(project)
@@ -477,9 +514,6 @@ class CompletionService(project: Project) {
             if (!completions.isEmpty()) {
                 if (!fromIndex && useIndex) {
                     val firstModel = model[0]
-                    if (!settings.elementPaths.contains(firstModel.label)) {
-                        settings.elementPaths[firstModel.label] = true
-                    }
                     if (!settings.elementTypes.contains(firstModel.model.elementType)) {
                         settings.elementTypes[firstModel.model.elementType] = true
                     }
@@ -501,7 +535,7 @@ class CompletionService(project: Project) {
         processChildOptions: Boolean = true,
         processNext: Boolean = true,
         processPrev: Boolean = true,
-        processedElements: ArrayList<PsiElement>? = null
+        processedElements: ArrayList<PsiElement>? = null,
     ): PsiElementModel {
         val filePath = if (null === processedElements) element.containingFile.virtualFile.path else null
         val currentProcessedElements = if (null !== processedElements) processedElements else ArrayList()
@@ -512,11 +546,12 @@ class CompletionService(project: Project) {
         if (this.elementIgnoredMethods[elementType] !== null) {
             methods = this.elementIgnoredMethods[elementType]!!
         } else {
-            methods = element.javaClass.methods.filter { method ->
-                !this.baseMethods.contains(method.name)
-                        && !this.ignoredMethods.contains(method.name)
-                        && method.parameterTypes.isEmpty()
-            }
+            methods =
+                element.javaClass.methods.filter { method ->
+                    !this.baseMethods.contains(method.name) &&
+                        !this.ignoredMethods.contains(method.name) &&
+                        method.parameterTypes.isEmpty()
+                }
             this.elementIgnoredMethods[elementType] = methods
         }
 
@@ -540,7 +575,12 @@ class CompletionService(project: Project) {
         val signatureMethods = element.javaClass.methods.filter { m -> m.name === "getSignature" }
         if (signatureMethods.isNotEmpty()) {
             val method = signatureMethods.first()
-            var signatureValue = try { method.invoke(element) as String} catch (e: InvocationTargetException) { "" }
+            var signatureValue =
+                try {
+                    method.invoke(element) as String
+                } catch (e: InvocationTargetException) {
+                    ""
+                }
             signatureValue = signatureValue.replace(Regex("#."), "")
             signature.addAll(signatureValue.split("|"))
         }
@@ -566,15 +606,19 @@ class CompletionService(project: Project) {
         for (method in methods) {
             val interfaces = this.getAllExtendedOrImplementedInterfacesRecursively(method.returnType)
             val componentTypeInterfaces =
-                if (method.returnType.componentType !== null) this.getAllExtendedOrImplementedInterfacesRecursively(
-                    method.returnType.componentType
-                ) else HashSet()
+                if (method.returnType.componentType !== null) {
+                    this.getAllExtendedOrImplementedInterfacesRecursively(
+                        method.returnType.componentType,
+                    )
+                } else {
+                    HashSet()
+                }
             try {
                 if (
-                    !method.returnType.isAssignableFrom(String::class.java)
-                    && !method.returnType.isAssignableFrom(Number::class.java)
-                    && !interfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) }
-                    && !componentTypeInterfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) }
+                    !method.returnType.isAssignableFrom(String::class.java) &&
+                    !method.returnType.isAssignableFrom(Number::class.java) &&
+                    !interfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) } &&
+                    !componentTypeInterfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) }
                 ) {
                     continue
                 }
@@ -591,30 +635,33 @@ class CompletionService(project: Project) {
                     }
                     options[optionName] = PsiElementModelChild(null, result)
                 } else if (result is PsiElement && processOptions && processChildOptions) {
-                    options[optionName] = PsiElementModelChild(
-                        this.psiElementToModel(
-                            result,
-                            false,
-                            true,
-                            false,
-                            false,
-                            false,
-                            currentProcessedElements
-                        ), null
-                    )
+                    options[optionName] =
+                        PsiElementModelChild(
+                            this.psiElementToModel(
+                                result,
+                                false,
+                                true,
+                                false,
+                                false,
+                                false,
+                                currentProcessedElements,
+                            ),
+                            null,
+                        )
                 } else if (result is Array<*> && result.isArrayOf<PsiElement>() && processOptions && processChildOptions) {
                     val arr: Array<PsiElementModel?> = arrayOfNulls(result.size)
 
                     for ((index, item) in (result).withIndex()) {
-                        arr[index] = this.psiElementToModel(
-                            item as PsiElement,
-                            false,
-                            true,
-                            false,
-                            false,
-                            false,
-                            currentProcessedElements
-                        )
+                        arr[index] =
+                            this.psiElementToModel(
+                                item as PsiElement,
+                                false,
+                                true,
+                                false,
+                                false,
+                                false,
+                                currentProcessedElements,
+                            )
                     }
                     options[optionName] = PsiElementModelChild(null, null, arr)
                 }
@@ -638,30 +685,32 @@ class CompletionService(project: Project) {
                     true,
                     true,
                     true,
-                    currentProcessedElements
+                    currentProcessedElements,
                 )
         }
         if (processNext && element.nextSibling !== null) {
-            nextElement = this.psiElementToModel(
-                element.nextSibling,
-                false,
-                true,
-                true,
-                true,
-                false,
-                currentProcessedElements
-            )
+            nextElement =
+                this.psiElementToModel(
+                    element.nextSibling,
+                    false,
+                    true,
+                    true,
+                    true,
+                    false,
+                    currentProcessedElements,
+                )
         }
         if (processPrev && element.prevSibling !== null) {
-            prevElement = this.psiElementToModel(
-                element.prevSibling,
-                false,
-                true,
-                true,
-                false,
-                true,
-                currentProcessedElements
-            )
+            prevElement =
+                this.psiElementToModel(
+                    element.prevSibling,
+                    false,
+                    true,
+                    true,
+                    false,
+                    true,
+                    currentProcessedElements,
+                )
         }
 
         return PsiElementModel(
@@ -675,10 +724,14 @@ class CompletionService(project: Project) {
             parentElement,
             prevElement,
             nextElement,
-            if (null !== element.textRange) PsiElementModelTextRange(
-                element.textRange.startOffset,
-                element.textRange.endOffset
-            ) else null,
+            if (null !== element.textRange) {
+                PsiElementModelTextRange(
+                    element.textRange.startOffset,
+                    element.textRange.endOffset,
+                )
+            } else {
+                null
+            },
             filePath,
         )
     }

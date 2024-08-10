@@ -357,18 +357,25 @@ then you'll receive the following JSON in the filepath, passed from `PSA_CONTEXT
 
 ### Configuration
 ![settings](doc/images/settings.png)
-1) Is plugin enabled or not
-2) Is debug enabled or not. Passed as `PSA_DEBUG` into the executable script
-3) Path to the PSA executable script. Must be an executable file
-4) ![info](doc/images/balloonInformation.svg) button to update info from your PSA script
-5) Indexing concurrency. Controls number of processes which may be run in parallel during indexing
-6) Maximum script execution timeout. If script will execute longer that this value, execution will be interrupted
-7) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
+1) Is plugin enabled or not.
+2) Is debug enabled or not. Passed as `PSA_DEBUG` into the executable script.
+3) Path to the PSA executable script. Must be an executable file.
+4) ![info](doc/images/balloonInformation.svg) button to update info from your PSA script.
+5) Is indexing enabled or not. 
+6) Indexing concurrency. Controls number of processes which may be run in parallel during indexing. 
+7) Indexing batch count. Controls number of serialized elements which will be sent into PSA script in batch during
+indexing process. 
+8) Indexing max elment count. Controls how much elements are allowed to be indexed. In case of file contains more
+elements than specified in this option, indexing of this file will be ignored. 
+9) Process only indexed elements. If checked, PSA will not try to execute script in case of file is already indexed and
+completions/GoTo has not found in index. Useful for performance reasons. 
+10) Maximum script execution timeout. If script will execute longer that this value, execution will be interrupted. 
+11) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
 as project root. 
-8) Programming languages supported by your autocompletion. Separated by comma, read-only
-9) ![info](doc/images/balloonInformation.svg) button to get all the languages supported by your IDE. Comma separated. 
-Only one of these languages allowed to be passed in `supported_languages` value
-10) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
+12) Programming languages supported by your autocompletion. Separated by comma, read-only.
+13) ![info](doc/images/balloonInformation.svg) button to get all the languages supported by your IDE. Comma separated. 
+Only one of these languages allowed to be passed in `supported_languages` value. 
+14) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
 [performance](#goto-optimizations) section.
 
 To configure your autocomplete, follow these actions:
@@ -615,16 +622,10 @@ were chosen as index type for the PSA.
 
 #### Indexing process
 When you're opening any project with PSA configured and enabled, plugin getting all the currently opened files and 
-indexing them asynchronously in background. This process will be visible on the status bar and you even can interrupt 
+indexing them asynchronously in background. This process will be visible on the status bar, and you even can interrupt 
 indexing of any file if you want. As well as when you're opening any new file, it will be indexed as well.
 Additionally, by Gist indexing nature, any file change will cause reindexing of the whole file.
 Old, non-indexed autocomplete & GoTo will still be available and work during indexing.
-
-Indexing is working in iterative way. When you will configure it for the project at first time, it will not index any
-element, but when you will try to autocomplete or GoTo to any element which is supported by your PSA script, plugin will
-remember element type and element text, and will index elements with same type and text in all opened files next time.
-As well as if your request were a completion request, it will remember all completions and will index them in other
-files.
 
 Such as indexing is a time-consuming process, plugin is doing it asynchronously and in parallel. You can configure
 concurrency level in the plugin settings, by default it set to the number of CPU cores in your system.
@@ -633,6 +634,9 @@ concurrency level in the plugin settings, by default it set to the number of CPU
 As it already said, indexing is a time-consuming and slow process, so it would be nice to minimize external process
 calls. For this purpose a batch processing were introduced. It is working absolutely same as usual Completion or GoTo
 request, but `PSA_CONTEXT` is now actually contain an array of contexts: one for each element being indexed.
+
+> [!NOTE]
+> You can configure number of elements which will be sent to your PSA script in batch from plugin settings.
 
 To support batch processing your PSA script `Info` result should return an optional config value `supports_batch` and
 if it's value is `true`, plugin will use batch processing during indexing.

@@ -29,25 +29,21 @@ import com.intellij.util.Consumer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.awt.event.MouseEvent
-import java.util.*
+import java.util.Timer
+import java.util.TimerTask
 import javax.swing.Icon
 
-
-class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
+class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
     companion object {
         const val WIDGET_ID = "psa.status_bar"
     }
 
-    override fun getId(): String {
-        return "psa.statusBar.widget_factory"
-    }
+    override fun getId(): String = "psa.statusBar.widget_factory"
 
-    override fun getDisplayName(): String {
-        return "Project Specific Autocomplete"
-    }
+    override fun getDisplayName(): String = "Project Specific Autocomplete"
 
-    override fun isAvailable(project: Project): Boolean {
-        return try {
+    override fun isAvailable(project: Project): Boolean =
+        try {
             val completionService = project.service<CompletionService>()
             val settings = completionService.getSettings()
 
@@ -55,7 +51,6 @@ class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
         } catch (e: IllegalStateException) {
             false
         }
-    }
 
     override fun createWidget(project: Project): StatusBarWidget {
         val completionService = project.service<CompletionService>()
@@ -63,133 +58,150 @@ class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
         var timer: Timer? = null
 
         return object : StatusBarWidget, StatusBarWidget.IconPresentation {
-
             override fun dispose() {
                 if (null !== timer) {
                     timer!!.cancel()
                 }
             }
 
-            override fun ID(): String {
-                return WIDGET_ID
-            }
+            override fun ID(): String = WIDGET_ID
 
             override fun install(statusBar: StatusBar) {
                 if (null !== timer) {
                     timer!!.cancel()
                 }
                 timer = Timer()
-                timer!!.schedule(object : TimerTask() {
-                    override fun run() {
-                        statusBar.updateWidget("psa.status_bar")
-                    }
-                }, 100, 100)
+                timer!!.schedule(
+                    object : TimerTask() {
+                        override fun run() {
+                            statusBar.updateWidget("psa.status_bar")
+                        }
+                    },
+                    100,
+                    100,
+                )
             }
 
             fun createPopup(context: DataContext): ListPopup {
                 val actionGroup = DefaultActionGroup("PSA", false)
-                actionGroup.add(object: AnAction("Settings", "", AllIcons.General.Settings) {
-                    override fun actionPerformed(e: AnActionEvent) {
-                        ShowSettingsUtil.getInstance().editConfigurable(project, ProjectSettingsForm(project))
-                    }
-                })
+                actionGroup.add(
+                    object : AnAction("Settings", "", AllIcons.General.Settings) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            ShowSettingsUtil.getInstance().editConfigurable(project, ProjectSettingsForm(project))
+                        }
+                    },
+                )
                 if (settings.debug) {
-                    actionGroup.add(object: AnAction("Disable Debug", "", AllIcons.Actions.RestartDebugger) {
-                        override fun actionPerformed(e: AnActionEvent) {
-                            settings.debug = false
-                        }
-                    })
-                } else {
-                    actionGroup.add(object: AnAction("Enable Debug", "", AllIcons.Actions.StartDebugger) {
-                        override fun actionPerformed(e: AnActionEvent) {
-                            settings.debug = true
-                        }
-                    })
-                }
-                val currentDoc = FileEditorManager.getInstance(project).getSelectedTextEditor()?.getDocument()
-                if (null !== currentDoc) {
-                    val file = PsiDocumentManager.getInstance(project).getPsiFile(currentDoc)
-                    if (null !== file) {
-                        actionGroup.add(object : AnAction("Reindex Current File", "", AllIcons.Actions.Refresh) {
+                    actionGroup.add(
+                        object : AnAction("Disable Debug", "", AllIcons.Actions.RestartDebugger) {
                             override fun actionPerformed(e: AnActionEvent) {
-                                val psaIndex = project.service<PsaIndex>()
-                                psaIndex.reindexFile(file)
+                                settings.debug = false
                             }
-                        })
+                        },
+                    )
+                } else {
+                    actionGroup.add(
+                        object : AnAction("Enable Debug", "", AllIcons.Actions.StartDebugger) {
+                            override fun actionPerformed(e: AnActionEvent) {
+                                settings.debug = true
+                            }
+                        },
+                    )
+                }
+                if (settings.indexingEnabled) {
+                    val currentDoc = FileEditorManager.getInstance(project).getSelectedTextEditor()?.getDocument()
+                    if (null !== currentDoc) {
+                        val file = PsiDocumentManager.getInstance(project).getPsiFile(currentDoc)
+                        if (null !== file) {
+                            actionGroup.add(
+                                object : AnAction("Reindex Current File", "", AllIcons.Actions.Refresh) {
+                                    override fun actionPerformed(e: AnActionEvent) {
+                                        val psaIndex = project.service<PsaIndex>()
+                                        psaIndex.reindexFile(file)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
-                actionGroup.add(object: AnAction("Update Info", "", AllIcons.General.BalloonInformation) {
-                    override fun actionPerformed(e: AnActionEvent) {
-                        if (null !== settings.scriptPath) {
-                            val thread = Thread {
-                                try {
-                                    val info = completionService.getInfo(settings, project, settings.scriptPath!!)
-                                    var filter: List<String> = listOf()
-                                    var languages: List<String> = listOf()
-                                    var templateCount = 0
+                actionGroup.add(
+                    object : AnAction("Update Info", "", AllIcons.General.BalloonInformation) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            if (null !== settings.scriptPath) {
+                                val thread =
+                                    Thread {
+                                        try {
+                                            val info = completionService.getInfo(settings, project, settings.scriptPath!!)
+                                            var filter: List<String> = listOf()
+                                            var languages: List<String> = listOf()
+                                            var templateCount = 0
 
-                                    if (info.containsKey("goto_element_filter")) {
-                                        filter =
-                                            (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
-                                    }
+                                            if (info.containsKey("goto_element_filter")) {
+                                                filter =
+                                                    (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
+                                            }
 
-                                    if (info.containsKey("supported_languages")) {
-                                        languages =
-                                            (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
-                                    }
+                                            if (info.containsKey("supported_languages")) {
+                                                languages =
+                                                    (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
+                                            }
 
-                                    if (info.containsKey("templates")) {
-                                        val templates = info.get("templates") as JsonArray
-                                        templateCount = templates.size
+                                            if (info.containsKey("templates")) {
+                                                val templates = info.get("templates") as JsonArray
+                                                templateCount = templates.size
+                                            }
+                                            completionService.updateInfo(settings, info)
+                                            val languagesString =
+                                                "<ul>" + languages.map { i -> "<li>$i</li>" }.joinToString("") + "</ul>"
+                                            val filterString =
+                                                "<ul>" + filter.map { i -> "<li>$i</li>" }.joinToString("") + "</ul>"
+                                            NotificationGroupManager
+                                                .getInstance()
+                                                .getNotificationGroup("PSA Notification")
+                                                .createNotification(
+                                                    "Successfully retrieved info: <br />" +
+                                                        "Supported Languages: $languagesString<br />" +
+                                                        "GoTo Element Filter: $filterString<br />" +
+                                                        "Template Count: $templateCount",
+                                                    NotificationType.INFORMATION,
+                                                ).notify(project)
+                                            completionService.lastResultSucceed = true
+                                            completionService.lastResultMessage = ""
+                                        } catch (e: Exception) {
+                                            completionService.lastResultSucceed = false
+                                            completionService.lastResultMessage = e.message.toString()
+                                            NotificationGroupManager
+                                                .getInstance()
+                                                .getNotificationGroup("PSA Notification")
+                                                .createNotification(completionService.lastResultMessage, NotificationType.ERROR)
+                                                .notify(project)
+                                        }
+                                        project.service<StatusBarWidgetsManager>().updateAllWidgets()
                                     }
-                                    completionService.updateInfo(settings, info)
-                                    val languagesString =
-                                        "<ul>" + languages.map { i -> "<li>$i</li>" }.joinToString("") + "</ul>"
-                                    val filterString =
-                                        "<ul>" + filter.map { i -> "<li>$i</li>" }.joinToString("") + "</ul>"
-                                    NotificationGroupManager.getInstance()
-                                        .getNotificationGroup("PSA Notification")
-                                        .createNotification(
-                                            "Successfully retrieved info: <br />" +
-                                                    "Supported Languages: $languagesString<br />" +
-                                                    "GoTo Element Filter: $filterString<br />" +
-                                                    "Template Count: ${templateCount}", NotificationType.INFORMATION
-                                        )
-                                        .notify(project)
-                                    completionService.lastResultSucceed = true
-                                    completionService.lastResultMessage = ""
-                                } catch (e: Exception) {
-                                    completionService.lastResultSucceed = false
-                                    completionService.lastResultMessage = e.message.toString()
-                                    NotificationGroupManager.getInstance()
-                                        .getNotificationGroup("PSA Notification")
-                                        .createNotification(completionService.lastResultMessage, NotificationType.ERROR)
-                                        .notify(project)
-                                }
-                                project.service<StatusBarWidgetsManager>().updateAllWidgets()
+                                thread.start()
                             }
-                            thread.start()
                         }
-                    }
-
-                })
-                actionGroup.add(object: AnAction("Show Last Error", "", AllIcons.Debugger.Db_exception_breakpoint) {
-                    override fun actionPerformed(e: AnActionEvent) {
-                        if ("" !== completionService.lastResultMessage) {
-                            NotificationGroupManager.getInstance()
-                                .getNotificationGroup("PSA Notification")
-                                .createNotification(completionService.lastResultMessage, NotificationType.ERROR)
-                                .notify(project)
+                    },
+                )
+                actionGroup.add(
+                    object : AnAction("Show Last Error", "", AllIcons.Debugger.Db_exception_breakpoint) {
+                        override fun actionPerformed(e: AnActionEvent) {
+                            if ("" !== completionService.lastResultMessage) {
+                                NotificationGroupManager
+                                    .getInstance()
+                                    .getNotificationGroup("PSA Notification")
+                                    .createNotification(completionService.lastResultMessage, NotificationType.ERROR)
+                                    .notify(project)
+                            }
                         }
-                    }
-
-                })
+                    },
+                )
                 return JBPopupFactory.getInstance().createActionGroupPopup(
                     "Project Specific Autocomplete",
                     actionGroup,
                     context,
                     JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
-                    false
+                    false,
                 )
             }
 
@@ -215,9 +227,7 @@ class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
                 return Icons.PluginErrorIcon
             }
 
-            override fun getPresentation(): StatusBarWidget.WidgetPresentation {
-                return this
-            }
+            override fun getPresentation(): StatusBarWidget.WidgetPresentation = this
         }
     }
 
@@ -225,7 +235,5 @@ class PsaStatusBarWidgetFactory: StatusBarWidgetFactory {
         Disposer.dispose(widget)
     }
 
-    override fun canBeEnabledOn(statusBar: StatusBar): Boolean {
-        return true
-    }
+    override fun canBeEnabledOn(statusBar: StatusBar): Boolean = true
 }

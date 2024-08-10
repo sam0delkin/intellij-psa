@@ -1,16 +1,25 @@
 package com.github.sam0delkin.intellijpsa.action
 
+import com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeView
-import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiDirectory
 
-class PsaFileTemplateActionGroup: ActionGroup() {
-
+class PsaFileTemplateActionGroup :
+    ActionGroup(
+        "PSA Templates",
+        "Project Specific Autocomplete templates returned by your completion script",
+        PluginIcon,
+    ) {
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
         val completionService = e?.project?.service<CompletionService>() ?: return arrayOf()
         val settings = completionService.getSettings()
@@ -25,20 +34,26 @@ class PsaFileTemplateActionGroup: ActionGroup() {
         if (directories.isEmpty()) {
             return arrayOf()
         }
-        val directoryPath = '/' + VfsUtil.getRelativePath(
-            directories[0].virtualFile, e.project!!.guessProjectDir()!!, '/'
-        ).toString() + '/'
+        val directoryPath =
+            '/' +
+                VfsUtil
+                    .getRelativePath(
+                        directories[0].virtualFile,
+                        e.project!!.guessProjectDir()!!,
+                        '/',
+                    ).toString() + '/'
 
         for (template in settings.singleFileCodeTemplates!!) {
             if (null !== template.pathRegex && !directoryPath.matches(Regex(template.pathRegex!!))) {
                 continue
             }
 
-            val action = SingleFileTemplateAction(
-                "Create " + template.title,
-                "",
-                AllIcons.FileTypes.Custom
-            )
+            val action =
+                SingleFileTemplateAction(
+                    "Create " + template.title,
+                    "",
+                    AllIcons.FileTypes.Custom,
+                )
             action.templateName = template.name
             action.templatePresentation.text = template.title
             action.templatePresentation.icon = AllIcons.FileTypes.Custom

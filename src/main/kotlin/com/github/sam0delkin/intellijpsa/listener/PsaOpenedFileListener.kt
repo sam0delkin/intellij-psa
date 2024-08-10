@@ -8,8 +8,11 @@ import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 
-class PsaOpenedFileListener: FileEditorManagerListener {
-    override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
+class PsaOpenedFileListener : FileEditorManagerListener {
+    override fun fileOpened(
+        source: FileEditorManager,
+        file: VirtualFile,
+    ) {
         val psiFile = PsiManager.getInstance(source.project).findFile(file)
         if (null === psiFile) {
             return

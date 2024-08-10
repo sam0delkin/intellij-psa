@@ -7,10 +7,12 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.AsyncFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import java.util.*
+import java.util.Timer
+import java.util.TimerTask
 
-class PsaFileListener: AsyncFileListener {
+class PsaFileListener : AsyncFileListener {
     private var timer: Timer? = null
+
     override fun prepareChange(events: MutableList<out VFileEvent>): AsyncFileListener.ChangeApplier? {
         val projects = ProjectManager.getInstance().openProjects
 
@@ -36,25 +38,28 @@ class PsaFileListener: AsyncFileListener {
                 continue
             }
 
-            ApplicationManager.getApplication().invokeLater{
+            ApplicationManager.getApplication().invokeLater {
                 if (null !== timer) {
                     timer?.cancel()
                 }
 
                 timer = Timer()
-                timer!!.schedule(object : TimerTask() {
-                    override fun run() {
-                        try {
-                            val info = completionService.getInfo(settings, project, settings.scriptPath!!, false)
-                            completionService.updateInfo(settings, info)
-                            completionService.lastResultSucceed = true
-                            completionService.lastResultMessage = ""
-                        } catch (e: Exception) {
-                            completionService.lastResultSucceed = false
-                            completionService.lastResultMessage = e.message.toString()
+                timer!!.schedule(
+                    object : TimerTask() {
+                        override fun run() {
+                            try {
+                                val info = completionService.getInfo(settings, project, settings.scriptPath!!, false)
+                                completionService.updateInfo(settings, info)
+                                completionService.lastResultSucceed = true
+                                completionService.lastResultMessage = ""
+                            } catch (e: Exception) {
+                                completionService.lastResultSucceed = false
+                                completionService.lastResultMessage = e.message.toString()
+                            }
                         }
-                    }
-                }, 500)
+                    },
+                    500,
+                )
             }
         }
 

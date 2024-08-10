@@ -3,6 +3,14 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Fix bug that completions not working if plugin enabled but not used
+- Added ktlint
+- In case of multiple file changes and previous indexing is still running, it will now be cancelled
+- Fixed bug with code templates keep showing in case of new Info returned no templates
+- Added `Indexing Batch Count` settings option
+- Added `Indexing Max File Elements` settings option
+- Added `Process only indexed elements` settings option
+- Various bug and performance fixes
 
 ## [0.0.13] - 2024-07-23
 - Fixed bug that cause autocomplete not working when plugin is disabled

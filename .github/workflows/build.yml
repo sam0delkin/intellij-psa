@@ -53,6 +53,12 @@ jobs:
           echo "Free space:"
           df -h
 
+      # Run Ktlint
+      - run: |
+          curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.3.1/ktlint && chmod a+x ktlint && sudo mv ktlint /usr/local/bin/
+      - name: Run Ktlint
+        run: ktlint
+
       # Validate wrapper
       - name: Gradle Wrapper Validation
         uses: gradle/wrapper-validation-action@v1.0.5

@@ -15,10 +15,12 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import java.io.File
-import java.util.*
+import java.util.Timer
+import java.util.TimerTask
 
 class PsaStartupActivity : StartupActivity.Background {
     private var timer: Timer? = null
+
     override fun runActivity(project: Project) {
         ApplicationManager.getApplication().invokeLater {
             val completionService = project.service<CompletionService>()
@@ -36,24 +38,27 @@ class PsaStartupActivity : StartupActivity.Background {
                 if (file.exists() && file.canExecute()) {
                     RunOnceUtil.runOnceForProject(project, "project_specific_autocomplete") {
                         @Suppress("DialogTitleCapitalization")
-                        val notification = NotificationGroupManager.getInstance()
-                            .getNotificationGroup("PSA Notification")
-                            .createNotification(
-                                "Project Specific Autocomplete",
-                                "PSA configuration found in the root of your project. " +
+                        val notification =
+                            NotificationGroupManager
+                                .getInstance()
+                                .getNotificationGroup("PSA Notification")
+                                .createNotification(
+                                    "Project Specific Autocomplete",
+                                    "PSA configuration found in the root of your project. " +
                                         "Would you like to enable it?",
-                                NotificationType.INFORMATION
-                            )
-                        notification.addAction(object: AnAction("Enable") {
-                            override fun actionPerformed(e: AnActionEvent) {
-                                settings.pluginEnabled = true
-                                settings.scriptPath = ".psa/psa.sh"
+                                    NotificationType.INFORMATION,
+                                )
+                        notification.addAction(
+                            object : AnAction("Enable") {
+                                override fun actionPerformed(e: AnActionEvent) {
+                                    settings.pluginEnabled = true
+                                    settings.scriptPath = ".psa/psa.sh"
 
-                                scheduleUpdate(project, settings, completionService)
-                                notification.hideBalloon()
-                            }
-
-                        })
+                                    scheduleUpdate(project, settings, completionService)
+                                    notification.hideBalloon()
+                                }
+                            },
+                        )
                         notification.notify(project)
                     }
                 }
@@ -76,25 +81,32 @@ class PsaStartupActivity : StartupActivity.Background {
         }
     }
 
-    private fun scheduleUpdate(project: Project, settings: Settings, completionService: CompletionService) {
+    private fun scheduleUpdate(
+        project: Project,
+        settings: Settings,
+        completionService: CompletionService,
+    ) {
         timer = Timer()
-        timer!!.schedule(object : TimerTask() {
-            override fun run() {
-                try {
-                    val info = completionService.getInfo(settings, project, settings.scriptPath!!, false)
-                    completionService.updateInfo(settings, info)
-                    completionService.lastResultSucceed = true
-                    completionService.lastResultMessage = ""
-                } catch (e: Exception) {
-                    completionService.lastResultSucceed = false
-                    completionService.lastResultMessage = e.message.toString()
+        timer!!.schedule(
+            object : TimerTask() {
+                override fun run() {
+                    try {
+                        val info = completionService.getInfo(settings, project, settings.scriptPath!!, false)
+                        completionService.updateInfo(settings, info)
+                        completionService.lastResultSucceed = true
+                        completionService.lastResultMessage = ""
+                    } catch (e: Exception) {
+                        completionService.lastResultSucceed = false
+                        completionService.lastResultMessage = e.message.toString()
+                    }
+                    val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
+                    if (null === project.service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
+                        project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
+                    }
+                    project.service<StatusBarWidgetsManager>().updateAllWidgets()
                 }
-                val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
-                if (null === project.service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
-                    project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
-                }
-                project.service<StatusBarWidgetsManager>().updateAllWidgets()
-            }
-        }, 500)
+            },
+            500,
+        )
     }
 }

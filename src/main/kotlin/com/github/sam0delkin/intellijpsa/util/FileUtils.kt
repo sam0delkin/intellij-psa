@@ -6,7 +6,10 @@ import java.io.FileWriter
 
 class FileUtils {
     companion object {
-        fun writeToTmpFile(pFilename: String, sb: String): String {
+        fun writeToTmpFile(
+            pFilename: String,
+            sb: String,
+        ): String {
             val tempDir = File(System.getProperty("java.io.tmpdir"))
             val tempFile: File = File.createTempFile(pFilename, ".tmp", tempDir)
             val fileWriter = FileWriter(tempFile, true)
