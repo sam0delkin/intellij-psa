@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.14] - 2024-08-10
 - Fix bug that completions not working if plugin enabled but not used
 - Added ktlint
 - In case of multiple file changes and previous indexing is still running, it will now be cancelled
@@ -99,7 +101,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.13...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.14...HEAD
+[0.0.14]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.10...v0.0.11
