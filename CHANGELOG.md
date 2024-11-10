@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.15] - 2024-11-10
 - Added optional `presentable_text` and `tail_text` options for completions.
 - Added `focused` option to template form fields. Allows to focus on the field when the template is opened.
 - Added multiple file template support
@@ -105,7 +107,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.14...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.15...HEAD
+[0.0.15]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.11...v0.0.12
