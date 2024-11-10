@@ -39,12 +39,13 @@ Table of Contents
     * [Debug](#debug)
       * [Completions](#completions)
       * [GoTo](#goto)
-  * [Indexing](#indexing)
+  * [Indexing](#indexing-experimental)
     * [Introduction &amp; Internals](#introduction--internals)
     * [Indexing process](#indexing-process)
     * [Batch processing](#batch-processing)
   * [Code Templates](#code-templates)
     * [Single File Template](#single-file-template)
+    * [Multiple File Template](#multiple-file-template)
   * [Performance considerations](#performance-considerations)
     * [General](#general)
     * [GoTo optimizations](#goto-optimizations)
@@ -608,7 +609,7 @@ breakpoint.
 > Keep `Debug` option disabled in plugin settings such as it has a strong impact on performance. Enable debug only in
 > case of you want to debug your autocomplete (write new completion, or check why some old is not working).
 
-### Indexing
+### Indexing (experimental)
 
 #### Introduction & Internals
 Intellij provides extension points for multiple index types like
@@ -712,14 +713,16 @@ For support of file templates you must specify all supported templates in your e
 
 In case of you need to create a single file template, in info request your JSON should contain template with the
 following fields:
-- `type` - string, required. For now, only `single_file` is supported.
+- `type` - string, required. `single_file` or `multiple_file` are supported. For single file template pass `single_file`
+as a value.
 - `name` - string, required. Name of the template for reference. Will be passed in `PSA_CONTEXT` during template generation.
 - `title` - "string, required. Title of the template. This text will be shown in IDE.
-- `path_regex` - string, optional. Regula
+- `path_regex` - string, optional. Regular expression to filter paths where template creation action will be available.
 - `fields` - array of objects with the following structure:
   - `name` - string, required. Name of the form field. Will be passed in `PSA_CONTEXT` during template generation.
   - `title` - string, required. Title of the field which will be displayed in form.
   - `type` - string, required. Allowed values are `Text`, `Checkbox`, `Select`, `Collection`, `RichText`. Type of the form field.
+  - `focused` - boolean, optional. Set to true for the field you want to be focused on opening template creation dialog.
   - `options` - array of strings.
     - Required if `type` is `Select`. Array of select options.
     - Required if `type` is `RichText`. Array of completions.
@@ -831,6 +834,111 @@ As a result, your script should return a simple JSON object with the following f
 Some examples for [PHP](examples/php/psa.php), [JavaScript](examples/js/psa.js), [TypeScript](examples/ts/psa.ts) 
 are shown in the [examples](examples/README.md) folder.
 
+
+#### Multiple File Template
+
+Creation of multiple file template is looking same as single file template, but in this case you need to return an
+additional field: `file_count` in template config, which will show the count of files you're want to create, as well as
+generation of file template is returning array of file paths and array of file contents.
+
+In case of you need to create a multiple file template, in info request your JSON should contain template with the
+following fields:
+- `type` - string, required. `single_file` or `multiple_file` are supported. For multiple file template pass `multiple_file`
+  as a value.
+- `name` - string, required. Name of the template for reference. Will be passed in `PSA_CONTEXT` during template generation.
+- `title` - "string, required. Title of the template. This text will be shown in IDE.
+- `path_regex` - string, optional. Regular expression to filter paths where template creation action will be available.
+- `fields` - array of objects with the following structure:
+  - `name` - string, required. Name of the form field. Will be passed in `PSA_CONTEXT` during template generation.
+  - `title` - string, required. Title of the field which will be displayed in form.
+  - `type` - string, required. Allowed values are `Text`, `Checkbox`, `Select`, `Collection`, `RichText`. Type of the form field.
+  - `focused` - boolean, optional. Set to true for the field you want to be focused on opening template creation dialog.
+  - `options` - array of strings.
+    - Required if `type` is `Select`. Array of select options.
+    - Required if `type` is `RichText`. Array of completions.
+- `file_count` - integer, required. Count of files in multiple file template
+
+For example, you can use the following structure:
+<details>
+  <summary>Expand</summary>
+
+```JSON
+{
+  "templates": [
+    {
+      "type": "multiple_file",
+      "name": "my_awesome_multi_file_template",
+      "title": "My Awesome Multi-file template",
+      "path_regex": "^\/src\/[^\/]\/$",
+      "fields": [
+        {
+          "name": "someName",
+          "title": "Some Name",
+          "type": "Text",
+          "options": []
+        }
+      ],
+      "file_count": 3
+    }
+  ]
+}
+```
+</details>
+
+And in case of your autocomplete script will return template like above, you will have the following menu option to
+generate a new file from template on any path in project structure (path may be filtered by `path_regex` option):
+<details>
+  <summary>Expand</summary>
+
+![file_template_example](doc/images/file_template_menu_example.png)
+</details>
+
+When You click on the action, you'll see the following form:
+<details>
+  <summary>Expand</summary>
+
+![multi_file_template_example](doc/images/multi_file_template_preview_example.png)
+</details>
+
+On this form you can change tabs, which are representing each file you're providing, modify any of your variables 
+described above. Preview is updated automatically in all files after you change the value of any variable.
+
+After clicking `OK` button, the files will be generated in the paths returned by your template.
+
+After opening the form, after changing any of the variable and on clicking OK, plugin will send a request for code
+generation to your autocomplete script with the following variables:
+
+- `PSA_TYPE` - will be always `GenerateFileFromTemplate`
+- `PSA_CONTEXT` - like with completion, it's a path to file with JSON of following structure:
+  ```JSON
+  {
+    "templateName": "string, name of the template for generate.",
+    "actionPath": "string, relative path from project root when the action were initiated.",
+    "formFields": {
+      "name": "value"
+    },
+    "originatorFieldName": "string, optional. If template regeneration were cause by some field change, this option will contain this field name."
+  }
+  ```
+> [!NOTE]
+> `formFields` - will be a JSON object where each key is a field name, and value will be a value of the form field.
+
+As a result, your script should return a simple JSON object with the following fields:
+```JSON
+{
+  "file_names": "array of strings, required. Filenames of the newly generated files (full path from project root).",
+  "contents": "array of strings, required. Contents of the files.",
+  "form_fields": {
+    "{field_name}": {
+      "options": "Array of strings, optional. Here you can override array of `RichText` completions.",
+      "value": "String, optional. Here you can override current value of any form field if needed."
+    }
+  }
+}
+```
+> [!NOTE]
+> `form_fields` - is a optional field. Each inner value of `form_fields` is optional as well.
+
 ### Performance considerations
 
 #### General
@@ -902,7 +1010,7 @@ where you can see plugin actions menu.
 - [x] Add support of autocomplete
 - [x] Add support of GoTo
 - [x] Add support of single-file custom code templates with variables
-- [ ] Add support of multi-file custom code templates with variables
+- [x] Add support of multi-file custom code templates with variables
 - [ ] Add support of intentions
 
 ## FAQ / How To

@@ -3,6 +3,10 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Added optional `presentable_text` and `tail_text` options for completions.
+- Added `focused` option to template form fields. Allows to focus on the field when the template is opened.
+- Added multiple file template support
+- Fixed a bug which causes error in case of indexing is not enabled
 
 ## [0.0.14] - 2024-08-10
 - Fix bug that completions not working if plugin enabled but not used

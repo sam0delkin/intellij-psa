@@ -18,6 +18,7 @@ class TemplateFormField {
     var name: String? = null
     var title: String? = null
     var type: TemplateFormFieldType? = null
+    var focused: Boolean? = false
     var options: ArrayList<String>? = null
 
     override fun toString(): String = "TemplateFormField(name=$name, title=$title, type=$type, options=$options)"
@@ -31,6 +32,7 @@ class TemplateFormField {
         if (name != other.name) return false
         if (title != other.title) return false
         if (type != other.type) return false
+        if (focused != other.focused) return false
         if (options?.joinToString(",") != other.options?.joinToString(",")) return false
 
         return true
@@ -40,12 +42,13 @@ class TemplateFormField {
         var result = name?.hashCode() ?: 0
         result = 31 * result + (title?.hashCode() ?: 0)
         result = 31 * result + (type?.hashCode() ?: 0)
+        result = 31 * result + (focused?.hashCode() ?: 0)
         result = 31 * result + (options?.hashCode() ?: 0)
         return result
     }
 }
 
-class SingleFileCodeTemplate {
+open class SingleFileCodeTemplate {
     var pathRegex: String? = null
     var name: String? = null
     var title: String? = null
@@ -76,6 +79,10 @@ class SingleFileCodeTemplate {
     }
 }
 
+class MultipleFileCodeTemplate : SingleFileCodeTemplate() {
+    var fileCount: Int? = null
+}
+
 @State(
     name = "PSAAutocompleteSettings",
     storages = [Storage("psa.xml")],
@@ -95,6 +102,7 @@ class Settings : PersistentStateComponent<Settings> {
     var supportsBatch: Boolean = false
     var supportedLanguages: String? = ""
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
+    var multipleFileCodeTemplates: ArrayList<MultipleFileCodeTemplate>? = null
     var executionTimeout: Int = 5000
 
     @Override

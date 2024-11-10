@@ -93,12 +93,38 @@ class AnyCompletionContributor {
                                 element = element.withIcon(Icons.PluginIcon)
 
                                 if (i.jsonObject
+                                        .containsKey("bold") &&
+                                    i.jsonObject
                                         .get("bold")
                                         ?.jsonPrimitive!!
                                         .boolean
                                 ) {
                                     element = element.bold()
                                     priority = 100.0
+                                }
+
+                                if (i.jsonObject
+                                        .containsKey("presentable_text")
+                                ) {
+                                    element =
+                                        element.withPresentableText(
+                                            i.jsonObject
+                                                .get("presentable_text")
+                                                ?.jsonPrimitive!!
+                                                .content,
+                                        )
+                                }
+
+                                if (i.jsonObject
+                                        .containsKey("tail_text")
+                                ) {
+                                    element =
+                                        element.withTailText(
+                                            i.jsonObject
+                                                .get("tail_text")
+                                                ?.jsonPrimitive!!
+                                                .content,
+                                        )
                                 }
 
                                 element =

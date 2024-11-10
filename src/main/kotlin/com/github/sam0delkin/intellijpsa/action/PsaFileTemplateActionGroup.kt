@@ -60,6 +60,23 @@ class PsaFileTemplateActionGroup :
             actions.add(action)
         }
 
+        for (template in settings.multipleFileCodeTemplates!!) {
+            if (null !== template.pathRegex && !directoryPath.matches(Regex(template.pathRegex!!))) {
+                continue
+            }
+
+            val action =
+                MultipleFileTemplateAction(
+                    "Create " + template.title,
+                    "",
+                    AllIcons.FileTypes.Custom,
+                )
+            action.templateName = template.name
+            action.templatePresentation.text = template.title
+            action.templatePresentation.icon = AllIcons.FileTypes.Custom
+            actions.add(action)
+        }
+
         return actions.toTypedArray()
     }
 }

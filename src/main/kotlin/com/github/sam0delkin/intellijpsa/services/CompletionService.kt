@@ -6,10 +6,7 @@ import com.github.sam0delkin.intellijpsa.exception.IndexNotReadyException
 import com.github.sam0delkin.intellijpsa.exception.IndexingDisabledException
 import com.github.sam0delkin.intellijpsa.index.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.index.PsaIndex
-import com.github.sam0delkin.intellijpsa.settings.Settings
-import com.github.sam0delkin.intellijpsa.settings.SingleFileCodeTemplate
-import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
-import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
+import com.github.sam0delkin.intellijpsa.settings.*
 import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.github.sam0delkin.intellijpsa.util.FileUtils
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -45,6 +42,7 @@ import kotlin.reflect.full.memberFunctions
 @Serializable
 data class GenerateFileFromTemplateData(
     val actionPath: String,
+    val templateType: String,
     val templateName: String,
     val originatorFieldName: String?,
     val formFields: Map<String, String>,
@@ -204,6 +202,7 @@ class CompletionService(
                 (info.get("supports_batch") as JsonElement).jsonPrimitive.boolean
 
             settings.singleFileCodeTemplates = ArrayList()
+            settings.multipleFileCodeTemplates = ArrayList()
 
             if (info.containsKey("templates")) {
                 if (info.get("templates") !is JsonArray) {
@@ -216,14 +215,24 @@ class CompletionService(
                         throw Exception("`templates` must be an array of objects")
                     }
                     if (template.jsonObject.containsKey("type")) {
-                        if (template.jsonObject["type"]!!.jsonPrimitive.content != "single_file") {
+                        if (
+                            template.jsonObject["type"]!!.jsonPrimitive.content != "single_file" &&
+                            template.jsonObject["type"]!!.jsonPrimitive.content != "multiple_file"
+                        ) {
                             continue
                         }
                     } else {
                         throw Exception("`templates` must be an array of objects with `type` field")
                     }
 
-                    val templateObject = SingleFileCodeTemplate()
+                    val templateObject: SingleFileCodeTemplate =
+                        if (template.jsonObject["type"]!!.jsonPrimitive.content ==
+                            "single_file"
+                        ) {
+                            SingleFileCodeTemplate()
+                        } else {
+                            MultipleFileCodeTemplate()
+                        }
                     if (template.jsonObject.containsKey("path_regex")) {
                         templateObject.pathRegex = template.jsonObject["path_regex"]!!.jsonPrimitive.content
                     }
@@ -238,6 +247,14 @@ class CompletionService(
                         templateObject.title = template.jsonObject["title"]!!.jsonPrimitive.content
                     } else {
                         throw Exception("`templates` must be an array of objects with `title` field")
+                    }
+
+                    if (templateObject is MultipleFileCodeTemplate) {
+                        if (template.jsonObject.containsKey("file_count")) {
+                            templateObject.fileCount = template.jsonObject["file_count"]!!.jsonPrimitive.int
+                        } else {
+                            throw Exception("`templates` must be an array of objects with `file_count` field")
+                        }
                     }
 
                     if (template.jsonObject.containsKey("fields")) {
@@ -263,6 +280,13 @@ class CompletionService(
                             } else {
                                 throw Exception("`fields` must be an object with `type` field")
                             }
+                            if (field.jsonObject.containsKey("focused") &&
+                                field.jsonObject
+                                    .get("focused")!!
+                                    .jsonPrimitive.boolean
+                            ) {
+                                fieldObject.focused = true
+                            }
                             if (field.jsonObject.containsKey("options")) {
                                 val options = field.jsonObject["options"]!!.jsonArray
                                 for (option in options) {
@@ -275,7 +299,11 @@ class CompletionService(
                         throw Exception("`templates` must be an array of objects with `fields` field")
                     }
 
-                    settings.singleFileCodeTemplates!!.add(templateObject)
+                    if (templateObject is MultipleFileCodeTemplate) {
+                        settings.multipleFileCodeTemplates!!.add(templateObject)
+                    } else {
+                        settings.singleFileCodeTemplates!!.add(templateObject)
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -288,6 +316,7 @@ class CompletionService(
         project: Project,
         actionPath: String,
         templateName: String,
+        templateType: String,
         originatorFieldName: String?,
         formFields: Map<String, String>,
     ): JsonObject? {
@@ -299,6 +328,7 @@ class CompletionService(
                 Json.encodeToString(
                     GenerateFileFromTemplateData(
                         actionPath,
+                        templateType,
                         templateName,
                         originatorFieldName,
                         formFields,
