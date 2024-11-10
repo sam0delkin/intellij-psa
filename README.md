@@ -405,7 +405,7 @@ As a result, your script should return an array of supported languages:
   "goto_element_filter": "optional, array of strings. Used for filter element types where GoTo will work. Performance optimization.",
   "templates": [
     {
-      "type": "string, required. For now, only `single_file` is supported.",
+      "type": "string, required. `single_file` or `multiple_file` are supported.",
       "name": "string, required. Name of the template for reference. Will be passed in `PSA_CONTEXT` during template generation.",
       "title": "string, required. Title of the template. This text will be shown in IDE.",
       "path_regex": "string, optional. Regular expression. Used to filer path where this code template is available.",
