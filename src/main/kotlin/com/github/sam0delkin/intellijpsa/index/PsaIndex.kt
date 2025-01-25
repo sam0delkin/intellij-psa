@@ -45,6 +45,7 @@ data class IndexedPsiElementModel(
 )
 
 private val psaFileDataKey = Key<String>("PSA_FILE_DATA_KEY")
+private val psaFileReindexKey = Key<Boolean>("PSA_FILE_REINDEX_KEY")
 private val psaFileIndicatorKey = Key<ProgressIndicator>("PSA_FILE_INDICATOR_KEY")
 private val psaGoToElementKey = Key<String>("PSA_GOTO_ELEMENT_KEY")
 private val psaCompletionElementKey = Key<String>("PSA_COMPLETION_ELEMENT_KEY")
@@ -52,6 +53,10 @@ private val psaCompletionElementKey = Key<String>("PSA_COMPLETION_ELEMENT_KEY")
 private val gist =
     GistManager.getInstance().newPsiFileGist("PSA", 1, EnumeratorStringDescriptor.INSTANCE) {
         val previousIndicator = it.getUserData(psaFileIndicatorKey)
+        var reindex = false
+        if (null !== it.getUserData(psaFileReindexKey)) {
+            reindex = it.getUserData(psaFileReindexKey)!!
+        }
         if (null !== previousIndicator) {
             previousIndicator.cancel()
         }
@@ -59,6 +64,7 @@ private val gist =
         val existingData = it.getUserData(psaFileDataKey)
         if (existingData != null) {
             it.putUserData(psaFileDataKey, null)
+            it.putUserData(psaFileReindexKey, false)
 
             return@newPsiFileGist existingData
         }
@@ -149,7 +155,7 @@ private val gist =
                                                     return@runReadAction
                                                 }
 
-                                                if (innerElement!!.getUserData(psaGoToElementKey) != null) {
+                                                if (!reindex && innerElement!!.getUserData(psaGoToElementKey) != null) {
                                                     map[
                                                         PsaIndex.generateGoToKeyByElement(
                                                             innerElement!!,
@@ -479,6 +485,7 @@ class PsaIndex(
         ApplicationManager.getApplication().invokeLater {
             thread {
                 GistManager.getInstance().invalidateData(file.virtualFile)
+                file.putUserData(psaFileReindexKey, true)
 
                 val psaIndex = project.service<PsaIndex>()
                 runReadAction {

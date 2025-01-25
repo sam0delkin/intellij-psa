@@ -16,7 +16,12 @@ class PsiFileProcessor(
             return true
         }
 
-        val fileUrl = currentElement.containingFile.virtualFile.url
+        val fileUrl = currentElement.containingFile.virtualFile?.url
+
+        if (null === fileUrl) {
+            return true
+        }
+
         val key = fileUrl + "::" + currentElement.textRange.startOffset
 
         if (!notIndexedElements.contains(key)) {
