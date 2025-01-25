@@ -65,7 +65,7 @@ class JTextFieldCollection : JBPanel<DialogPanel>() {
                                 }
                             },
                         )
-                        actionButton(
+                        Utils.actionButton(
                             object : DumbAwareAction("Remove Row", "", AllIcons.General.Remove) {
                                 override fun actionPerformed(e: AnActionEvent) {
                                     val newValues = ArrayList<String>(values)
@@ -76,11 +76,13 @@ class JTextFieldCollection : JBPanel<DialogPanel>() {
                                     updatePanel()
                                 }
                             },
+                            "bottom",
+                            this,
                         )
                     }
                 }
                 row {
-                    actionButton(
+                    Utils.actionButton(
                         object : DumbAwareAction("Add Row", "", AllIcons.General.Add) {
                             override fun actionPerformed(e: AnActionEvent) {
                                 val newValues = ArrayList<String>(values)
@@ -91,6 +93,8 @@ class JTextFieldCollection : JBPanel<DialogPanel>() {
                                 updatePanel()
                             }
                         },
+                        "bottom",
+                        this,
                     )
                 }
             }

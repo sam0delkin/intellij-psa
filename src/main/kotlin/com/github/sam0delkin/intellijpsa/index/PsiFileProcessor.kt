@@ -4,7 +4,6 @@ import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.PsiElementProcessor
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.startOffset
 import com.jetbrains.rd.util.string.printToString
 
 class PsiFileProcessor(
@@ -18,7 +17,7 @@ class PsiFileProcessor(
         }
 
         val fileUrl = currentElement.containingFile.virtualFile.url
-        val key = fileUrl + "::" + currentElement.startOffset
+        val key = fileUrl + "::" + currentElement.textRange.startOffset
 
         if (!notIndexedElements.contains(key)) {
             notIndexedElements.add(key)

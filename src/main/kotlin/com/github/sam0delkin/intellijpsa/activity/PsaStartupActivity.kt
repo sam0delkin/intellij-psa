@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.startup.StartupActivity
@@ -18,7 +19,9 @@ import java.io.File
 import java.util.Timer
 import java.util.TimerTask
 
-class PsaStartupActivity : StartupActivity.Background {
+class PsaStartupActivity :
+    StartupActivity,
+    DumbAware {
     private var timer: Timer? = null
 
     override fun runActivity(project: Project) {

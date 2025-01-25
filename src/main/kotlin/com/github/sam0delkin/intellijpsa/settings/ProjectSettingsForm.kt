@@ -4,6 +4,7 @@ package com.github.sam0delkin.intellijpsa.settings
 
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.statusBar.PsaStatusBarWidgetFactory
+import com.github.sam0delkin.intellijpsa.ui.components.Utils
 import com.intellij.execution.util.PathMappingsComponent
 import com.intellij.icons.AllIcons
 import com.intellij.lang.Language
@@ -64,28 +65,30 @@ class ProjectSettingsForm(
                     }.rowComment("Debug mode. Passed as `PSA_DEBUG` into the executable script")
                     row("Script Path") {
                         scriptPath =
-                            textFieldWithBrowseButton(
-                                "Choose PSA Executable FIle",
-                                project,
-                                FileChooserDescriptorFactory
-                                    .createSingleFileDescriptor()
-                                    .withFileFilter { e ->
-                                        java.nio.file.Files
-                                            .isExecutable(Path.of(e.path))
-                                    }.withShowHiddenFiles(true),
-                            ) { chosenFile ->
-                                run {
-                                    val projectDirectory = project.guessProjectDir()
-                                    assert(projectDirectory != null)
-                                    var path = VfsUtil.getRelativePath(chosenFile, projectDirectory!!, '/')
-                                    if (null == path) {
-                                        path = chosenFile.path
-                                    }
-                                    updateInfoButtonEnabled()
+                            Utils
+                                .textFieldWithBrowseButton(
+                                    this,
+                                    "Choose PSA Executable FIle",
+                                    project,
+                                    FileChooserDescriptorFactory
+                                        .createSingleFileDescriptor()
+                                        .withFileFilter { e ->
+                                            java.nio.file.Files
+                                                .isExecutable(Path.of(e.path))
+                                        }.withShowHiddenFiles(true),
+                                ) { chosenFile ->
+                                    run {
+                                        val projectDirectory = project.guessProjectDir()
+                                        assert(projectDirectory != null)
+                                        var path = VfsUtil.getRelativePath(chosenFile, projectDirectory!!, '/')
+                                        if (null == path) {
+                                            path = chosenFile.path
+                                        }
+                                        updateInfoButtonEnabled()
 
-                                    path
-                                }
-                            }.gap(RightGap.SMALL)
+                                        path
+                                    }
+                                }.gap(RightGap.SMALL)
 
                         @Suppress("DialogTitleCapitalization")
                         val action =
@@ -98,7 +101,7 @@ class ProjectSettingsForm(
                                     self.getInfo()
                                 }
                             }
-                        infoButton = actionButton(action)
+                        infoButton = Utils.actionButton(action, "bottom", this)
                     }.rowComment("Path to the PSA executable script. Must be an executable file")
                     row("Indexing Enabled") {
                         indexingEnabled = checkBox("")
@@ -167,7 +170,7 @@ class ProjectSettingsForm(
                                     }
                                 }
                             }
-                        supportedLanguagesButton = actionButton(action)
+                        supportedLanguagesButton = Utils.actionButton(action, "bottom", this)
                     }.rowComment("Programming languages supported by your autocompletion")
                     row("GoTo Element Filter") {
                         goToElementFilter = textField().enabled(false)

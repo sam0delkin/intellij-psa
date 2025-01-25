@@ -14,6 +14,7 @@ import com.intellij.execution.process.ProcessOutput
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ex.ApplicationUtil
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProcessCanceledException
@@ -114,6 +115,7 @@ enum class RequestType {
 
 private const val MAX_STRING_LENGTH = 1000
 
+@Service(Service.Level.PROJECT)
 class CompletionService(
     project: Project,
 ) {
@@ -475,7 +477,13 @@ class CompletionService(
                 var indexValue: String? = null
                 if (model.size == 1) {
                     try {
-                        indexValue = index.get(PsaIndex.generateKeyByRequestType(requestType, model[0]))
+                        indexValue =
+                            index.get(
+                                requestType,
+                                model[0].model.textRange!!.startOffset,
+                                PsaIndex.generateKeyByRequestType(requestType, model[0]),
+                                model[0].model.filePath,
+                            )
                     } catch (e: IndexNotReadyException) {
                         indexReady = false
                     } catch (_: IndexingDisabledException) {

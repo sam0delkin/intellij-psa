@@ -3,6 +3,10 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Removed some internal/deprecated API usage to be compatible with 2025.1
+- Significantly improved indexing performance as well as index using process. For now
+indexing will not re-index the whole file in case of file modifications.
+- Small typo fixes in README.md
 
 ## [0.0.15] - 2024-11-10
 - Added optional `presentable_text` and `tail_text` options for completions.

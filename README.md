@@ -617,7 +617,7 @@ example, [FileBasedIndex](https://plugins.jetbrains.com/docs/intellij/file-based
 [Stub Indexes](https://plugins.jetbrains.com/docs/intellij/stub-indexes.html) but all of them are not fit plugin needs
 because of various problems (they are running in [Dumb Mode](https://plugins.jetbrains.com/docs/intellij/indexing-and-psi-stubs.html#dumb-mode), 
 which are significantly decrease PsiElement options resolving, or even running on raw AST Tree). The main idea of the
-plugin is to provide custom autocomplete & GoTo on the currently opened files. So whe one even need to index the whole
+plugin is to provide custom autocomplete & GoTo on the currently opened files. So why one even need to index the whole
 file tree, while we can index only opened files? For these reasons, [Gists](https://plugins.jetbrains.com/docs/intellij/indexing-and-psi-stubs.html#gists)
 were chosen as index type for the PSA.
 
@@ -986,8 +986,8 @@ if (!checkElement($context)) {
 When you're clicking (Ctrl/Command + Click) by **any** element in the IDE editor, IDE is calling all GoTo
 contributors, regardless of language or any other things. And there is no way to know - does your custom autocomplete
 will resolve the reference or not. So plugin will still try to call your script to check that element may be resolved, 
-and GoTO reference provided. This will lead to freezes in IDE UI when you're trying to GoTo in some place which 
-your custom autocomplete is not support. TO overcome this problem, there is an additional option were added:
+and GoTo reference provided. This will lead to freezes in IDE UI when you're trying to GoTo in some place which 
+your custom autocomplete is not support. To overcome this problem, there is an additional option were added:
 `goto_element_filter`. Here your script should return an array of element types to filter GoTo references. It will be 
 saved first time your script will be called with [Info](#custom-autocomplete-info) call and then will ignore all 
 elements that are not matching the types provided.

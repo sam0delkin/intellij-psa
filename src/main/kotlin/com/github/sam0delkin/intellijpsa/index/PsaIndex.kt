@@ -11,6 +11,7 @@ import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
@@ -45,6 +46,8 @@ data class IndexedPsiElementModel(
 
 private val psaFileDataKey = Key<String>("PSA_FILE_DATA_KEY")
 private val psaFileIndicatorKey = Key<ProgressIndicator>("PSA_FILE_INDICATOR_KEY")
+private val psaGoToElementKey = Key<String>("PSA_GOTO_ELEMENT_KEY")
+private val psaCompletionElementKey = Key<String>("PSA_COMPLETION_ELEMENT_KEY")
 
 private val gist =
     GistManager.getInstance().newPsiFileGist("PSA", 1, EnumeratorStringDescriptor.INSTANCE) {
@@ -146,6 +149,21 @@ private val gist =
                                                     return@runReadAction
                                                 }
 
+                                                if (innerElement!!.getUserData(psaGoToElementKey) != null) {
+                                                    map[
+                                                        PsaIndex.generateGoToKeyByElement(
+                                                            innerElement!!,
+                                                        ),
+                                                    ] = innerElement!!.getUserData(psaGoToElementKey).toString()
+                                                    map[
+                                                        PsaIndex.generateCompletionsKeyElement(
+                                                            innerElement!!,
+                                                        ),
+                                                    ] = innerElement!!.getUserData(psaCompletionElementKey).toString()
+
+                                                    return@runReadAction
+                                                }
+
                                                 val currentModel =
                                                     completionService.psiElementToModel(innerElement!!)
                                                 currentElementModels.add(
@@ -195,30 +213,34 @@ private val gist =
                                                         indicator,
                                                     )?.jsonArray
 
-                                            if (null !== goToCompletions && goToCompletions.jsonArray.isNotEmpty()) {
-                                                for (i in 0 until currentElementModels.size) {
-                                                    val model = currentElementModels[i]
-                                                    val completionsObject = goToCompletions.jsonArray.get(i).jsonObject
-                                                    if (completionsObject.containsKey("completions") &&
-                                                        !completionsObject
-                                                            .get(
-                                                                "completions",
-                                                            )?.jsonArray
-                                                            ?.isEmpty()!!
-                                                    ) {
-                                                        var innerElement: PsiElement? = null
-                                                        runReadAction {
-                                                            innerElement = file.findElementAt(model.model.textRange!!.startOffset)
-                                                        }
-                                                        if (null === innerElement) {
-                                                            continue
-                                                        }
-                                                        map[
-                                                            PsaIndex.generateGoToKeyByModel(
-                                                                model,
-                                                            ),
-                                                        ] = Json.encodeToString(completionsObject)
-                                                    }
+                                            for (i in 0 until currentElementModels.size) {
+                                                val model = currentElementModels[i]
+                                                val completionsObject = goToCompletions?.jsonArray?.get(i)?.jsonObject
+                                                var innerElement: PsiElement? = null
+                                                runReadAction {
+                                                    innerElement = file.findElementAt(model.model.textRange!!.startOffset)
+                                                }
+                                                if (null === innerElement) {
+                                                    continue
+                                                }
+
+                                                if (null !== completionsObject &&
+                                                    completionsObject.containsKey("completions") &&
+                                                    !completionsObject
+                                                        .get(
+                                                            "completions",
+                                                        )?.jsonArray
+                                                        ?.isEmpty()!!
+                                                ) {
+                                                    val encodeToString = Json.encodeToString(completionsObject)
+                                                    map[
+                                                        PsaIndex.generateGoToKeyByModel(
+                                                            model,
+                                                        ),
+                                                    ] = encodeToString
+                                                    innerElement!!.putUserData(psaGoToElementKey, encodeToString)
+                                                } else {
+                                                    innerElement!!.putUserData(psaGoToElementKey, "{}")
                                                 }
                                             }
 
@@ -236,30 +258,35 @@ private val gist =
                                                     indicator,
                                                 )
 
-                                            if (null !== completions && completions.jsonArray.isNotEmpty()) {
-                                                for (i in 0 until currentElementModels.size) {
-                                                    val model = currentElementModels[i]
-                                                    val completionsObject = completions.jsonArray.get(i).jsonObject
-                                                    if (completionsObject.containsKey("completions") &&
-                                                        !completionsObject
-                                                            .get(
-                                                                "completions",
-                                                            )?.jsonArray
-                                                            ?.isEmpty()!!
-                                                    ) {
-                                                        var innerElement: PsiElement? = null
-                                                        runReadAction {
-                                                            innerElement = file.findElementAt(model.model.textRange!!.startOffset)
-                                                        }
-                                                        if (null === innerElement) {
-                                                            continue
-                                                        }
-                                                        map[
-                                                            PsaIndex.generateCompletionsKeyByModel(
-                                                                model,
-                                                            ),
-                                                        ] = Json.encodeToString(completionsObject)
-                                                    }
+                                            for (i in 0 until currentElementModels.size) {
+                                                val model = currentElementModels[i]
+                                                val completionsObject = completions?.jsonArray?.get(i)?.jsonObject
+                                                var innerElement: PsiElement? = null
+                                                runReadAction {
+                                                    innerElement = file.findElementAt(model.model.textRange!!.startOffset)
+                                                }
+
+                                                if (null === innerElement) {
+                                                    continue
+                                                }
+
+                                                if (null !== completionsObject &&
+                                                    completionsObject.containsKey("completions") &&
+                                                    !completionsObject
+                                                        .get(
+                                                            "completions",
+                                                        )?.jsonArray
+                                                        ?.isEmpty()!!
+                                                ) {
+                                                    val encodeToString = Json.encodeToString(completionsObject)
+                                                    map[
+                                                        PsaIndex.generateCompletionsKeyByModel(
+                                                            model,
+                                                        ),
+                                                    ] = encodeToString
+                                                    innerElement!!.putUserData(psaCompletionElementKey, encodeToString)
+                                                } else {
+                                                    innerElement!!.putUserData(psaCompletionElementKey, "{}")
                                                 }
                                             }
                                             processed += batchCount
@@ -283,21 +310,25 @@ private val gist =
                                                             true,
                                                             indicator,
                                                         )?.jsonObject
-                                                if (null !== goToCompletions) {
-                                                    if (goToCompletions.containsKey("completions") &&
+                                                var innerElement: PsiElement? = null
+                                                runReadAction {
+                                                    innerElement = file.findElementAt(model.model.textRange!!.startOffset)
+                                                }
+
+                                                if (null !== innerElement) {
+                                                    if (null !== goToCompletions &&
+                                                        goToCompletions.containsKey("completions") &&
                                                         !goToCompletions.get("completions")?.jsonArray?.isEmpty()!!
                                                     ) {
-                                                        var innerElement: PsiElement? = null
-                                                        runReadAction {
-                                                            innerElement = file.findElementAt(model.model.textRange!!.startOffset)
-                                                        }
-                                                        if (null !== innerElement) {
-                                                            map[
-                                                                PsaIndex.generateGoToKeyByModel(
-                                                                    model,
-                                                                ),
-                                                            ] = Json.encodeToString(goToCompletions)
-                                                        }
+                                                        val encodeToString = Json.encodeToString(goToCompletions)
+                                                        map[
+                                                            PsaIndex.generateGoToKeyByModel(
+                                                                model,
+                                                            ),
+                                                        ] = encodeToString
+                                                        innerElement!!.putUserData(psaGoToElementKey, encodeToString)
+                                                    } else {
+                                                        innerElement!!.putUserData(psaGoToElementKey, "{}")
                                                     }
                                                 }
 
@@ -315,21 +346,20 @@ private val gist =
                                                             true,
                                                             indicator,
                                                         )?.jsonObject
-                                                if (null !== completions) {
-                                                    if (completions.containsKey("completions") &&
+                                                if (null !== innerElement) {
+                                                    if (null !== completions &&
+                                                        completions.containsKey("completions") &&
                                                         !completions.get("completions")?.jsonArray?.isEmpty()!!
                                                     ) {
-                                                        var innerElement: PsiElement? = null
-                                                        runReadAction {
-                                                            innerElement = file.findElementAt(model.model.textRange!!.startOffset)
-                                                        }
-                                                        if (null !== innerElement) {
-                                                            map[
-                                                                PsaIndex.generateGoToKeyByModel(
-                                                                    model,
-                                                                ),
-                                                            ] = Json.encodeToString(completions)
-                                                        }
+                                                        val encodeToString = Json.encodeToString(completions)
+                                                        map[
+                                                            PsaIndex.generateGoToKeyByModel(
+                                                                model,
+                                                            ),
+                                                        ] = Json.encodeToString(completions)
+                                                        innerElement!!.putUserData(psaCompletionElementKey, encodeToString)
+                                                    } else {
+                                                        innerElement!!.putUserData(psaCompletionElementKey, "{}")
                                                     }
                                                 }
 
@@ -343,7 +373,10 @@ private val gist =
                                 }
 
                                 workerPool.shutdown()
-                                workerPool.awaitTermination(1, TimeUnit.HOURS)
+                                workerPool.awaitTermination(
+                                    1,
+                                    TimeUnit.HOURS,
+                                )
 
                                 if (indicator.isCanceled) {
                                     return@runWithCheckCanceled
@@ -366,14 +399,21 @@ private val gist =
         return@newPsiFileGist "null"
     }
 
+@Service(Service.Level.PROJECT)
 class PsaIndex(
     private val project: Project,
 ) {
     companion object {
-        val generateGoToKeyByModel = fun(model: IndexedPsiElementModel): String = "PSA_GOTO:" + model.textRange + ":" + model.model.filePath
+        val generateGoToKeyByModel = fun(model: IndexedPsiElementModel): String = "PSA_GOTO:" + model.textRange
+        val generateGoToKeyByElement =
+            @Suppress("ktlint:standard:max-line-length")
+            fun(element: PsiElement): String = "PSA_GOTO:" + element.textRange
         val generateCompletionsKeyByModel =
             @Suppress("ktlint:standard:max-line-length")
-            fun(model: IndexedPsiElementModel): String = "PSA_COMPLETIONS:" + model.textRange + ":" + model.model.filePath
+            fun(model: IndexedPsiElementModel): String = "PSA_COMPLETIONS:" + model.textRange
+        val generateCompletionsKeyElement =
+            @Suppress("ktlint:standard:max-line-length")
+            fun(element: PsiElement): String = "PSA_COMPLETIONS:" + element.textRange
         val generateKeyByRequestType = fun(
             requestType: RequestType,
             model: IndexedPsiElementModel,
@@ -385,27 +425,47 @@ class PsaIndex(
         }
     }
 
-    fun get(key: String): String? {
+    fun get(
+        type: RequestType,
+        position: Int,
+        key: String,
+        filePath: String?,
+    ): String? {
         val settings = this.project.service<Settings>()
         if (!settings.indexingEnabled || settings.debug) {
             throw IndexingDisabledException()
         }
 
-        val parts = key.split(":")
-        if (parts.size > 1) {
-            val virtualFile = VirtualFileManager.getInstance().findFileByUrl("file://" + parts[2])
-            if (virtualFile != null) {
-                val psiFile = PsiManager.getInstance(project).findFile(virtualFile)
-                if (psiFile != null) {
-                    val data = getForFile(psiFile)
-                    try {
-                        val map = Json.decodeFromString<Map<String, String>>(data!!)
-                        if (map.containsKey(key)) {
-                            return map[key]
-                        }
-                    } catch (_: Exception) {
-                        throw IndexNotReadyException()
+        if (null === filePath) {
+            return null
+        }
+
+        val virtualFile = VirtualFileManager.getInstance().findFileByUrl("file://" + filePath)
+        if (virtualFile != null) {
+            val psiFile = PsiManager.getInstance(project).findFile(virtualFile)
+            if (psiFile != null) {
+                val innerElement = psiFile.findElementAt(position)
+
+                if (null !== innerElement) {
+                    var data = innerElement.getUserData(psaGoToElementKey)
+                    if (null !== data && type === RequestType.GoTo) {
+                        return data
                     }
+
+                    data = innerElement.getUserData(psaCompletionElementKey)
+                    if (null !== data && type === RequestType.Completion) {
+                        return data
+                    }
+                }
+
+                val data = getForFile(psiFile)
+                try {
+                    val map = Json.decodeFromString<Map<String, String>>(data!!)
+                    if (map.containsKey(key)) {
+                        return map[key]
+                    }
+                } catch (_: Exception) {
+                    throw IndexNotReadyException()
                 }
             }
         }

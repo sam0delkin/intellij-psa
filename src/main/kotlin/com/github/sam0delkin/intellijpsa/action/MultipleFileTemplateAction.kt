@@ -6,6 +6,7 @@ import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
 import com.github.sam0delkin.intellijpsa.ui.components.JTextFieldCollection
+import com.github.sam0delkin.intellijpsa.ui.components.Utils
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeView
@@ -348,7 +349,7 @@ class MultipleFileTemplateAction(
                                     }
                                 }
                             }
-                        errorIcon = actionButton(action).visible(false)
+                        errorIcon = Utils.actionButton(action, "bottom", this).visible(false)
                     }
                     row { }
                     row {
@@ -382,7 +383,7 @@ class MultipleFileTemplateAction(
                                     previewTextFieldComponent.minimumSize = Dimension(800, 200)
                                     previewTextFieldComponent.maximumSize = Dimension(-1, 600)
                                     previewTextFields.add(previewTextFieldComponent)
-                                    filePathFields.add(JBLabel("File Path: "))
+                                    filePathFields.add(JBLabel("File path: "))
                                     panel.add(filePathFields[i])
                                     panel.add(previewTextFieldComponent)
                                     panel.isVisible = true
