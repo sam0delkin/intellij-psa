@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.settings
 
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.PathMappingSettings.PathMapping
@@ -83,6 +84,7 @@ class MultipleFileCodeTemplate : SingleFileCodeTemplate() {
     var fileCount: Int? = null
 }
 
+@Service(Service.Level.PROJECT)
 @State(
     name = "PSAAutocompleteSettings",
     storages = [Storage("psa.xml")],

@@ -7,8 +7,6 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.settings.Settings"/>
-        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.index.PsaIndex"/>
 
         <projectConfigurable
                 parentId="tools"
@@ -17,7 +15,6 @@
                 displayName="Project Specific Autocomplete"
                 nonDefaultProject="true"/>
 
-        <projectService serviceImplementation="com.github.sam0delkin.intellijpsa.services.CompletionService"/>
         <completion.contributor
                 language="any"
                 implementationClass="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$Completion"/>
