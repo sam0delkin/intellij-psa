@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.16] - 2025-01-25
 - Removed some internal/deprecated API usage to be compatible with 2025.1
 - Significantly improved indexing performance as well as index using process. For now
 indexing will not re-index the whole file in case of file modifications.
@@ -111,7 +113,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.15...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.16...HEAD
+[0.0.16]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.12...v0.0.13
