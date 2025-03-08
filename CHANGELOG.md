@@ -3,6 +3,9 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Major refactoring. Move to JSON Models instead of calling methods
+- Add Swagger doc for easier understanding + DTO generation
+- Bug fixes and performance improvements
 
 ## [0.0.16] - 2025-01-25
 - Removed some internal/deprecated API usage to be compatible with 2025.1

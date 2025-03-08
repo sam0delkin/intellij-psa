@@ -2,7 +2,7 @@ package com.github.sam0delkin.intellijpsa.activity
 
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.settings.Settings
-import com.github.sam0delkin.intellijpsa.statusBar.PsaStatusBarWidgetFactory
+import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.intellij.ide.util.RunOnceUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType

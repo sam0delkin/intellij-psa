@@ -41,8 +41,6 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.textCompletion.TextCompletionValueDescriptor
 import com.intellij.util.textCompletion.TextFieldWithCompletion
 import com.intellij.util.textCompletion.ValuesCompletionProvider
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.awt.Dimension
 import java.util.Timer
@@ -118,70 +116,59 @@ class SingleFileTemplateAction(
 
             SwingUtilities.invokeLater {
                 ApplicationManager.getApplication().runWriteAction {
-                    if (!templateData.containsKey("file_name")) {
+                    if (null == templateData.fileName) {
                         return@runWriteAction
                     }
 
                     val newFileType =
                         FileTypeManager
                             .getInstance()
-                            .getFileTypeByFileName(templateData.get("file_name")!!.jsonPrimitive.content)
-                    if (templateData.containsKey("file_name")) {
-                        if (null !== fileNameField) {
-                            fileNameField!!.component.text = templateData.get("file_name")!!.jsonPrimitive.content
-                        }
+                            .getFileTypeByFileName(templateData.fileName)
+
+                    if (null !== fileNameField) {
+                        fileNameField!!.component.text = templateData.fileName
                     }
 
-                    if (templateData.containsKey("form_fields")) {
-                        if (templateData.get("form_fields") is JsonObject) {
-                            val fields = templateData.get("form_fields") as JsonObject
+                    if (templateData.formFields != null) {
+                        for (fieldName in templateData.formFields!!.keys) {
+                            val value = templateData.formFields!![fieldName]
+                            if (null === value) {
+                                continue
+                            }
 
-                            for (fieldName in fields.keys) {
-                                val value = fields.get(fieldName)
+                            if (richTextEditorValues.containsKey(fieldName)) {
+                                richTextEditorValues[fieldName]!!.addAll(value.options)
+                            }
 
-                                if (value is JsonObject && value.containsKey("options")) {
-                                    if (richTextEditorValues.containsKey(fieldName)) {
-                                        richTextEditorValues[fieldName]!!.addAll(
-                                            (value.get("options") as JsonArray).map { e ->
-                                                e.jsonPrimitive.content
-                                            },
-                                        )
-                                    }
+                            if (formFields.containsKey(fieldName) && value.value != null) {
+                                val component = formFields[fieldName]!!.component
+                                if (component is TextFieldWithCompletion) {
+                                    component.document.setText(value.value!!.jsonPrimitive.content)
                                 }
-                                if (value is JsonObject && value.containsKey("value")) {
-                                    if (formFields.containsKey(fieldName)) {
-                                        val component = formFields[fieldName]!!.component
-                                        if (component is TextFieldWithCompletion) {
-                                            component.document.setText(value.get("value")!!.jsonPrimitive.content)
-                                        }
-                                        if (component is JBTextField) {
-                                            component.text = value.get("value")!!.jsonPrimitive.content
-                                        }
-                                        if (component is JBCheckBox) {
-                                            component.isSelected =
-                                                value
-                                                    .get("value")!!
-                                                    .jsonPrimitive.content
-                                                    .toBoolean()
-                                        }
-                                        if (component is ComboBox<*>) {
-                                            component.selectedItem = value.get("value")!!.jsonPrimitive.content
-                                        }
-                                    }
+                                if (component is JBTextField) {
+                                    component.text = value.value!!.jsonPrimitive.content
+                                }
+                                if (component is JBCheckBox) {
+                                    component.isSelected =
+                                        value
+                                            .value!!
+                                            .jsonPrimitive.content
+                                            .toBoolean()
+                                }
+                                if (component is ComboBox<*>) {
+                                    component.selectedItem = value.value!!.jsonPrimitive.content
                                 }
                             }
                         }
                     }
 
-                    if (templateData.containsKey("content")) {
-                        if (null !== previewTextField) {
-                            if (newFileType !== previewTextField!!.component.fileType) {
-                                previewTextField!!.component.fileType = newFileType
-                            }
-                            previewTextField!!.component.document.setText(
-                                StringUtil.convertLineSeparators(templateData.get("content")!!.jsonPrimitive.content),
-                            )
+                    if (null !== previewTextField) {
+                        if (newFileType !== previewTextField!!.component.fileType) {
+                            previewTextField!!.component.fileType = newFileType
                         }
+                        previewTextField!!.component.document.setText(
+                            StringUtil.convertLineSeparators(templateData.content),
+                        )
                     }
                 }
             }
@@ -212,9 +199,12 @@ class SingleFileTemplateAction(
                     object : TimerTask() {
                         override fun run() {
                             try {
-                                ApplicationUtil.runWithCheckCanceled({
-                                    updateData(field?.name)
-                                }, indicator)
+                                ApplicationUtil.runWithCheckCanceled(
+                                    {
+                                        updateData(field?.name)
+                                    },
+                                    indicator,
+                                )
                             } catch (_: ProcessCanceledException) {
                             }
                         }
@@ -229,70 +219,78 @@ class SingleFileTemplateAction(
                 panel {
                     for (field in template.formFields!!) {
                         row(field.title!!) {
-                            if (field.type == TemplateFormFieldType.Text) {
-                                val formField = textField()
-                                formField.validationOnInput {
-                                    changeListener(field, it.text)
-                                    null
+                            when (field.type) {
+                                TemplateFormFieldType.Text -> {
+                                    val formField = textField()
+                                    formField.validationOnInput {
+                                        changeListener(field, it.text)
+                                        null
+                                    }
+                                    formFields[field.name!!] = formField
                                 }
-                                formFields[field.name!!] = formField
-                            } else if (field.type == TemplateFormFieldType.Checkbox) {
-                                val formField = checkBox("")
-                                formField.validationOnInput {
-                                    changeListener(field, formField.component.isSelected.toString())
-                                    null
+                                TemplateFormFieldType.Checkbox -> {
+                                    val formField = checkBox("")
+                                    formField.validationOnInput {
+                                        changeListener(field, formField.component.isSelected.toString())
+                                        null
+                                    }
+                                    formFields[field.name!!] = formField
                                 }
-                                formFields[field.name!!] = formField
-                            } else if (field.type == TemplateFormFieldType.Select) {
-                                val formField = comboBox(field.options!!)
-                                formField.component.addActionListener {
-                                    changeListener(field, formField.component.selectedItem!!.toString())
+                                TemplateFormFieldType.Select -> {
+                                    val formField = comboBox(field.options!!)
+                                    formField.component.addActionListener {
+                                        changeListener(field, formField.component.selectedItem!!.toString())
+                                    }
+                                    formField.component.selectedItem = field.options!![0]
+                                    formFields[field.name!!] = formField
                                 }
-                                formField.component.selectedItem = field.options!![0]
-                                formFields[field.name!!] = formField
-                            } else if (field.type == TemplateFormFieldType.Collection) {
-                                val coll = JTextFieldCollection()
-                                coll.setValues(listOf(""))
-                                val formField = cell(coll)
-                                coll.addValuesChangeListener { e ->
-                                    val newValue = e.newValue as List<*>
-                                    changeListener(field, newValue.joinToString(","))
+                                TemplateFormFieldType.Collection -> {
+                                    val coll = JTextFieldCollection()
+                                    coll.setValues(listOf(""))
+                                    val formField = cell(coll)
+                                    coll.addValuesChangeListener { e ->
+                                        val newValue = e.newValue as List<*>
+                                        changeListener(field, newValue.joinToString(","))
+                                    }
+                                    formFields[field.name!!] = formField
                                 }
-                                formFields[field.name!!] = formField
-                            } else if (field.type == TemplateFormFieldType.RichText) {
-                                val values = ArrayList<String>()
-                                values.addAll(if (null !== field.options) field.options!!.toList() else listOf())
-                                val richText =
-                                    TextFieldWithCompletion(
-                                        e.project!!,
-                                        ValuesCompletionProvider(
-                                            object : TextCompletionValueDescriptor<String> {
-                                                override fun compare(
-                                                    o1: String?,
-                                                    o2: String?,
-                                                ): Int = o1!!.compareTo(o2!!)
+                                TemplateFormFieldType.RichText -> {
+                                    val values = ArrayList<String>()
+                                    values.addAll(if (null !== field.options) field.options!!.toList() else listOf())
+                                    val richText =
+                                        TextFieldWithCompletion(
+                                            e.project!!,
+                                            ValuesCompletionProvider(
+                                                object : TextCompletionValueDescriptor<String> {
+                                                    override fun compare(
+                                                        o1: String?,
+                                                        o2: String?,
+                                                    ): Int = o1!!.compareTo(o2!!)
 
-                                                override fun createLookupBuilder(item: String): LookupElementBuilder =
-                                                    LookupElementBuilder.create(item)
-                                            },
-                                            values,
-                                        ),
-                                        "",
-                                        true,
-                                        true,
-                                        true,
+                                                    override fun createLookupBuilder(item: String): LookupElementBuilder =
+                                                        LookupElementBuilder.create(item)
+                                                },
+                                                values,
+                                            ),
+                                            "",
+                                            true,
+                                            true,
+                                            true,
+                                        )
+                                    richText.preferredSize = Dimension(204, 30)
+                                    richText.document.addDocumentListener(
+                                        object : DocumentListener {
+                                            override fun documentChanged(event: DocumentEvent) {
+                                                changeListener(field, event.document.text)
+                                            }
+                                        },
                                     )
-                                richText.preferredSize = Dimension(204, 30)
-                                richText.document.addDocumentListener(
-                                    object : DocumentListener {
-                                        override fun documentChanged(event: DocumentEvent) {
-                                            changeListener(field, event.document.text)
-                                        }
-                                    },
-                                )
-                                richTextEditorValues[field.name!!] = values
-                                val cell = cell(richText)
-                                formFields[field.name!!] = cell
+                                    richTextEditorValues[field.name!!] = values
+                                    val cell = cell(richText)
+                                    formFields[field.name!!] = cell
+                                }
+
+                                null -> {}
                             }
 
                             if (null !== field.focused && field.focused!!) {

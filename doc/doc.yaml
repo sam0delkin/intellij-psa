@@ -1,0 +1,285 @@
+openapi: 3.0.1
+info:
+  title: PSA
+  description: Project Specific Autocomplete documentation
+  contact:
+    name: sam0delkin
+    url: https://github.com/sam0delkin/intellij-psa
+    email: me@s-l.dev
+  license:
+    name: MIT
+    url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
+  version: 0.0.17
+paths:
+  /methods/GenerateFileFromTemplate:
+    post:
+      tags:
+      - Methods
+      description: "Generate code for file template. For more info, see <a href=\"\
+        https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#code-templates\"\
+        >documentation</a>. Note that all params are passed via ENV variables"
+      operationId: GenerateFileFromTemplate
+      parameters:
+      - name: PSA_TYPE
+        in: query
+        description: PSA_TYPE
+        schema:
+          type: string
+          enum:
+          - GenerateFileFromTemplate
+      - name: PSA_DEBUG
+        in: query
+        description: PSA_DEBUG
+        schema:
+          type: string
+          enum:
+          - "1"
+          - "0"
+      requestBody:
+        description: Note that body will be passed as file path to the JSON content
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateFileFromTemplateData"
+      responses:
+        "200":
+          description: Template Data Model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateDataModel"
+  /methods/getCompletions:
+    post:
+      tags:
+      - Methods
+      description: "Get Completions for the given PSI element. For more info, see\
+        \ <a href=\"https://github.com/sam0delkin/intellij-psa?tab=readme-ov-file#completions--goto\"\
+        >documentation</a>. Note that all params are passed via ENV variables"
+      operationId: getCompletions
+      parameters:
+      - name: PSA_TYPE
+        in: query
+        description: Type of the request
+        schema:
+          type: string
+          enum:
+          - Completion
+          - BatchCompletion
+          - GoTo
+          - BatchGoTo
+      - name: PSA_DEBUG
+        in: query
+        description: Is debug enabled or not
+        schema:
+          type: string
+          enum:
+          - "1"
+          - "0"
+      - name: PSA_LANGUAGE
+        in: query
+        schema:
+          type: string
+      - name: PSA_OFFSET
+        in: query
+        schema:
+          type: string
+      requestBody:
+        description: Note that body will be passed as file path to the JSON content
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PsiElementModel"
+      responses:
+        "200":
+          description: Info Model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoModel"
+  /methods/info:
+    post:
+      tags:
+      - Methods
+      description: "Get Info from your PSA script. For more info, see:<a href=\"https://github.com/sam0delkin/intellij-psa?tab=readme-ov-file#custom-autocomplete-info\"\
+        >documentation</a>"
+      operationId: info
+      parameters:
+      - name: PSA_TYPE
+        in: query
+        description: PSA_TYPE
+        schema:
+          type: string
+          enum:
+          - Info
+      - name: PSA_DEBUG
+        in: query
+        description: PSA_DEBUG
+        schema:
+          type: string
+          enum:
+          - "1"
+          - "0"
+      responses:
+        "200":
+          description: Info Model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoModel"
+components:
+  schemas:
+    FormFieldDataModel:
+      type: object
+      properties:
+        value:
+          $ref: "#/components/schemas/JsonElement"
+        options:
+          type: array
+          items:
+            type: string
+    JsonElement:
+      type: object
+    TemplateDataModel:
+      type: object
+      properties:
+        fileName:
+          type: string
+        fileNames:
+          type: array
+          items:
+            type: string
+        content:
+          type: string
+        contents:
+          type: array
+          items:
+            type: string
+        formFields:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormFieldDataModel"
+    FileTemplateModel:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+          - SINGLE_FILE
+          - MULTIPLE_FILE
+        title:
+          type: string
+        pathRegex:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FormFieldModel"
+        fileCount:
+          type: integer
+          format: int32
+    FormFieldModel:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum:
+          - Text
+          - RichText
+          - Checkbox
+          - Select
+          - Collection
+        focused:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: string
+    InfoModel:
+      type: object
+      properties:
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+        goToElementFilter:
+          type: array
+          items:
+            type: string
+        supportsBatch:
+          type: boolean
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileTemplateModel"
+    GenerateFileFromTemplateData:
+      type: object
+      properties:
+        actionPath:
+          type: string
+        templateType:
+          type: string
+        templateName:
+          type: string
+        originatorFieldName:
+          type: string
+        formFields:
+          type: object
+          additionalProperties:
+            type: string
+    PsiElementModel:
+      type: object
+      properties:
+        id:
+          type: string
+        elementType:
+          type: string
+        options:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PsiElementModelChild"
+        elementName:
+          type: string
+        elementFqn:
+          type: string
+        elementSignature:
+          type: array
+          items:
+            type: string
+        text:
+          type: string
+        parent:
+          $ref: "#/components/schemas/PsiElementModel"
+        prev:
+          $ref: "#/components/schemas/PsiElementModel"
+        next:
+          $ref: "#/components/schemas/PsiElementModel"
+        textRange:
+          $ref: "#/components/schemas/PsiElementModelTextRange"
+        filePath:
+          type: string
+    PsiElementModelChild:
+      type: object
+      properties:
+        model:
+          $ref: "#/components/schemas/PsiElementModel"
+        string:
+          type: string
+        array:
+          type: array
+          items:
+            $ref: "#/components/schemas/PsiElementModel"
+    PsiElementModelTextRange:
+      type: object
+      properties:
+        startOffset:
+          type: integer
+          format: int32
+        endOffset:
+          type: integer
+          format: int32

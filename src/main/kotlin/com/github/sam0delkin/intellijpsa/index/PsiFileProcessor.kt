@@ -11,6 +11,13 @@ class PsiFileProcessor(
     private val notIndexedElements: ArrayList<String>,
 ) : PsiElementProcessor<PsiElement> {
     override fun execute(currentElement: PsiElement): Boolean {
+        if (
+            null !== currentElement.getUserData(PsaFileIndex.psaGoToElementKey) ||
+            null !== currentElement.getUserData(PsaFileIndex.psaCompletionElementKey)
+        ) {
+            return true
+        }
+
         val settings = this.completionService.getSettings()
         if (!settings.elementTypes.contains(currentElement.elementType.printToString())) {
             return true

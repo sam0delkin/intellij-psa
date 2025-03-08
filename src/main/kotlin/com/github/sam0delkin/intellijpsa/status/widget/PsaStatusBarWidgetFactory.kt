@@ -1,4 +1,4 @@
-package com.github.sam0delkin.intellijpsa.statusBar
+package com.github.sam0delkin.intellijpsa.status.widget
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.index.PsaIndex
@@ -26,8 +26,6 @@ import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Consumer
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.jsonPrimitive
 import java.awt.event.MouseEvent
 import java.util.Timer
 import java.util.TimerTask
@@ -109,7 +107,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                     )
                 }
                 if (settings.indexingEnabled) {
-                    val currentDoc = FileEditorManager.getInstance(project).getSelectedTextEditor()?.getDocument()
+                    val currentDoc = FileEditorManager.getInstance(project).selectedTextEditor?.document
                     if (null !== currentDoc) {
                         val file = PsiDocumentManager.getInstance(project).getPsiFile(currentDoc)
                         if (null !== file) {
@@ -117,7 +115,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                 object : AnAction("Reindex Current File", "", AllIcons.Actions.Refresh) {
                                     override fun actionPerformed(e: AnActionEvent) {
                                         val psaIndex = project.service<PsaIndex>()
-                                        psaIndex.reindexFile(file)
+                                        psaIndex.reindexFile(file, true)
                                     }
                                 },
                             )
@@ -133,28 +131,23 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                         try {
                                             val info = completionService.getInfo(settings, project, settings.scriptPath!!)
                                             var filter: List<String> = listOf()
-                                            var languages: List<String> = listOf()
                                             var templateCount = 0
 
-                                            if (info.containsKey("goto_element_filter")) {
-                                                filter =
-                                                    (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
+                                            if (null != info.goToElementFilter) {
+                                                filter = info.goToElementFilter
                                             }
 
-                                            if (info.containsKey("supported_languages")) {
-                                                languages =
-                                                    (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
-                                            }
+                                            val languages: List<String> = info.supportedLanguages
 
-                                            if (info.containsKey("templates")) {
-                                                val templates = info.get("templates") as JsonArray
+                                            if (info.templates != null) {
+                                                val templates = info.templates
                                                 templateCount = templates.size
                                             }
                                             completionService.updateInfo(settings, info)
                                             val languagesString =
-                                                "<ul>" + languages.map { i -> "<li>$i</li>" }.joinToString("") + "</ul>"
+                                                "<ul>" + languages.joinToString("") { i -> "<li>$i</li>" } + "</ul>"
                                             val filterString =
-                                                "<ul>" + filter.map { i -> "<li>$i</li>" }.joinToString("") + "</ul>"
+                                                "<ul>" + filter.joinToString("") { i -> "<li>$i</li>" } + "</ul>"
                                             NotificationGroupManager
                                                 .getInstance()
                                                 .getNotificationGroup("PSA Notification")
@@ -173,8 +166,10 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                             NotificationGroupManager
                                                 .getInstance()
                                                 .getNotificationGroup("PSA Notification")
-                                                .createNotification(completionService.lastResultMessage, NotificationType.ERROR)
-                                                .notify(project)
+                                                .createNotification(
+                                                    completionService.lastResultMessage,
+                                                    NotificationType.ERROR,
+                                                ).notify(project)
                                         }
                                         project.service<StatusBarWidgetsManager>().updateAllWidgets()
                                     }

@@ -5,7 +5,9 @@ package com.github.sam0delkin.intellijpsa.services
 import com.github.sam0delkin.intellijpsa.exception.IndexNotReadyException
 import com.github.sam0delkin.intellijpsa.exception.IndexingDisabledException
 import com.github.sam0delkin.intellijpsa.index.IndexedPsiElementModel
+import com.github.sam0delkin.intellijpsa.index.PsaFileIndex
 import com.github.sam0delkin.intellijpsa.index.PsaIndex
+import com.github.sam0delkin.intellijpsa.model.*
 import com.github.sam0delkin.intellijpsa.settings.*
 import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.github.sam0delkin.intellijpsa.util.FileUtils
@@ -27,10 +29,9 @@ import com.intellij.psi.*
 import com.intellij.psi.util.elementType
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
@@ -39,70 +40,6 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.reflect.full.memberFunctions
-
-@Serializable
-data class GenerateFileFromTemplateData(
-    val actionPath: String,
-    val templateType: String,
-    val templateName: String,
-    val originatorFieldName: String?,
-    val formFields: Map<String, String>,
-)
-
-@Serializable
-data class PsiElementModelChild(
-    val model: PsiElementModel? = null,
-    var string: String? = null,
-    var array: Array<PsiElementModel?>? = null,
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as PsiElementModelChild
-
-        if (model != other.model) return false
-        if (string != other.string) return false
-        if (array != null) {
-            if (other.array == null) return false
-            if (!array.contentEquals(other.array)) return false
-        } else if (other.array != null) {
-            return false
-        }
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = model?.hashCode() ?: 0
-        result = 31 * result + (string?.hashCode() ?: 0)
-        result = 31 * result + (array?.contentHashCode() ?: 0)
-        return result
-    }
-}
-
-@Serializable
-data class PsiElementModelTextRange(
-    var startOffset: Int,
-    var endOffset: Int,
-)
-
-@Serializable()
-data class PsiElementModel(
-    val id: String,
-    var elementType: String,
-    var options: MutableMap<String, PsiElementModelChild>,
-    var elementName: String?,
-    var elementFqn: String?,
-    var elementSignature: Array<String>?,
-    var text: String?,
-    var parent: PsiElementModel?,
-    var prev: PsiElementModel?,
-    var next: PsiElementModel?,
-    @Contextual
-    var textRange: PsiElementModelTextRange?,
-    var filePath: String? = null,
-)
 
 enum class RequestType {
     Completion,
@@ -117,9 +54,8 @@ private const val MAX_STRING_LENGTH = 1000
 
 @Service(Service.Level.PROJECT)
 class CompletionService(
-    project: Project,
+    private val project: Project,
 ) {
-    private val project: Project
     private val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
     private val ignoredMethods =
         arrayOf(
@@ -136,10 +72,6 @@ class CompletionService(
     var lastResultSucceed: Boolean = true
     var lastResultMessage: String = ""
 
-    init {
-        this.project = project
-    }
-
     fun getSettings(): Settings = this.project.service()
 
     fun getInfo(
@@ -147,27 +79,30 @@ class CompletionService(
         project: Project,
         path: String,
         debug: Boolean? = null,
-    ): JsonObject {
+    ): InfoModel {
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
         val innerDebug = if (null !== debug) debug else settings.debug
 
         commandLine = GeneralCommandLine(path)
-        commandLine.environment.put("PSA_TYPE", RequestType.Info.toString())
-        commandLine.environment.put("PSA_DEBUG", if (innerDebug) "1" else "0")
+        commandLine.environment["PSA_TYPE"] = RequestType.Info.toString()
+        commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
         val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
-        ApplicationUtil.runWithCheckCanceled({
-            result =
-                runBlocking {
-                    ExecutionUtils.executeWithIndicatorAndTimeout(
-                        commandLine,
-                        indicator,
-                        settings.executionTimeout,
-                    )
-                }
-        }, indicator)
+        ApplicationUtil.runWithCheckCanceled(
+            {
+                result =
+                    runBlocking {
+                        ExecutionUtils.executeWithIndicatorAndTimeout(
+                            commandLine,
+                            indicator,
+                            settings.executionTimeout,
+                        )
+                    }
+            },
+            indicator,
+        )
 
         if (null === result) {
             throw Exception("Failed to get info")
@@ -177,139 +112,72 @@ class CompletionService(
             throw Exception(result!!.stdout + "\n" + result!!.stderr)
         }
 
-        return Json.parseToJsonElement(result!!.stdout).jsonObject
+        return Json.decodeFromString<InfoModel>(result!!.stdout)
     }
 
     fun updateInfo(
         settings: Settings,
-        info: JsonObject,
+        info: InfoModel?,
     ) {
-        val filter: List<String>
-        val languages: List<String>
+        if (null === info) {
+            return
+        }
 
-        try {
-            if (info.containsKey("supported_languages")) {
-                languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
-                settings.supportedLanguages = languages.joinToString(",")
-            } else {
-                throw Exception("`supported_languages` not found in JSON")
-            }
+        settings.supportedLanguages = info.supportedLanguages.joinToString(",")
 
-            if (info.containsKey("goto_element_filter")) {
-                filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
-                settings.goToFilter = filter.joinToString(",")
-            }
-            settings.supportsBatch =
-                info.containsKey("supports_batch") &&
-                (info.get("supports_batch") as JsonElement).jsonPrimitive.boolean
+        settings.goToFilter = info.goToElementFilter?.joinToString(",") ?: ""
+        settings.supportsBatch = info.supportsBatch ?: false
 
-            settings.singleFileCodeTemplates = ArrayList()
-            settings.multipleFileCodeTemplates = ArrayList()
+        settings.singleFileCodeTemplates = ArrayList()
+        settings.multipleFileCodeTemplates = ArrayList()
 
-            if (info.containsKey("templates")) {
-                if (info.get("templates") !is JsonArray) {
-                    throw Exception("`templates` must be an array")
+        if (info.templates != null) {
+            for (template in info.templates) {
+                val templateObject: SingleFileCodeTemplate =
+                    if (template.type == TemplateType.SINGLE_FILE) {
+                        SingleFileCodeTemplate()
+                    } else {
+                        MultipleFileCodeTemplate()
+                    }
+                if (null != template.pathRegex) {
+                    templateObject.pathRegex = template.pathRegex
                 }
 
-                val templates = info.get("templates") as JsonArray
-                for (template in templates) {
-                    if (template !is JsonObject) {
-                        throw Exception("`templates` must be an array of objects")
-                    }
-                    if (template.jsonObject.containsKey("type")) {
-                        if (
-                            template.jsonObject["type"]!!.jsonPrimitive.content != "single_file" &&
-                            template.jsonObject["type"]!!.jsonPrimitive.content != "multiple_file"
-                        ) {
-                            continue
-                        }
+                templateObject.name = template.name
+                templateObject.title = template.title
+
+                if (templateObject is MultipleFileCodeTemplate) {
+                    if (null !== template.fileCount) {
+                        templateObject.fileCount = template.fileCount
                     } else {
-                        throw Exception("`templates` must be an array of objects with `type` field")
-                    }
-
-                    val templateObject: SingleFileCodeTemplate =
-                        if (template.jsonObject["type"]!!.jsonPrimitive.content ==
-                            "single_file"
-                        ) {
-                            SingleFileCodeTemplate()
-                        } else {
-                            MultipleFileCodeTemplate()
-                        }
-                    if (template.jsonObject.containsKey("path_regex")) {
-                        templateObject.pathRegex = template.jsonObject["path_regex"]!!.jsonPrimitive.content
-                    }
-
-                    if (template.jsonObject.containsKey("name")) {
-                        templateObject.name = template.jsonObject["name"]!!.jsonPrimitive.content
-                    } else {
-                        throw Exception("`templates` must be an array of objects with `name` field")
-                    }
-
-                    if (template.jsonObject.containsKey("title")) {
-                        templateObject.title = template.jsonObject["title"]!!.jsonPrimitive.content
-                    } else {
-                        throw Exception("`templates` must be an array of objects with `title` field")
-                    }
-
-                    if (templateObject is MultipleFileCodeTemplate) {
-                        if (template.jsonObject.containsKey("file_count")) {
-                            templateObject.fileCount = template.jsonObject["file_count"]!!.jsonPrimitive.int
-                        } else {
-                            throw Exception("`templates` must be an array of objects with `file_count` field")
-                        }
-                    }
-
-                    if (template.jsonObject.containsKey("fields")) {
-                        templateObject.formFields = ArrayList()
-                        val fields = template.jsonObject["fields"]!!.jsonArray
-
-                        for (field in fields) {
-                            val fieldObject = TemplateFormField()
-                            fieldObject.options = ArrayList()
-                            if (field.jsonObject.containsKey("name")) {
-                                fieldObject.name = field.jsonObject["name"]!!.jsonPrimitive.content
-                            } else {
-                                throw Exception("`fields` must be an object with `name` field")
-                            }
-                            if (field.jsonObject.containsKey("title")) {
-                                fieldObject.title = field.jsonObject["title"]!!.jsonPrimitive.content
-                            } else {
-                                throw Exception("`fields` must be an object with `title` field")
-                            }
-                            if (field.jsonObject.containsKey("type")) {
-                                fieldObject.type =
-                                    TemplateFormFieldType.valueOf(field.jsonObject["type"]!!.jsonPrimitive.content)
-                            } else {
-                                throw Exception("`fields` must be an object with `type` field")
-                            }
-                            if (field.jsonObject.containsKey("focused") &&
-                                field.jsonObject
-                                    .get("focused")!!
-                                    .jsonPrimitive.boolean
-                            ) {
-                                fieldObject.focused = true
-                            }
-                            if (field.jsonObject.containsKey("options")) {
-                                val options = field.jsonObject["options"]!!.jsonArray
-                                for (option in options) {
-                                    fieldObject.options!!.add(option.jsonPrimitive.content)
-                                }
-                            }
-                            templateObject.formFields!!.add(fieldObject)
-                        }
-                    } else {
-                        throw Exception("`templates` must be an array of objects with `fields` field")
-                    }
-
-                    if (templateObject is MultipleFileCodeTemplate) {
-                        settings.multipleFileCodeTemplates!!.add(templateObject)
-                    } else {
-                        settings.singleFileCodeTemplates!!.add(templateObject)
+                        throw Exception("`templates` must be an array of objects with `file_count` field")
                     }
                 }
+
+                templateObject.formFields = ArrayList()
+
+                for (field in template.fields) {
+                    val fieldObject = TemplateFormField()
+                    fieldObject.options = ArrayList()
+
+                    fieldObject.name = field.name
+                    fieldObject.title = field.title
+                    fieldObject.type = field.type
+                    fieldObject.focused = field.focused
+
+                    for (option in field.options) {
+                        fieldObject.options!!.add(option)
+                    }
+
+                    templateObject.formFields!!.add(fieldObject)
+                }
+
+                if (templateObject is MultipleFileCodeTemplate) {
+                    settings.multipleFileCodeTemplates!!.add(templateObject)
+                } else {
+                    settings.singleFileCodeTemplates!!.add(templateObject)
+                }
             }
-        } catch (e: Exception) {
-            throw Exception("Failed to update info: " + e.message)
         }
     }
 
@@ -321,7 +189,7 @@ class CompletionService(
         templateType: String,
         originatorFieldName: String?,
         formFields: Map<String, String>,
-    ): JsonObject? {
+    ): TemplateDataModel? {
         val commandLine: GeneralCommandLine?
         val result: ProcessOutput?
 
@@ -338,9 +206,9 @@ class CompletionService(
                 )
             val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
             commandLine = GeneralCommandLine(settings.scriptPath)
-            commandLine.environment.put("PSA_CONTEXT", filePath)
-            commandLine.environment.put("PSA_TYPE", RequestType.GenerateFileFromTemplate.toString())
-            commandLine.environment.put("PSA_DEBUG", if (settings.debug) "1" else "0")
+            commandLine.environment["PSA_CONTEXT"] = filePath
+            commandLine.environment["PSA_TYPE"] = RequestType.GenerateFileFromTemplate.toString()
+            commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
             commandLine.setWorkDirectory(project.guessProjectDir()?.path)
             val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
@@ -362,7 +230,7 @@ class CompletionService(
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
-            return Json.parseToJsonElement(result.stdout).jsonObject
+            return Json.decodeFromString<TemplateDataModel>(result.stdout)
         } catch (e: Exception) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
@@ -418,11 +286,11 @@ class CompletionService(
         val normalizedIndicator = indicator ?: (ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator())
 
         commandLine = GeneralCommandLine(settings.scriptPath)
-        commandLine.environment.put("PSA_CONTEXT", filePath)
-        commandLine.environment.put("PSA_TYPE", requestType.toString())
-        commandLine.environment.put("PSA_LANGUAGE", language)
-        commandLine.environment.put("PSA_OFFSET", if (null !== editorOffset) editorOffset.toString() else "")
-        commandLine.environment.put("PSA_DEBUG", if (debugValue) "1" else "0")
+        commandLine.environment["PSA_CONTEXT"] = filePath
+        commandLine.environment["PSA_TYPE"] = requestType.toString()
+        commandLine.environment["PSA_LANGUAGE"] = language
+        commandLine.environment["PSA_OFFSET"] = if (null !== editorOffset) editorOffset.toString() else ""
+        commandLine.environment["PSA_DEBUG"] = if (debugValue) "1" else "0"
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
 
         if (fromIndex) {
@@ -433,16 +301,19 @@ class CompletionService(
                     settings.executionTimeout,
                 )
         } else {
-            ApplicationUtil.runWithCheckCanceled({
-                result =
-                    runBlocking {
-                        ExecutionUtils.executeWithIndicatorAndTimeout(
-                            commandLine,
-                            normalizedIndicator,
-                            settings.executionTimeout,
-                        )
-                    }
-            }, normalizedIndicator)
+            ApplicationUtil.runWithCheckCanceled(
+                {
+                    result =
+                        runBlocking {
+                            ExecutionUtils.executeWithIndicatorAndTimeout(
+                                commandLine,
+                                normalizedIndicator,
+                                settings.executionTimeout,
+                            )
+                        }
+                },
+                normalizedIndicator,
+            )
         }
 
         try {
@@ -467,7 +338,7 @@ class CompletionService(
         useIndex: Boolean = true,
         fromIndex: Boolean = false,
         indicator: ProgressIndicator? = null,
-    ): JsonElement? {
+    ): CompletionsModel? {
         val index = project.service<PsaIndex>()
         var indexReady = true
         val values =
@@ -481,7 +352,7 @@ class CompletionService(
                             index.get(
                                 requestType,
                                 model[0].model.textRange!!.startOffset,
-                                PsaIndex.generateKeyByRequestType(requestType, model[0]),
+                                PsaFileIndex.generateKeyByRequestType(requestType, model[0]),
                                 model[0].model.filePath,
                             )
                     } catch (e: IndexNotReadyException) {
@@ -494,7 +365,23 @@ class CompletionService(
             }
 
         if (values.isNotEmpty() && useIndex) {
-            return Json.parseToJsonElement(values[0]) as JsonObject
+            try {
+                return Json.decodeFromString<CompletionsModel>(values[0])
+            } catch (e: Throwable) {
+                this.lastResultMessage = e.message.toString()
+                this.lastResultSucceed = false
+
+                if (settings.debug) {
+                    NotificationGroupManager
+                        .getInstance()
+                        .getNotificationGroup("PSA Notification")
+                        .createNotification(
+                            "Error",
+                            "PSA Script returned not valid JSON<br/>" + e.message,
+                            NotificationType.ERROR,
+                        ).notify(project)
+                }
+            }
         }
 
         if (useIndex && indexReady && !fromIndex && settings.indexingUseOnlyIndexedElements) {
@@ -546,17 +433,16 @@ class CompletionService(
             return null
         }
 
-        val jsonResult = Json.parseToJsonElement(result.stdout)
-        if (jsonResult is JsonObject && jsonResult.containsKey("completions") && null !== jsonResult.get("completions")) {
-            val completions = jsonResult.get("completions") as JsonArray
-            if (!completions.isEmpty()) {
+        val jsonResult = Json.decodeFromString<CompletionsModel>(result.stdout)
+        if (null !== jsonResult.completions) {
+            if (jsonResult.completions.isNotEmpty()) {
                 if (!fromIndex && useIndex) {
                     val firstModel = model[0]
                     if (!settings.elementTypes.contains(firstModel.model.elementType)) {
                         settings.elementTypes[firstModel.model.elementType] = true
                     }
 
-                    if (null !== file && indexReady) {
+                    if (null !== file) {
                         index.reindexFile(file)
                     }
                 }
@@ -630,7 +516,7 @@ class CompletionService(
                 options,
                 elementName,
                 elementFqn,
-                signature.toTypedArray(),
+                signature,
                 elementText,
                 null,
                 null,
@@ -677,12 +563,12 @@ class CompletionService(
                         PsiElementModelChild(
                             this.psiElementToModel(
                                 result,
-                                false,
-                                true,
-                                false,
-                                false,
-                                false,
-                                currentProcessedElements,
+                                processParent = false,
+                                processOptions = true,
+                                processChildOptions = false,
+                                processNext = false,
+                                processPrev = false,
+                                processedElements = currentProcessedElements,
                             ),
                             null,
                         )
@@ -693,12 +579,12 @@ class CompletionService(
                         arr[index] =
                             this.psiElementToModel(
                                 item as PsiElement,
-                                false,
-                                true,
-                                false,
-                                false,
-                                false,
-                                currentProcessedElements,
+                                processParent = false,
+                                processOptions = true,
+                                processChildOptions = false,
+                                processNext = false,
+                                processPrev = false,
+                                processedElements = currentProcessedElements,
                             )
                     }
                     options[optionName] = PsiElementModelChild(null, null, arr)
@@ -718,36 +604,36 @@ class CompletionService(
             parentElement =
                 this.psiElementToModel(
                     element.parent,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    currentProcessedElements,
+                    processParent = true,
+                    processOptions = true,
+                    processChildOptions = true,
+                    processNext = true,
+                    processPrev = true,
+                    processedElements = currentProcessedElements,
                 )
         }
         if (processNext && element.nextSibling !== null) {
             nextElement =
                 this.psiElementToModel(
                     element.nextSibling,
-                    false,
-                    true,
-                    true,
-                    true,
-                    false,
-                    currentProcessedElements,
+                    processParent = false,
+                    processOptions = true,
+                    processChildOptions = true,
+                    processNext = true,
+                    processPrev = false,
+                    processedElements = currentProcessedElements,
                 )
         }
         if (processPrev && element.prevSibling !== null) {
             prevElement =
                 this.psiElementToModel(
                     element.prevSibling,
-                    false,
-                    true,
-                    true,
-                    false,
-                    true,
-                    currentProcessedElements,
+                    processParent = false,
+                    processOptions = true,
+                    processChildOptions = true,
+                    processNext = false,
+                    processPrev = true,
+                    processedElements = currentProcessedElements,
                 )
         }
 
@@ -757,7 +643,7 @@ class CompletionService(
             options,
             elementName,
             elementFqn,
-            signature.toTypedArray(),
+            signature,
             elementText,
             parentElement,
             prevElement,
@@ -777,7 +663,7 @@ class CompletionService(
     private fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>> {
         val res: MutableSet<Class<*>> = HashSet()
         val interfaces = clazz.interfaces
-        if (interfaces.size > 0) {
+        if (interfaces.isNotEmpty()) {
             res.addAll(interfaces)
             for (interfaze in interfaces) {
                 res.addAll(getAllExtendedOrImplementedInterfacesRecursively(interfaze))

@@ -6,7 +6,9 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.PathMappingSettings.PathMapping
 import com.intellij.util.xmlb.XmlSerializerUtil
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class TemplateFormFieldType {
     Text,
     RichText,
@@ -93,11 +95,11 @@ class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false
     var debug: Boolean = false
     var scriptPath: String? = ".psa/psa.php"
-    var indexingEnabled: Boolean = true
+    var indexingEnabled: Boolean = false
     var indexingConcurrency: Int = Runtime.getRuntime().availableProcessors()
     var indexingBatchCount: Int = 50
     var indexingMaxElements: Int = 2000
-    var indexingUseOnlyIndexedElements: Boolean = true
+    var indexingUseOnlyIndexedElements: Boolean = false
     var elementTypes: HashMap<String, Boolean> = HashMap()
     var pathMappings: Array<PathMapping>? = arrayOf()
     var goToFilter: String? = ""

@@ -1,4 +1,4 @@
-package com.github.sam0delkin.intellijpsa.fileListener
+package com.github.sam0delkin.intellijpsa.listener
 
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.intellij.openapi.application.ApplicationManager
@@ -10,7 +10,7 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import java.util.Timer
 import java.util.TimerTask
 
-class PsaFileListener : AsyncFileListener {
+class PsaFileChangeListener : AsyncFileListener {
     private var timer: Timer? = null
 
     override fun prepareChange(events: MutableList<out VFileEvent>): AsyncFileListener.ChangeApplier? {
@@ -34,7 +34,7 @@ class PsaFileListener : AsyncFileListener {
             }
 
             scriptDir = projectDir.path + '/' + scriptDir
-            if (events.filter { e -> e.path.indexOf(scriptDir) >= 0 }.isEmpty()) {
+            if (events.none { e -> e.path.indexOf(scriptDir) >= 0 }) {
                 continue
             }
 

@@ -1,3 +1,4 @@
+import io.swagger.v3.plugins.gradle.tasks.ResolveTask.Format
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import java.util.Base64
@@ -23,10 +24,15 @@ plugins {
     id("org.jetbrains.kotlinx.kover") version "0.6.1"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.serialization") version "1.9.23"
+    id("io.swagger.core.v3.swagger-gradle-plugin") version "2.2.28"
+    id("com.github.gmazzo.buildconfig") version "5.5.1"
 }
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("io.swagger.core.v3:swagger-core:2.2.28")
+    implementation("javax.ws.rs:javax.ws.rs-api:2.1.1")
+    implementation("org.slf4j:slf4j-simple:2.0.17")
 }
 
 group = properties("pluginGroup")
@@ -76,6 +82,11 @@ qodana {
 // Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
 kover.xmlReport {
     onCheck.set(true)
+}
+
+buildConfig {
+    buildConfigField("PLUGIN_VERSION", properties("pluginVersion"))
+    packageName("com.github.sam0delkin.intellijpsa.util")
 }
 
 tasks {
@@ -149,5 +160,13 @@ tasks {
                     .first(),
             ),
         )
+    }
+
+    resolve {
+        outputFileName.set("doc")
+        outputFormat.set(Format.YAML)
+        prettyPrint.set(true)
+        classpath.from(sourceSets.main.get().output)
+        outputDir.set(file("doc"))
     }
 }

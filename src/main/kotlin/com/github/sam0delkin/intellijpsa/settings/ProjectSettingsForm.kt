@@ -3,7 +3,7 @@
 package com.github.sam0delkin.intellijpsa.settings
 
 import com.github.sam0delkin.intellijpsa.services.CompletionService
-import com.github.sam0delkin.intellijpsa.statusBar.PsaStatusBarWidgetFactory
+import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.github.sam0delkin.intellijpsa.ui.components.Utils
 import com.intellij.execution.util.PathMappingsComponent
 import com.intellij.icons.AllIcons
@@ -23,8 +23,6 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.jsonPrimitive
 import java.awt.Dimension
 import java.awt.Point
 import java.nio.file.Path
@@ -52,7 +50,7 @@ class ProjectSettingsForm(
     private lateinit var executionTimeout: Cell<JSpinner>
     private var changed: Boolean = false
 
-    fun createComponents(): DialogPanel {
+    private fun createComponents(): DialogPanel {
         val self = this
         val panel =
             panel {
@@ -190,32 +188,27 @@ class ProjectSettingsForm(
     private fun getInfo() {
         val service = project.service<CompletionService>()
         try {
-            this.goToElementFilter.component.setText("")
-            this.supportedLanguages.component.setText("")
+            this.goToElementFilter.component.text = ""
+            this.supportedLanguages.component.text = ""
             val info = service.getInfo(settings, project, this.scriptPath.component.text)
             var filter: List<String> = listOf()
-            var languages: List<String> = listOf()
             var templateCount = 0
 
-            if (info.containsKey("goto_element_filter")) {
-                filter = (info.get("goto_element_filter") as JsonArray).map { i -> i.jsonPrimitive.content }
-                this.goToElementFilter.component.setText(filter.joinToString(","))
+            if (info.goToElementFilter != null) {
+                filter = info.goToElementFilter
+                this.goToElementFilter.component.text = info.goToElementFilter.joinToString(",")
             }
 
-            if (info.containsKey("supported_languages")) {
-                languages = (info.get("supported_languages") as JsonArray).map { i -> i.jsonPrimitive.content }
-                this.supportedLanguages.component.setText(languages.joinToString(","))
-            }
+            this.supportedLanguages.component.text = info.supportedLanguages.joinToString(",")
 
-            if (info.containsKey("templates")) {
-                val templates = info.get("templates") as JsonArray
-                templateCount = templates.size
+            if (info.templates != null) {
+                templateCount = info.templates.size
                 this.changed = true
             }
 
             service.updateInfo(settings, info)
-            val languagesString = "<ul>" + languages.map { i -> "<li>- $i</li>" }.joinToString("") + "<ul>"
-            val filterString = "<ul>" + filter.map { i -> "<li>- $i</li>" }.joinToString("") + "<ul>"
+            val languagesString = "<ul>" + info.supportedLanguages.joinToString("") { i -> "<li>- $i</li>" } + "<ul>"
+            val filterString = "<ul>" + filter.joinToString("") { i -> "<li>- $i</li>" } + "<ul>"
 
             val tooltip =
                 com.intellij.ui
@@ -244,7 +237,7 @@ class ProjectSettingsForm(
 
     override fun createComponent(): JComponent = this.createComponents()
 
-    fun updateInfoButtonEnabled() {
+    private fun updateInfoButtonEnabled() {
         this.infoButton.component.setEnabled(this.enabled.component.isSelected && this.scriptPath.component.text !== "")
     }
 
@@ -260,11 +253,8 @@ class ProjectSettingsForm(
                 indexingMaxElements.component.value != settings.indexingMaxElements ||
                 indexingUseOnlyIndexedElements.component.isSelected != settings.indexingUseOnlyIndexedElements ||
                 pathMappings.component.mappingSettings.pathMappings
-                    .map { el -> el.localRoot + " ->" + el.remoteRoot }
-                    .joinToString(",") !=
-                settings.pathMappings
-                    ?.map { el -> el.localRoot + " ->" + el.remoteRoot }
-                    ?.joinToString(",") ||
+                    .joinToString(",") { el -> el.localRoot + " ->" + el.remoteRoot } !=
+                settings.pathMappings?.joinToString(",") { el -> el.localRoot + " ->" + el.remoteRoot } ||
                 supportedLanguages.component.text != settings.supportedLanguages ||
                 goToElementFilter.component.text != settings.goToFilter ||
                 executionTimeout.component.value != settings.executionTimeout ||
@@ -273,7 +263,20 @@ class ProjectSettingsForm(
         )
 
     override fun reset() {
-        updateUIFromSettings()
+        enabled.component.setSelected(settings.pluginEnabled)
+        debug.component.setSelected(settings.debug)
+        scriptPath.component.setText(settings.scriptPath)
+        indexingEnabled.component.isSelected = settings.indexingEnabled
+        indexingConcurrency.component.value = settings.indexingConcurrency
+        indexingBatchCount.component.value = settings.indexingBatchCount
+        indexingMaxElements.component.value = settings.indexingMaxElements
+        indexingUseOnlyIndexedElements.component.isSelected = settings.indexingUseOnlyIndexedElements
+        settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
+        pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
+        supportedLanguages.component.text = settings.supportedLanguages
+        goToElementFilter.component.text = settings.goToFilter
+        executionTimeout.component.value = settings.executionTimeout
+        changed = false
     }
 
     @Throws(ConfigurationException::class)
@@ -311,23 +314,6 @@ class ProjectSettingsForm(
             project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
         }
         project.service<StatusBarWidgetsManager>().updateAllWidgets()
-    }
-
-    private fun updateUIFromSettings() {
-        enabled.component.setSelected(settings.pluginEnabled)
-        debug.component.setSelected(settings.debug)
-        scriptPath.component.setText(settings.scriptPath)
-        indexingEnabled.component.isSelected = settings.indexingEnabled
-        indexingConcurrency.component.value = settings.indexingConcurrency
-        indexingBatchCount.component.value = settings.indexingBatchCount
-        indexingMaxElements.component.value = settings.indexingMaxElements
-        indexingUseOnlyIndexedElements.component.isSelected = settings.indexingUseOnlyIndexedElements
-        settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
-        pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
-        supportedLanguages.component.setText(settings.supportedLanguages)
-        goToElementFilter.component.setText(settings.goToFilter)
-        executionTimeout.component.value = settings.executionTimeout
-        changed = false
     }
 
     private val settings: Settings
