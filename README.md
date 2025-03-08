@@ -364,7 +364,7 @@ It can be used for better understand ing of how plugin works plus for generation
 DTO classes for PSA.
 
 See documentation in [Swagger](https://swagger.io/) 
-here: [Swagger](https://petstore.swagger.io/?url=https://github.com/sam0delkin/intellij-psa/blob/main/doc/doc.yaml?raw=true)
+here: [Swagger](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/sam0delkin/intellij-psa/refs/heads/main/doc/doc.yaml)
 
 > [!NOTE]
 > All methods described in the Swagger doc are "fake" methods, and listed only to describe structure of calls which will
