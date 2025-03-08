@@ -36,10 +36,10 @@ class Callbacks {
     @Operation(
         tags = ["Methods"],
         description =
-            "Get Info from your PSA script. For more info, see:" +
+            "Get Info from your PSA script. For more info, see " +
                 "<a href=\"https://github.com/sam0delkin/intellij-psa?tab=readme-ov-file#custom-autocomplete-info\">" +
                 "documentation" +
-                "</a>",
+                "</a>. Note that all params are passed via ENV variables",
         operationId = "info",
         responses = [
             ApiResponse(
