@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.17] - 2025-03-08
 - Major refactoring. Move to JSON Models instead of calling methods
 - Add Swagger doc for easier understanding + DTO generation
 - Bug fixes and performance improvements
@@ -116,7 +118,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.16...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.17...HEAD
+[0.0.17]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.13...v0.0.14
