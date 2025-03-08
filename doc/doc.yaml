@@ -100,8 +100,8 @@ paths:
     post:
       tags:
       - Methods
-      description: "Get Info from your PSA script. For more info, see:<a href=\"https://github.com/sam0delkin/intellij-psa?tab=readme-ov-file#custom-autocomplete-info\"\
-        >documentation</a>"
+      description: "Get Info from your PSA script. For more info, see <a href=\"https://github.com/sam0delkin/intellij-psa?tab=readme-ov-file#custom-autocomplete-info\"\
+        >documentation</a>. Note that all params are passed via ENV variables"
       operationId: info
       parameters:
       - name: PSA_TYPE
