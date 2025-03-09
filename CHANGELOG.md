@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.18] - 2025-03-09
 - Remove support of indexing, such as it's not fit the plugin needs due to some restrictions of chained method calls.
 Also, it's no longer needed due to a new feature - static completions.
 - Static Completions introduced. Now you can create some element patters and use them for way faster completions and
@@ -125,7 +127,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.17...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.18...HEAD
+[0.0.18]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.14...v0.0.15
