@@ -2,9 +2,11 @@
 
 package com.github.sam0delkin.intellijpsa.doc
 
+import com.github.sam0delkin.intellijpsa.model.CompletionsModel
 import com.github.sam0delkin.intellijpsa.model.GenerateFileFromTemplateData
 import com.github.sam0delkin.intellijpsa.model.InfoModel
 import com.github.sam0delkin.intellijpsa.model.PsiElementModel
+import com.github.sam0delkin.intellijpsa.model.StaticCompletionsModel
 import com.github.sam0delkin.intellijpsa.model.TemplateDataModel
 import com.github.sam0delkin.intellijpsa.util.BuildConfig
 import io.swagger.v3.oas.annotations.OpenAPIDefinition
@@ -50,16 +52,16 @@ class Callbacks {
         ],
     )
     @POST
-    @Path("info")
+    @Path("Info")
     fun info(
         @Parameter(
             description = "PSA_TYPE",
-            schema = Schema(types = ["string"], allowableValues = ["Info"]),
+            schema = Schema(types = ["string"], allowableValues = ["Info"], defaultValue = "Info"),
         )
         @QueryParam("PSA_TYPE") psaType: String,
         @Parameter(
             description = "PSA_DEBUG",
-            schema = Schema(types = ["string"], allowableValues = ["1", "0"]),
+            schema = Schema(types = ["string"], allowableValues = ["1", "0"], defaultValue = "0"),
         )
         @QueryParam("PSA_DEBUG") psaDebug: String,
     ): InfoModel? = null
@@ -75,13 +77,13 @@ class Callbacks {
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Info Model",
-                content = [Content(mediaType = "application/json", schema = Schema(implementation = InfoModel::class))],
+                description = "Completions Model",
+                content = [Content(mediaType = "application/json", schema = Schema(implementation = CompletionsModel::class))],
             ),
         ],
     )
     @POST
-    @Path("getCompletions")
+    @Path("GetCompletions")
     fun getCompletions(
         @Parameter(
             name = "PSA_TYPE",
@@ -95,13 +97,14 @@ class Callbacks {
                         "GoTo",
                         "BatchGoTo",
                     ],
+                    defaultValue = "Completion",
                 ),
         )
         @QueryParam("PSA_TYPE") psaType: String,
         @Parameter(
             name = "PSA_DEBUG",
             description = "Is debug enabled or not",
-            schema = Schema(types = ["string"], allowableValues = ["1", "0"]),
+            schema = Schema(types = ["string"], allowableValues = ["1", "0"], defaultValue = "0"),
         )
         @QueryParam("PSA_DEBUG") psaDebug: String,
         @Parameter(
@@ -115,12 +118,12 @@ class Callbacks {
         )
         @QueryParam("PSA_OFFSET") psaOffset: String,
         @RequestBody(
-            description = "Note that body will be passed as file path to the JSON content",
+            description = "Note that body will be passed as file path to the JSON content via `PSA_CONTEXT` ENV variable.",
             content = [
                 Content(mediaType = "application/json", schema = Schema(implementation = PsiElementModel::class)),
             ],
         ) psaContext: String,
-    ): InfoModel? = null
+    ): CompletionsModel? = null
 
     @Operation(
         tags = ["Methods"],
@@ -143,19 +146,50 @@ class Callbacks {
     fun generateFileFromTemplate(
         @Parameter(
             description = "PSA_TYPE",
-            schema = Schema(types = ["string"], allowableValues = ["GenerateFileFromTemplate"]),
+            schema = Schema(types = ["string"], allowableValues = ["GenerateFileFromTemplate"], defaultValue = "GenerateFileFromTemplate"),
         )
         @QueryParam("PSA_TYPE") psaType: String,
         @Parameter(
             description = "PSA_DEBUG",
-            schema = Schema(types = ["string"], allowableValues = ["1", "0"]),
+            schema = Schema(types = ["string"], allowableValues = ["1", "0"], defaultValue = "0"),
         )
         @QueryParam("PSA_DEBUG") psaDebug: String,
         @RequestBody(
-            description = "Note that body will be passed as file path to the JSON content",
+            description = "Note that body will be passed as file path to the JSON content via `PSA_CONTEXT` ENV variable.",
             content = [
                 Content(mediaType = "application/json", schema = Schema(implementation = GenerateFileFromTemplateData::class)),
             ],
         ) psaContext: String,
-    ): InfoModel? = null
+    ): TemplateDataModel? = null
+
+    @Operation(
+        tags = ["Methods"],
+        description =
+            "Retrieve static completions. For more info, see " +
+                "<a href=\"https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#code-templates\">" +
+                "documentation" +
+                "</a>. Note that all params are passed via ENV variables",
+        operationId = "GetStaticCompletions",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Static Completions Data Model",
+                content = [Content(mediaType = "application/json", schema = Schema(implementation = StaticCompletionsModel::class))],
+            ),
+        ],
+    )
+    @POST
+    @Path("GetStaticCompletions")
+    fun getStaticCompletions(
+        @Parameter(
+            description = "PSA_TYPE",
+            schema = Schema(types = ["string"], allowableValues = ["GetStaticCompletions"], defaultValue = "GetStaticCompletions"),
+        )
+        @QueryParam("PSA_TYPE") psaType: String,
+        @Parameter(
+            description = "PSA_DEBUG",
+            schema = Schema(types = ["string"], allowableValues = ["1", "0"], defaultValue = "0"),
+        )
+        @QueryParam("PSA_DEBUG") psaDebug: String,
+    ) = null
 }

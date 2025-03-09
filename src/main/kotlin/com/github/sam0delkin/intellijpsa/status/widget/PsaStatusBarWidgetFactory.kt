@@ -1,7 +1,6 @@
 package com.github.sam0delkin.intellijpsa.status.widget
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
-import com.github.sam0delkin.intellijpsa.index.PsaIndex
 import com.github.sam0delkin.intellijpsa.services.CompletionService
 import com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm
 import com.intellij.icons.AllIcons
@@ -13,7 +12,6 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -23,7 +21,6 @@ import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Consumer
 import java.awt.event.MouseEvent
@@ -106,21 +103,19 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                         },
                     )
                 }
-                if (settings.indexingEnabled) {
-                    val currentDoc = FileEditorManager.getInstance(project).selectedTextEditor?.document
-                    if (null !== currentDoc) {
-                        val file = PsiDocumentManager.getInstance(project).getPsiFile(currentDoc)
-                        if (null !== file) {
-                            actionGroup.add(
-                                object : AnAction("Reindex Current File", "", AllIcons.Actions.Refresh) {
-                                    override fun actionPerformed(e: AnActionEvent) {
-                                        val psaIndex = project.service<PsaIndex>()
-                                        psaIndex.reindexFile(file, true)
-                                    }
-                                },
-                            )
-                        }
-                    }
+                if (settings.supportsStaticCompletions) {
+                    actionGroup.add(
+                        object : AnAction("Update Static Completions", "", AllIcons.Actions.Refresh) {
+                            override fun actionPerformed(e: AnActionEvent) {
+                                completionService.updateStaticCompletions(
+                                    settings,
+                                    project,
+                                    settings.scriptPath!!,
+                                    settings.debug,
+                                )
+                            }
+                        },
+                    )
                 }
                 actionGroup.add(
                     object : AnAction("Update Info", "", AllIcons.General.BalloonInformation) {

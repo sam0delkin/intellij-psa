@@ -25,6 +25,7 @@ paths:
         description: PSA_TYPE
         schema:
           type: string
+          default: GenerateFileFromTemplate
           enum:
           - GenerateFileFromTemplate
       - name: PSA_DEBUG
@@ -32,11 +33,13 @@ paths:
         description: PSA_DEBUG
         schema:
           type: string
+          default: "0"
           enum:
           - "1"
           - "0"
       requestBody:
         description: Note that body will be passed as file path to the JSON content
+          via `PSA_CONTEXT` ENV variable.
         content:
           application/json:
             schema:
@@ -48,7 +51,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TemplateDataModel"
-  /methods/getCompletions:
+  /methods/GetCompletions:
     post:
       tags:
       - Methods
@@ -62,6 +65,7 @@ paths:
         description: Type of the request
         schema:
           type: string
+          default: Completion
           enum:
           - Completion
           - BatchCompletion
@@ -72,6 +76,7 @@ paths:
         description: Is debug enabled or not
         schema:
           type: string
+          default: "0"
           enum:
           - "1"
           - "0"
@@ -85,18 +90,51 @@ paths:
           type: string
       requestBody:
         description: Note that body will be passed as file path to the JSON content
+          via `PSA_CONTEXT` ENV variable.
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/PsiElementModel"
       responses:
         "200":
-          description: Info Model
+          description: Completions Model
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InfoModel"
-  /methods/info:
+                $ref: "#/components/schemas/CompletionsModel"
+  /methods/GetStaticCompletions:
+    post:
+      tags:
+      - Methods
+      description: "Retrieve static completions. For more info, see <a href=\"https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#code-templates\"\
+        >documentation</a>. Note that all params are passed via ENV variables"
+      operationId: GetStaticCompletions
+      parameters:
+      - name: PSA_TYPE
+        in: query
+        description: PSA_TYPE
+        schema:
+          type: string
+          default: GetStaticCompletions
+          enum:
+          - GetStaticCompletions
+      - name: PSA_DEBUG
+        in: query
+        description: PSA_DEBUG
+        schema:
+          type: string
+          default: "0"
+          enum:
+          - "1"
+          - "0"
+      responses:
+        "200":
+          description: Static Completions Data Model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaticCompletionsModel"
+  /methods/Info:
     post:
       tags:
       - Methods
@@ -109,6 +147,7 @@ paths:
         description: PSA_TYPE
         schema:
           type: string
+          default: Info
           enum:
           - Info
       - name: PSA_DEBUG
@@ -116,6 +155,7 @@ paths:
         description: PSA_DEBUG
         schema:
           type: string
+          default: "0"
           enum:
           - "1"
           - "0"
@@ -142,81 +182,22 @@ components:
     TemplateDataModel:
       type: object
       properties:
-        fileName:
-          type: string
-        fileNames:
-          type: array
-          items:
-            type: string
         content:
           type: string
         contents:
           type: array
           items:
             type: string
-        formFields:
+        file_name:
+          type: string
+        file_names:
+          type: array
+          items:
+            type: string
+        form_fields:
           type: object
           additionalProperties:
             $ref: "#/components/schemas/FormFieldDataModel"
-    FileTemplateModel:
-      type: object
-      properties:
-        name:
-          type: string
-        type:
-          type: string
-          enum:
-          - SINGLE_FILE
-          - MULTIPLE_FILE
-        title:
-          type: string
-        pathRegex:
-          type: string
-        fields:
-          type: array
-          items:
-            $ref: "#/components/schemas/FormFieldModel"
-        fileCount:
-          type: integer
-          format: int32
-    FormFieldModel:
-      type: object
-      properties:
-        name:
-          type: string
-        title:
-          type: string
-        type:
-          type: string
-          enum:
-          - Text
-          - RichText
-          - Checkbox
-          - Select
-          - Collection
-        focused:
-          type: boolean
-        options:
-          type: array
-          items:
-            type: string
-    InfoModel:
-      type: object
-      properties:
-        supportedLanguages:
-          type: array
-          items:
-            type: string
-        goToElementFilter:
-          type: array
-          items:
-            type: string
-        supportsBatch:
-          type: boolean
-        templates:
-          type: array
-          items:
-            $ref: "#/components/schemas/FileTemplateModel"
     GenerateFileFromTemplateData:
       type: object
       properties:
@@ -232,6 +213,42 @@ components:
           type: object
           additionalProperties:
             type: string
+    CompletionModel:
+      type: object
+      properties:
+        text:
+          type: string
+        bold:
+          type: boolean
+        type:
+          type: string
+        priority:
+          type: number
+          format: double
+        link:
+          type: string
+        presentable_text:
+          type: string
+        tail_text:
+          type: string
+    CompletionsModel:
+      type: object
+      properties:
+        completions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompletionModel"
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationModel"
+    NotificationModel:
+      type: object
+      properties:
+        type:
+          type: string
+        text:
+          type: string
     PsiElementModel:
       type: object
       properties:
@@ -283,3 +300,101 @@ components:
         endOffset:
           type: integer
           format: int32
+    PsiElementPatternModel:
+      type: object
+      properties:
+        parent:
+          $ref: "#/components/schemas/PsiElementPatternModel"
+        prev:
+          $ref: "#/components/schemas/PsiElementPatternModel"
+        next:
+          $ref: "#/components/schemas/PsiElementPatternModel"
+        with_text:
+          type: string
+        with_type:
+          type: string
+        with_options:
+          type: object
+          additionalProperties:
+            type: string
+    StaticCompletionModel:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        patterns:
+          type: array
+          items:
+            $ref: "#/components/schemas/PsiElementPatternModel"
+        completions:
+          $ref: "#/components/schemas/CompletionsModel"
+    StaticCompletionsModel:
+      type: object
+      properties:
+        static_completions:
+          type: array
+          items:
+            $ref: "#/components/schemas/StaticCompletionModel"
+    FileTemplateModel:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+          - single_file
+          - multiple_file
+        title:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FormFieldModel"
+        path_regex:
+          type: string
+        file_count:
+          type: integer
+          format: int32
+    FormFieldModel:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum:
+          - Text
+          - RichText
+          - Checkbox
+          - Select
+          - Collection
+        focused:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: string
+    InfoModel:
+      type: object
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileTemplateModel"
+        supported_languages:
+          type: array
+          items:
+            type: string
+        goto_element_filter:
+          type: array
+          items:
+            type: string
+        supports_batch:
+          type: boolean
+        supports_static_completions:
+          type: boolean

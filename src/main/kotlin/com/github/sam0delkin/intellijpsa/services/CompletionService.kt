@@ -2,12 +2,8 @@
 
 package com.github.sam0delkin.intellijpsa.services
 
-import com.github.sam0delkin.intellijpsa.exception.IndexNotReadyException
-import com.github.sam0delkin.intellijpsa.exception.IndexingDisabledException
-import com.github.sam0delkin.intellijpsa.index.IndexedPsiElementModel
-import com.github.sam0delkin.intellijpsa.index.PsaFileIndex
-import com.github.sam0delkin.intellijpsa.index.PsaIndex
 import com.github.sam0delkin.intellijpsa.model.*
+import com.github.sam0delkin.intellijpsa.model.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.settings.*
 import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.github.sam0delkin.intellijpsa.util.FileUtils
@@ -18,13 +14,10 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.progress.EmptyProgressIndicator
-import com.intellij.openapi.progress.ProcessCanceledException
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressIndicatorProvider
+import com.intellij.openapi.progress.*
+import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.util.elementType
 import com.jetbrains.rd.util.string.printToString
@@ -48,6 +41,7 @@ enum class RequestType {
     BatchGoTo,
     Info,
     GenerateFileFromTemplate,
+    GetStaticCompletions,
 }
 
 private const val MAX_STRING_LENGTH = 1000
@@ -112,7 +106,96 @@ class CompletionService(
             throw Exception(result!!.stdout + "\n" + result!!.stderr)
         }
 
+        this.updateStaticCompletions(settings, project, path, debug)
+
         return Json.decodeFromString<InfoModel>(result!!.stdout)
+    }
+
+    fun getStaticCompletions(
+        settings: Settings,
+        project: Project,
+        path: String,
+        debug: Boolean? = null,
+    ): StaticCompletionsModel? {
+        val commandLine: GeneralCommandLine?
+        var result: ProcessOutput?
+        val innerDebug = if (null !== debug) debug else settings.debug
+
+        commandLine = GeneralCommandLine(path)
+        commandLine.environment["PSA_TYPE"] = RequestType.GetStaticCompletions.toString()
+        commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
+        commandLine.setWorkDirectory(project.guessProjectDir()?.path)
+        val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
+
+        try {
+            ApplicationUtil.runWithCheckCanceled(
+                {
+                    result =
+                        runBlocking {
+                            ExecutionUtils.executeWithIndicatorAndTimeout(
+                                commandLine,
+                                indicator,
+                                settings.executionTimeout,
+                            )
+                        }
+                },
+                indicator,
+            )
+
+            result =
+                ExecutionUtils.executeWithIndicatorAndTimeout(
+                    commandLine,
+                    indicator,
+                    settings.executionTimeout,
+                )
+
+            if (result!!.isCancelled) {
+                throw ProcessCanceledException()
+            }
+
+            if (0 != result!!.exitCode) {
+                throw Exception(result!!.stdout + "\n" + result!!.stderr)
+            }
+
+            this.lastResultSucceed = true
+            this.lastResultMessage = ""
+
+            return Json.decodeFromString<StaticCompletionsModel>(result!!.stdout)
+        } catch (e: Throwable) {
+            this.lastResultSucceed = false
+            this.lastResultMessage = e.message ?: "Unexpected Error"
+            if (settings.debug) {
+                NotificationGroupManager
+                    .getInstance()
+                    .getNotificationGroup("PSA Notification")
+                    .createNotification(
+                        "Failed to update static completions <br/>" + e.message,
+                        NotificationType.ERROR,
+                    ).notify(project)
+            }
+        }
+
+        return null
+    }
+
+    fun updateStaticCompletions(
+        settings: Settings,
+        project: Project,
+        path: String,
+        debug: Boolean? = null,
+    ) {
+        if (!settings.supportsStaticCompletions) {
+            return
+        }
+
+        ProgressManager.getInstance().run(
+            object : Backgroundable(project, "PSA: Updating static completions ...") {
+                override fun run(indicator: ProgressIndicator) {
+                    val completions = getStaticCompletions(settings, project, path, debug)
+                    settings.staticCompletionConfigs = completions?.staticCompletions
+                }
+            },
+        )
     }
 
     fun updateInfo(
@@ -127,6 +210,7 @@ class CompletionService(
 
         settings.goToFilter = info.goToElementFilter?.joinToString(",") ?: ""
         settings.supportsBatch = info.supportsBatch ?: false
+        settings.supportsStaticCompletions = info.supportsStaticCompletions ?: false
 
         settings.singleFileCodeTemplates = ArrayList()
         settings.multipleFileCodeTemplates = ArrayList()
@@ -330,64 +414,13 @@ class CompletionService(
     fun getCompletions(
         settings: Settings,
         model: Array<IndexedPsiElementModel>,
-        file: VirtualFile?,
         requestType: RequestType,
         language: String,
         editorOffset: Int? = null,
         debug: Boolean? = null,
-        useIndex: Boolean = true,
         fromIndex: Boolean = false,
         indicator: ProgressIndicator? = null,
     ): CompletionsModel? {
-        val index = project.service<PsaIndex>()
-        var indexReady = true
-        val values =
-            if (fromIndex) {
-                listOf()
-            } else {
-                var indexValue: String? = null
-                if (model.size == 1) {
-                    try {
-                        indexValue =
-                            index.get(
-                                requestType,
-                                model[0].model.textRange!!.startOffset,
-                                PsaFileIndex.generateKeyByRequestType(requestType, model[0]),
-                                model[0].model.filePath,
-                            )
-                    } catch (e: IndexNotReadyException) {
-                        indexReady = false
-                    } catch (_: IndexingDisabledException) {
-                        indexReady = false
-                    }
-                }
-                if (null !== indexValue) listOf(indexValue) else listOf()
-            }
-
-        if (values.isNotEmpty() && useIndex) {
-            try {
-                return Json.decodeFromString<CompletionsModel>(values[0])
-            } catch (e: Throwable) {
-                this.lastResultMessage = e.message.toString()
-                this.lastResultSucceed = false
-
-                if (settings.debug) {
-                    NotificationGroupManager
-                        .getInstance()
-                        .getNotificationGroup("PSA Notification")
-                        .createNotification(
-                            "Error",
-                            "PSA Script returned not valid JSON<br/>" + e.message,
-                            NotificationType.ERROR,
-                        ).notify(project)
-                }
-            }
-        }
-
-        if (useIndex && indexReady && !fromIndex && settings.indexingUseOnlyIndexedElements) {
-            return null
-        }
-
         val result =
             getCompletionsOutput(
                 settings,
@@ -433,23 +466,7 @@ class CompletionService(
             return null
         }
 
-        val jsonResult = Json.decodeFromString<CompletionsModel>(result.stdout)
-        if (null !== jsonResult.completions) {
-            if (jsonResult.completions.isNotEmpty()) {
-                if (!fromIndex && useIndex) {
-                    val firstModel = model[0]
-                    if (!settings.elementTypes.contains(firstModel.model.elementType)) {
-                        settings.elementTypes[firstModel.model.elementType] = true
-                    }
-
-                    if (null !== file) {
-                        index.reindexFile(file)
-                    }
-                }
-            }
-        }
-
-        return jsonResult
+        return Json.decodeFromString<CompletionsModel>(result.stdout)
     }
 
     fun psiElementToModel(
@@ -589,12 +606,6 @@ class CompletionService(
                     }
                     options[optionName] = PsiElementModelChild(null, null, arr)
                 }
-            } catch (e: InvocationTargetException) {
-                if (e.targetException is IndexNotReadyException) {
-                    throw e.targetException
-                }
-            } catch (e: IndexNotReadyException) {
-                throw e
             } catch (e: Throwable) {
                 continue
             }

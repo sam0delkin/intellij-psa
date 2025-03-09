@@ -37,11 +37,6 @@ class ProjectSettingsForm(
     private lateinit var enabled: Cell<JBCheckBox>
     private lateinit var debug: Cell<JBCheckBox>
     private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
-    private lateinit var indexingEnabled: Cell<JBCheckBox>
-    private lateinit var indexingConcurrency: Cell<JSpinner>
-    private lateinit var indexingBatchCount: Cell<JSpinner>
-    private lateinit var indexingMaxElements: Cell<JSpinner>
-    private lateinit var indexingUseOnlyIndexedElements: Cell<JBCheckBox>
     private lateinit var pathMappings: Cell<PathMappingsComponent>
     private lateinit var supportedLanguages: Cell<JTextField>
     private lateinit var goToElementFilter: Cell<JTextField>
@@ -101,33 +96,6 @@ class ProjectSettingsForm(
                             }
                         infoButton = Utils.actionButton(action, "bottom", this)
                     }.rowComment("Path to the PSA executable script. Must be an executable file")
-                    row("Indexing Enabled") {
-                        indexingEnabled = checkBox("")
-                    }.rowComment("Is indexing of currently opened files enabled")
-                    row("Indexing Concurrency") {
-                        val availableProcessors = Runtime.getRuntime().availableProcessors()
-                        indexingConcurrency =
-                            cell(JSpinner(SpinnerNumberModel(availableProcessors, 1, availableProcessors, 1)))
-                    }.enabledIf(indexingEnabled.selected)
-                        .rowComment("Maximum concurrency level for indexing. Default: Count of CPU cores in your system")
-                    row("Indexing Batch Count") {
-                        indexingBatchCount =
-                            cell(JSpinner(SpinnerNumberModel(50, 10, 500, 10)))
-                    }.enabledIf(indexingEnabled.selected)
-                        .rowComment("Count of elements which will be sent to PSA script in batch during indexing")
-                    row("Indexing Max File Elements") {
-                        indexingMaxElements =
-                            cell(JSpinner(SpinnerNumberModel(2000, 1, 1000000, 100)))
-                    }.enabledIf(indexingEnabled.selected)
-                        .rowComment(
-                            "Maximum number of indexable elements on file. In case of number of elements is " +
-                                "greater than this value, file will not be indexed",
-                        )
-                    row("Process only indexed elements") {
-                        indexingUseOnlyIndexedElements =
-                            checkBox("")
-                    }.enabledIf(indexingEnabled.selected)
-                        .rowComment("In case of indexing of file compelted, only indexed elements Completions/GoTo will work.")
                     row("Execution Timeout") {
                         executionTimeout = cell(JSpinner(SpinnerNumberModel(5000, 0, 100000, 1000)))
                     }.rowComment("Maximum execution time for your script (in milliseconds). Default: 5000 milliseconds")
@@ -247,11 +215,6 @@ class ProjectSettingsForm(
                 debug.component.isSelected != settings.debug ||
 
                 scriptPath.component.text != settings.scriptPath ||
-                indexingEnabled.component.isSelected != settings.indexingEnabled ||
-                indexingConcurrency.component.value != settings.indexingConcurrency ||
-                indexingBatchCount.component.value != settings.indexingBatchCount ||
-                indexingMaxElements.component.value != settings.indexingMaxElements ||
-                indexingUseOnlyIndexedElements.component.isSelected != settings.indexingUseOnlyIndexedElements ||
                 pathMappings.component.mappingSettings.pathMappings
                     .joinToString(",") { el -> el.localRoot + " ->" + el.remoteRoot } !=
                 settings.pathMappings?.joinToString(",") { el -> el.localRoot + " ->" + el.remoteRoot } ||
@@ -266,11 +229,6 @@ class ProjectSettingsForm(
         enabled.component.setSelected(settings.pluginEnabled)
         debug.component.setSelected(settings.debug)
         scriptPath.component.setText(settings.scriptPath)
-        indexingEnabled.component.isSelected = settings.indexingEnabled
-        indexingConcurrency.component.value = settings.indexingConcurrency
-        indexingBatchCount.component.value = settings.indexingBatchCount
-        indexingMaxElements.component.value = settings.indexingMaxElements
-        indexingUseOnlyIndexedElements.component.isSelected = settings.indexingUseOnlyIndexedElements
         settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
         pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
         supportedLanguages.component.text = settings.supportedLanguages
@@ -285,11 +243,6 @@ class ProjectSettingsForm(
         settings.pluginEnabled = enabled.component.isSelected
         settings.debug = debug.component.isSelected
         settings.scriptPath = scriptPath.component.text.trim()
-        settings.indexingEnabled = indexingEnabled.component.isSelected
-        settings.indexingConcurrency = indexingConcurrency.component.value as Int
-        settings.indexingBatchCount = indexingBatchCount.component.value as Int
-        settings.indexingMaxElements = indexingMaxElements.component.value as Int
-        settings.indexingUseOnlyIndexedElements = indexingUseOnlyIndexedElements.component.isSelected
         settings.pathMappings =
             pathMappings.component.mappingSettings.pathMappings
                 .toTypedArray()

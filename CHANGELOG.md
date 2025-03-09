@@ -3,6 +3,13 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Remove support of indexing, such as it's not fit the plugin needs due to some restrictions of chained method calls.
+Also, it's no longer needed due to a new feature - static completions.
+- Static Completions introduced. Now you can create some element patters and use them for way faster completions and
+goto.
+- Refactorings of models
+- Fix swagger doc coding style (used camelCase elements instead of under_score).
+- Minor typo and bug fixes
 
 ## [0.0.17] - 2025-03-08
 - Major refactoring. Move to JSON Models instead of calling methods

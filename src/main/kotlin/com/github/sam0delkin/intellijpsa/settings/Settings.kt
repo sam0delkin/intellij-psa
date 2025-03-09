@@ -1,5 +1,6 @@
 package com.github.sam0delkin.intellijpsa.settings
 
+import com.github.sam0delkin.intellijpsa.model.StaticCompletionModel
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -95,18 +96,14 @@ class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false
     var debug: Boolean = false
     var scriptPath: String? = ".psa/psa.php"
-    var indexingEnabled: Boolean = false
-    var indexingConcurrency: Int = Runtime.getRuntime().availableProcessors()
-    var indexingBatchCount: Int = 50
-    var indexingMaxElements: Int = 2000
-    var indexingUseOnlyIndexedElements: Boolean = false
-    var elementTypes: HashMap<String, Boolean> = HashMap()
     var pathMappings: Array<PathMapping>? = arrayOf()
     var goToFilter: String? = ""
     var supportsBatch: Boolean = false
     var supportedLanguages: String? = ""
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
     var multipleFileCodeTemplates: ArrayList<MultipleFileCodeTemplate>? = null
+    var staticCompletionConfigs: ArrayList<StaticCompletionModel>? = null
+    var supportsStaticCompletions: Boolean = false
     var executionTimeout: Int = 5000
 
     @Override
