@@ -42,12 +42,13 @@ enum class RequestType {
     Info,
     GenerateFileFromTemplate,
     GetStaticCompletions,
+    PerformEditorAction,
 }
 
 private const val MAX_STRING_LENGTH = 1000
 
 @Service(Service.Level.PROJECT)
-class CompletionService(
+class PsaManager(
     private val project: Project,
 ) {
     private val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
@@ -211,6 +212,7 @@ class CompletionService(
         settings.goToFilter = info.goToElementFilter?.joinToString(",") ?: ""
         settings.supportsBatch = info.supportsBatch ?: false
         settings.supportsStaticCompletions = info.supportsStaticCompletions ?: false
+        settings.editorActions = info.editorActions
 
         settings.singleFileCodeTemplates = ArrayList()
         settings.multipleFileCodeTemplates = ArrayList()
@@ -315,6 +317,61 @@ class CompletionService(
             this.lastResultMessage = ""
 
             return Json.decodeFromString<TemplateDataModel>(result.stdout)
+        } catch (e: Exception) {
+            this.lastResultSucceed = false
+            this.lastResultMessage = e.message ?: "Unexpected Error"
+            if (settings.debug) {
+                NotificationGroupManager
+                    .getInstance()
+                    .getNotificationGroup("PSA Notification")
+                    .createNotification(
+                        "Template generation returned not valid JSON<br/>" + e.message,
+                        NotificationType.ERROR,
+                    ).notify(project)
+            }
+        }
+
+        return null
+    }
+
+    fun performAction(
+        settings: Settings,
+        project: Project,
+        action: EditorActionInputModel,
+    ): String? {
+        val commandLine: GeneralCommandLine?
+        val result: ProcessOutput?
+
+        try {
+            val data =
+                Json.encodeToString(action)
+            val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
+            commandLine = GeneralCommandLine(settings.scriptPath)
+            commandLine.environment["PSA_CONTEXT"] = filePath
+            commandLine.environment["PSA_TYPE"] = RequestType.PerformEditorAction.toString()
+            commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
+            commandLine.setWorkDirectory(project.guessProjectDir()?.path)
+            val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
+
+            result =
+                ExecutionUtils.executeWithIndicatorAndTimeout(
+                    commandLine,
+                    indicator,
+                    settings.executionTimeout,
+                )
+
+            if (result.isCancelled) {
+                throw ProcessCanceledException()
+            }
+
+            if (0 != result.exitCode) {
+                throw Exception(result.stdout + "\n" + result.stderr)
+            }
+
+            this.lastResultSucceed = true
+            this.lastResultMessage = ""
+
+            return result.stdout
         } catch (e: Exception) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"

@@ -1,6 +1,6 @@
 package com.github.sam0delkin.intellijpsa.action
 
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
 import com.github.sam0delkin.intellijpsa.ui.components.JTextFieldCollection
@@ -69,13 +69,13 @@ class SingleFileTemplateAction(
     private var indicator = EmptyProgressIndicator()
 
     override fun actionPerformed(e: AnActionEvent) {
-        val completionService = e.project?.service<CompletionService>()
+        val psaManager = e.project?.service<PsaManager>()
 
-        if (null === completionService) {
+        if (null === psaManager) {
             return
         }
 
-        val settings = completionService.getSettings()
+        val settings = psaManager.getSettings()
         val template = settings.singleFileCodeTemplates?.find { it.name == templateName }
 
         if (null === template || null === template.formFields) {
@@ -100,7 +100,7 @@ class SingleFileTemplateAction(
             }
 
             val templateData =
-                completionService.generateTemplateCode(
+                psaManager.generateTemplateCode(
                     settings,
                     e.project!!,
                     directoryPath,

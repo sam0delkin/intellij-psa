@@ -2,7 +2,7 @@
 
 package com.github.sam0delkin.intellijpsa.action
 
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormField
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
 import com.github.sam0delkin.intellijpsa.ui.components.JTextFieldCollection
@@ -79,13 +79,13 @@ class MultipleFileTemplateAction(
     private var indicator = EmptyProgressIndicator()
 
     override fun actionPerformed(e: AnActionEvent) {
-        val completionService = e.project?.service<CompletionService>()
+        val psaManager = e.project?.service<PsaManager>()
 
-        if (null === completionService) {
+        if (null === psaManager) {
             return
         }
 
-        val settings = completionService.getSettings()
+        val settings = psaManager.getSettings()
         val template = settings.multipleFileCodeTemplates?.find { it.name == templateName }
 
         if (null === template || null === template.formFields) {
@@ -110,7 +110,7 @@ class MultipleFileTemplateAction(
             }
 
             val templateData =
-                completionService.generateTemplateCode(
+                psaManager.generateTemplateCode(
                     settings,
                     e.project!!,
                     directoryPath,
@@ -328,7 +328,7 @@ class MultipleFileTemplateAction(
                                         com.intellij.ui
                                             .GotItTooltip(
                                                 "PSA",
-                                                completionService.lastResultMessage,
+                                                psaManager.lastResultMessage,
                                             ).withIcon(AllIcons.General.ErrorDialog)
                                             .withButtonLabel("OK")
                                     tooltip.createAndShow(errorIcon!!.component) { c, _ ->

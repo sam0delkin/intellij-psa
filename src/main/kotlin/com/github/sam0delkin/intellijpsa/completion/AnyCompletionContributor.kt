@@ -4,7 +4,7 @@ import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.model.CompletionsModel
 import com.github.sam0delkin.intellijpsa.model.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.psi.PsiElementModelHelper
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.services.RequestType
 import com.github.sam0delkin.intellijpsa.util.PsiUtil
 import com.intellij.codeInsight.completion.CompletionContributor
@@ -43,8 +43,8 @@ class AnyCompletionContributor {
                         }
 
                         val project = parameters.position.project
-                        val completionService = project.service<CompletionService>()
-                        val settings = completionService.getSettings()
+                        val psaManager = project.service<PsaManager>()
+                        val settings = psaManager.getSettings()
                         val language = parameters.originalFile.language
                         var languageString = language.id
                         if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
@@ -55,7 +55,7 @@ class AnyCompletionContributor {
                             return
                         }
 
-                        val model = completionService.psiElementToModel(parameters.originalPosition!!)
+                        val model = psaManager.psiElementToModel(parameters.originalPosition!!)
                         var json: CompletionsModel? = null
 
                         if (null !== settings.staticCompletionConfigs) {
@@ -66,8 +66,12 @@ class AnyCompletionContributor {
 
                                 for (j in i.patterns) {
                                     if (PsiElementModelHelper.matches(model, j)) {
-                                        json = CompletionsModel()
-                                        json.completions = ArrayList(i.completions!!.completions!!)
+                                        if (null === json) {
+                                            json = CompletionsModel()
+                                            json.completions = ArrayList(i.completions!!.completions!!)
+                                        } else {
+                                            json.completions = json.completions!! + ArrayList(i.completions!!.completions!!)
+                                        }
                                     }
                                 }
                             }
@@ -75,7 +79,7 @@ class AnyCompletionContributor {
 
                         if (null === json) {
                             json =
-                                completionService
+                                psaManager
                                     .getCompletions(
                                         settings,
                                         arrayOf(
@@ -143,8 +147,8 @@ class AnyCompletionContributor {
             }
 
             val project = sourceElement.project
-            val completionService = project.service<CompletionService>()
-            val settings = completionService.getSettings()
+            val psaManager = project.service<PsaManager>()
+            val settings = psaManager.getSettings()
             val language = sourceElement.containingFile.language
             var languageString = language.id
             var psiElements = ArrayList<PsiElement>()
@@ -159,7 +163,7 @@ class AnyCompletionContributor {
             if (!settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString())) {
                 return null
             }
-            val model = completionService.psiElementToModel(sourceElement)
+            val model = psaManager.psiElementToModel(sourceElement)
 
             var json: CompletionsModel? = null
 
@@ -191,7 +195,7 @@ class AnyCompletionContributor {
 
             if (null === json) {
                 json =
-                    completionService
+                    psaManager
                         .getCompletions(
                             settings,
                             arrayOf(

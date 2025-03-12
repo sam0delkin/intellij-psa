@@ -13,7 +13,8 @@ Currently, supports:
 * Custom autocomplete based on your code (Ctrl + Space)
 * Custom GoTo based on your code (Ctrl/Command + Click)
 * Custom code templates (with variables) based on your code
-* Indexing of completions/GoTo to increase performance
+* Custom editor actions for convert parts of code to the needed format
+* Static completions for faster experience
 
 ### Supported Languages
 Any language that your IDE supports will be supported by plugin.
@@ -44,6 +45,7 @@ Table of Contents
   * [Code Templates](#code-templates)
     * [Single File Template](#single-file-template)
     * [Multiple File Template](#multiple-file-template)
+  * [Editor Actions](#editor-actions)
   * [Performance considerations](#performance-considerations)
     * [General](#general)
     * [GoTo optimizations](#goto-optimizations)
@@ -375,22 +377,14 @@ generation DTO classes for PSA.
 1) Is plugin enabled or not.
 2) Is debug enabled or not. Passed as `PSA_DEBUG` into the executable script.
 3) Path to the PSA executable script. Must be an executable file.
-4) ![info](doc/images/balloonInformation.svg) button to update info from your PSA script.
-5) Is indexing enabled or not. 
-6) Indexing concurrency. Controls number of processes which may be run in parallel during indexing. 
-7) Indexing batch count. Controls number of serialized elements which will be sent into PSA script in batch during
-indexing process. 
-8) Indexing max element count. Controls how much elements are allowed to be indexed. In case of file contains more
-elements than specified in this option, indexing of this file will be ignored. 
-9) Process only indexed elements. If checked, PSA will not try to execute script in case of file is already indexed and
-completions/GoTo has not found in index. Useful for performance reasons. 
-10) Maximum script execution timeout. If script will execute longer that this value, execution will be interrupted. 
-11) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
+4) ![info](doc/images/balloonInformation.svg) button to update info from your PSA script. 
+5) Maximum script execution timeout. If script will execute longer that this value, execution will be interrupted.
+6) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
 as project root. 
-12) Programming languages supported by your autocompletion. Separated by comma, read-only.
-13) ![info](doc/images/balloonInformation.svg) button to get all the languages supported by your IDE. Comma separated. 
+7) Programming languages supported by your autocompletion. Separated by comma, read-only.
+8) ![info](doc/images/balloonInformation.svg) button to get all the languages supported by your IDE. Comma separated. 
 Only one of these languages allowed to be passed in `supported_languages` value. 
-14) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
+9) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
 [performance](#goto-optimizations) section.
 
 To configure your autocomplete, follow these actions:
@@ -956,6 +950,80 @@ As a result, your script should return a simple JSON object with the following f
 ```
 > [!NOTE]
 > `form_fields` - is an optional field. Each inner value of `form_fields` is optional as well.
+
+### Editor Actions
+
+Sometimes you don't need to generate a whole file from template, but rather - process some part of code and replace it
+right in the editor. For these purposes one made Editor Actions.
+
+To support editor actions, your `Info` response should contain `editor_actions` field. It should be an array with the
+following structure:
+
+<details>
+  <summary>Expand</summary>
+
+```JSON
+{
+  "editor_actions": [
+    {
+      "name": "string, required. Name of the action, will be passed back to your script on calling",
+      "title": "string, required. Title of the action to show within IDE actions",
+      "source": "string, required. May be either 'editor' or 'clipboard'. The source of data. Either selected text or clipboard",
+      "target": "string, required. May be either 'editor' or 'clipboard'. The target of data. Either replace selected text or copy result to clipboard",
+      "group_name": "string, optional. Adds a sub-menu in PSA Actions menu",
+      "path_regex": "string, optional. PAth regular expression to filter where this action will be shown"
+    }
+  ]
+}
+```
+</details>
+
+For example, you can create an action that will convert JSON into PHP array:
+
+<details>
+  <summary>Expand</summary>
+
+```php
+<?php
+
+$type = getenv('PSA_TYPE');
+
+if ('Info' === $type) {
+    echo json_encode([
+        'supported_languages' => ['PHP'],
+        'editor_actions' => [
+            [
+                'name' => 'jsonToPhpArray',
+                'title' => 'Convert JSON -> PHP array (Copy to Clipboard)',
+                'source' => 'editor',
+                'target' => 'clipboard',
+                'group_name' => 'JSON',
+            ],
+        ],
+    ]);
+
+    exit(0);
+}
+
+$context = json_decode(file_get_contents(getenv('PSA_CONTEXT')), true);
+
+if ('PerformEditorAction' === $type && $context['action_name'] === 'jsonToPhpArray') {
+    $data = json_decode($context['text'], true);
+
+    echo var_export($data);
+}
+```
+</details>
+
+And in case of your PSA script will return the value and then you can paste it to any place of your code.
+For example, it's useful with `Generate Pattern Model` action, so. You run this action, copy result into some tmp JSON
+file, remove everything not need, then run your own action to convert it into PHP array and Voilà:
+![convert_json_to_php_array](doc/images/convert_json_to_php_array.png)
+and then somewhere in your PSA script code (before paste):
+![convert_json_to_php_array_paste_before](doc/images/convert_json_to_php_array_paste_before.png)
+and after paste:
+![convert_json_to_php_array_paste_after](doc/images/convert_json_to_php_array_paste_after.png)
+
 
 ### Performance considerations
 

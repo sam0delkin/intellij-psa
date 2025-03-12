@@ -3,6 +3,9 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Refactorings of static completions
+- Introduced editor actions. For more details, see https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#editor-actions
+- Minor bug fixes and performance improvements
 
 ## [0.0.18] - 2025-03-09
 - Remove support of indexing, such as it's not fit the plugin needs due to some restrictions of chained method calls.

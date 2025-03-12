@@ -1,5 +1,6 @@
 package com.github.sam0delkin.intellijpsa.settings
 
+import com.github.sam0delkin.intellijpsa.model.EditorActionModel
 import com.github.sam0delkin.intellijpsa.model.StaticCompletionModel
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
@@ -100,11 +101,12 @@ class Settings : PersistentStateComponent<Settings> {
     var goToFilter: String? = ""
     var supportsBatch: Boolean = false
     var supportedLanguages: String? = ""
+    var executionTimeout: Int = 5000
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
     var multipleFileCodeTemplates: ArrayList<MultipleFileCodeTemplate>? = null
     var staticCompletionConfigs: ArrayList<StaticCompletionModel>? = null
     var supportsStaticCompletions: Boolean = false
-    var executionTimeout: Int = 5000
+    var editorActions: List<EditorActionModel>? = null
 
     @Override
     override fun getState(): Settings = this

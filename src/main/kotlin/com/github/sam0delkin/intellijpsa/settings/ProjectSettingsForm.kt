@@ -2,7 +2,7 @@
 
 package com.github.sam0delkin.intellijpsa.settings
 
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.github.sam0delkin.intellijpsa.ui.components.Utils
 import com.intellij.execution.util.PathMappingsComponent
@@ -154,7 +154,7 @@ class ProjectSettingsForm(
     }
 
     private fun getInfo() {
-        val service = project.service<CompletionService>()
+        val service = project.service<PsaManager>()
         try {
             this.goToElementFilter.component.text = ""
             this.supportedLanguages.component.text = ""
@@ -239,7 +239,7 @@ class ProjectSettingsForm(
 
     @Throws(ConfigurationException::class)
     override fun apply() {
-        val completionService = project.service<CompletionService>()
+        val psaManager = project.service<PsaManager>()
         settings.pluginEnabled = enabled.component.isSelected
         settings.debug = debug.component.isSelected
         settings.scriptPath = scriptPath.component.text.trim()
@@ -250,12 +250,12 @@ class ProjectSettingsForm(
         settings.goToFilter = goToElementFilter.component.text
         settings.executionTimeout = executionTimeout.component.value as Int
         changed = false
-        if (!settings.pluginEnabled && completionService.lastResultSucceed) {
-            completionService.lastResultSucceed = false
-            completionService.lastResultMessage = ""
-        } else if (settings.pluginEnabled && completionService.lastResultSucceed) {
-            completionService.lastResultSucceed = true
-            completionService.lastResultMessage = ""
+        if (!settings.pluginEnabled && psaManager.lastResultSucceed) {
+            psaManager.lastResultSucceed = false
+            psaManager.lastResultMessage = ""
+        } else if (settings.pluginEnabled && psaManager.lastResultSucceed) {
+            psaManager.lastResultSucceed = true
+            psaManager.lastResultMessage = ""
         }
 
         val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
@@ -270,7 +270,7 @@ class ProjectSettingsForm(
     }
 
     private val settings: Settings
-        get() = project.service<CompletionService>().getSettings()
+        get() = project.service<PsaManager>().getSettings()
 
     override fun getDisplayName(): String = "Project Specific Autocomplete"
 }

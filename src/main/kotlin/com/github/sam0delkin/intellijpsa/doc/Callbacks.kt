@@ -3,6 +3,7 @@
 package com.github.sam0delkin.intellijpsa.doc
 
 import com.github.sam0delkin.intellijpsa.model.CompletionsModel
+import com.github.sam0delkin.intellijpsa.model.EditorActionInputModel
 import com.github.sam0delkin.intellijpsa.model.GenerateFileFromTemplateData
 import com.github.sam0delkin.intellijpsa.model.InfoModel
 import com.github.sam0delkin.intellijpsa.model.PsiElementModel
@@ -33,7 +34,7 @@ import javax.ws.rs.QueryParam
             contact = Contact(url = "https://github.com/sam0delkin/intellij-psa", name = "sam0delkin", email = "me@s-l.dev"),
         ),
 )
-@Path("/methods")
+@Path("/")
 class Callbacks {
     @Operation(
         tags = ["Methods"],
@@ -161,6 +162,43 @@ class Callbacks {
             ],
         ) psaContext: String,
     ): TemplateDataModel? = null
+
+    @Operation(
+        tags = ["Methods"],
+        description =
+            "Perform some editor action. For more info, see " +
+                "<a href=\"https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#editor-actions\">" +
+                "documentation" +
+                "</a>. Note that all params are passed via ENV variables",
+        operationId = "PerformEditorAction",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Editor Action result",
+                content = [Content(mediaType = "text/plain")],
+            ),
+        ],
+    )
+    @POST
+    @Path("PerformEditorAction")
+    fun performEditorAction(
+        @Parameter(
+            description = "PSA_TYPE",
+            schema = Schema(types = ["string"], allowableValues = ["PerformEditorAction"], defaultValue = "PerformEditorAction"),
+        )
+        @QueryParam("PSA_TYPE") psaType: String,
+        @Parameter(
+            description = "PSA_DEBUG",
+            schema = Schema(types = ["string"], allowableValues = ["1", "0"], defaultValue = "0"),
+        )
+        @QueryParam("PSA_DEBUG") psaDebug: String,
+        @RequestBody(
+            description = "Note that body will be passed as file path to the JSON content via `PSA_CONTEXT` ENV variable.",
+            content = [
+                Content(mediaType = "application/json", schema = Schema(implementation = EditorActionInputModel::class)),
+            ],
+        ) psaContext: String,
+    ) = null
 
     @Operation(
         tags = ["Methods"],

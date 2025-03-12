@@ -1,6 +1,6 @@
 package com.github.sam0delkin.intellijpsa.activity
 
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.intellij.ide.util.RunOnceUtil
@@ -26,8 +26,8 @@ class PsaStartupActivity :
 
     override fun runActivity(project: Project) {
         ApplicationManager.getApplication().invokeLater {
-            val completionService = project.service<CompletionService>()
-            val settings = completionService.getSettings()
+            val psaManager = project.service<PsaManager>()
+            val settings = psaManager.getSettings()
 
             if (!settings.pluginEnabled) {
                 val projectDir = project.guessProjectDir()
@@ -57,7 +57,7 @@ class PsaStartupActivity :
                                     settings.pluginEnabled = true
                                     settings.scriptPath = ".psa/psa.sh"
 
-                                    scheduleUpdate(project, settings, completionService)
+                                    scheduleUpdate(project, settings, psaManager)
                                     notification.hideBalloon()
                                 }
                             },
@@ -79,7 +79,7 @@ class PsaStartupActivity :
                     timer?.cancel()
                 }
 
-                scheduleUpdate(project, settings, completionService)
+                scheduleUpdate(project, settings, psaManager)
             }
         }
     }
@@ -87,20 +87,20 @@ class PsaStartupActivity :
     private fun scheduleUpdate(
         project: Project,
         settings: Settings,
-        completionService: CompletionService,
+        psaManager: PsaManager,
     ) {
         timer = Timer()
         timer!!.schedule(
             object : TimerTask() {
                 override fun run() {
                     try {
-                        val info = completionService.getInfo(settings, project, settings.scriptPath!!, false)
-                        completionService.updateInfo(settings, info)
-                        completionService.lastResultSucceed = true
-                        completionService.lastResultMessage = ""
+                        val info = psaManager.getInfo(settings, project, settings.scriptPath!!, false)
+                        psaManager.updateInfo(settings, info)
+                        psaManager.lastResultSucceed = true
+                        psaManager.lastResultMessage = ""
                     } catch (e: Exception) {
-                        completionService.lastResultSucceed = false
-                        completionService.lastResultMessage = e.message.toString()
+                        psaManager.lastResultSucceed = false
+                        psaManager.lastResultMessage = e.message.toString()
                     }
                     val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
                     if (null === project.service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {

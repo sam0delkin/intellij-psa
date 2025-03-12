@@ -9,9 +9,9 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.17
+  version: 0.0.19
 paths:
-  /methods/GenerateFileFromTemplate:
+  /GenerateFileFromTemplate:
     post:
       tags:
       - Methods
@@ -51,7 +51,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TemplateDataModel"
-  /methods/GetCompletions:
+  /GetCompletions:
     post:
       tags:
       - Methods
@@ -102,7 +102,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CompletionsModel"
-  /methods/GetStaticCompletions:
+  /GetStaticCompletions:
     post:
       tags:
       - Methods
@@ -134,7 +134,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StaticCompletionsModel"
-  /methods/Info:
+  /Info:
     post:
       tags:
       - Methods
@@ -166,6 +166,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InfoModel"
+  /PerformEditorAction:
+    post:
+      tags:
+      - Methods
+      description: "Perform some editor action. For more info, see <a href=\"https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#editor-actions\"\
+        >documentation</a>. Note that all params are passed via ENV variables"
+      operationId: PerformEditorAction
+      parameters:
+      - name: PSA_TYPE
+        in: query
+        description: PSA_TYPE
+        schema:
+          type: string
+          default: PerformEditorAction
+          enum:
+          - PerformEditorAction
+      - name: PSA_DEBUG
+        in: query
+        description: PSA_DEBUG
+        schema:
+          type: string
+          default: "0"
+          enum:
+          - "1"
+          - "0"
+      requestBody:
+        description: Note that body will be passed as file path to the JSON content
+          via `PSA_CONTEXT` ENV variable.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditorActionInputModel"
+      responses:
+        "200":
+          description: Editor Action result
+          content:
+            text/plain: {}
 components:
   schemas:
     FormFieldDataModel:
@@ -337,6 +374,28 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/StaticCompletionModel"
+    EditorActionModel:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
+          enum:
+          - editor
+          - clipboard
+        target:
+          type: string
+          enum:
+          - editor
+          - clipboard
+          - noting
+        group_name:
+          type: string
+        path_regex:
+          type: string
     FileTemplateModel:
       type: object
       properties:
@@ -398,3 +457,16 @@ components:
           type: boolean
         supports_static_completions:
           type: boolean
+        editor_actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/EditorActionModel"
+    EditorActionInputModel:
+      type: object
+      properties:
+        text:
+          type: string
+        action_name:
+          type: string
+        file_name:
+          type: string

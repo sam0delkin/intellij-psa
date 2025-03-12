@@ -1,7 +1,7 @@
 package com.github.sam0delkin.intellijpsa.action
 
 import com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.intellij.icons.AllIcons
 import com.intellij.ide.IdeView
 import com.intellij.openapi.actionSystem.ActionGroup
@@ -21,8 +21,8 @@ class PsaFileTemplateActionGroup :
         PluginIcon,
     ) {
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
-        val completionService = e?.project?.service<CompletionService>() ?: return arrayOf()
-        val settings = completionService.getSettings()
+        val psaManager = e?.project?.service<PsaManager>() ?: return arrayOf()
+        val settings = psaManager.getSettings()
         if (null === settings.singleFileCodeTemplates || settings.singleFileCodeTemplates!!.isEmpty()) {
             return arrayOf()
         }

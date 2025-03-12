@@ -7,7 +7,6 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-
         <projectConfigurable
                 parentId="tools"
                 instance="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm"
@@ -18,20 +17,27 @@
         <completion.contributor
                 language="any"
                 implementationClass="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$Completion"/>
+
         <gotoDeclarationHandler
                 implementation="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$GotoDeclaration"/>
+
         <notificationGroup id="PSA Notification"
                            displayType="BALLOON"/>
+
         <statusBarWidgetFactory id="psa.statusBar.widget_factory"
                                 implementation="com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory"/>
+
         <vfs.asyncListener implementation="com.github.sam0delkin.intellijpsa.listener.PsaFileChangeListener"/>
+
         <backgroundPostStartupActivity implementation="com.github.sam0delkin.intellijpsa.activity.PsaStartupActivity"/>
+
         <iconProvider implementation="com.github.sam0delkin.intellijpsa.ide.presentation.IconProvider"/>
     </extensions>
     <actions>
         <group
                 id="com.github.sam0delkin.intellijpsa.action.PsaFileTemplateActionGroup"
                 class="com.github.sam0delkin.intellijpsa.action.PsaFileTemplateActionGroup"
+                icon="com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon"
                 popup="true">
             <add-to-group
                     group-id="NewGroup"
@@ -39,15 +45,14 @@
                     relative-to-action="NewFile"
             />
         </group>
-        <action
-                class="com.github.sam0delkin.intellijpsa.action.GeneratePatternModelAction"
-                id="com.github.sam0delkin.intellijpsa.action.GeneratePatternModelAction"
-                popup="true"
-                text="Generate Pattern Model"
-                description="Generate Pattern Model and copy to clipboard"
+
+        <group
+                id="com.github.sam0delkin.intellijpsa.action.PsaEditorActionGroup"
+                class="com.github.sam0delkin.intellijpsa.action.PsaEditorActionGroup"
                 icon="com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon"
+                popup="true"
         >
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-        </action>
+        </group>
     </actions>
 </idea-plugin>

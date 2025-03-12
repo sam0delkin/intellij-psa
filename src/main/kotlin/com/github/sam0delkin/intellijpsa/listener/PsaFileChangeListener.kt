@@ -1,6 +1,6 @@
 package com.github.sam0delkin.intellijpsa.listener
 
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.ProjectManager
@@ -17,8 +17,8 @@ class PsaFileChangeListener : AsyncFileListener {
         val projects = ProjectManager.getInstance().openProjects
 
         for (project in projects) {
-            val completionService = project.service<CompletionService>()
-            val settings = completionService.getSettings()
+            val psaManager = project.service<PsaManager>()
+            val settings = psaManager.getSettings()
 
             if (!settings.pluginEnabled || null === settings.scriptPath) {
                 continue
@@ -48,13 +48,13 @@ class PsaFileChangeListener : AsyncFileListener {
                     object : TimerTask() {
                         override fun run() {
                             try {
-                                val info = completionService.getInfo(settings, project, settings.scriptPath!!, false)
-                                completionService.updateInfo(settings, info)
-                                completionService.lastResultSucceed = true
-                                completionService.lastResultMessage = ""
+                                val info = psaManager.getInfo(settings, project, settings.scriptPath!!, false)
+                                psaManager.updateInfo(settings, info)
+                                psaManager.lastResultSucceed = true
+                                psaManager.lastResultMessage = ""
                             } catch (e: Exception) {
-                                completionService.lastResultSucceed = false
-                                completionService.lastResultMessage = e.message.toString()
+                                psaManager.lastResultSucceed = false
+                                psaManager.lastResultMessage = e.message.toString()
                             }
                         }
                     },

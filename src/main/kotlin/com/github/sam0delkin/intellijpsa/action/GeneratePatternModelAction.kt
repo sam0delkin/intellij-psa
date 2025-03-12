@@ -1,7 +1,8 @@
 package com.github.sam0delkin.intellijpsa.action
 
+import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.psi.PsiElementModelHelper
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
@@ -16,7 +17,12 @@ import kotlinx.serialization.json.Json
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
-class GeneratePatternModelAction : AnAction() {
+class GeneratePatternModelAction :
+    AnAction(
+        "Generate Pattern Model",
+        "Generate Pattern Model and copy to clipboard",
+        Icons.PluginIcon,
+    ) {
     override fun actionPerformed(e: AnActionEvent) {
         if (null == e.project) {
             return
@@ -28,9 +34,9 @@ class GeneratePatternModelAction : AnAction() {
 
         val element = PsiManager.getInstance(e.project!!).findFile(file!!)!!.findElementAt(offset) ?: return
 
-        val completionService = e.project!!.service<CompletionService>()
+        val psaManager = e.project!!.service<PsaManager>()
 
-        val model = completionService.psiElementToModel(element)
+        val model = psaManager.psiElementToModel(element)
         val pattern = PsiElementModelHelper.toPattern(model)
 
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard

@@ -1,7 +1,7 @@
 package com.github.sam0delkin.intellijpsa.status.widget
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
-import com.github.sam0delkin.intellijpsa.services.CompletionService
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
@@ -39,8 +39,8 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
 
     override fun isAvailable(project: Project): Boolean =
         try {
-            val completionService = project.service<CompletionService>()
-            val settings = completionService.getSettings()
+            val psaManager = project.service<PsaManager>()
+            val settings = psaManager.getSettings()
 
             settings.pluginEnabled
         } catch (e: IllegalStateException) {
@@ -48,8 +48,8 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
         }
 
     override fun createWidget(project: Project): StatusBarWidget {
-        val completionService = project.service<CompletionService>()
-        val settings = completionService.getSettings()
+        val psaManager = project.service<PsaManager>()
+        val settings = psaManager.getSettings()
         var timer: Timer? = null
 
         return object : StatusBarWidget, StatusBarWidget.IconPresentation {
@@ -107,7 +107,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                     actionGroup.add(
                         object : AnAction("Update Static Completions", "", AllIcons.Actions.Refresh) {
                             override fun actionPerformed(e: AnActionEvent) {
-                                completionService.updateStaticCompletions(
+                                psaManager.updateStaticCompletions(
                                     settings,
                                     project,
                                     settings.scriptPath!!,
@@ -124,7 +124,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                 val thread =
                                     Thread {
                                         try {
-                                            val info = completionService.getInfo(settings, project, settings.scriptPath!!)
+                                            val info = psaManager.getInfo(settings, project, settings.scriptPath!!)
                                             var filter: List<String> = listOf()
                                             var templateCount = 0
 
@@ -138,7 +138,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                                 val templates = info.templates
                                                 templateCount = templates.size
                                             }
-                                            completionService.updateInfo(settings, info)
+                                            psaManager.updateInfo(settings, info)
                                             val languagesString =
                                                 "<ul>" + languages.joinToString("") { i -> "<li>$i</li>" } + "</ul>"
                                             val filterString =
@@ -150,19 +150,20 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                                     "Successfully retrieved info: <br />" +
                                                         "Supported Languages: $languagesString<br />" +
                                                         "GoTo Element Filter: $filterString<br />" +
+                                                        "Editor Actions: ${info.editorActions?.size ?: 0}<br />" +
                                                         "Template Count: $templateCount",
                                                     NotificationType.INFORMATION,
                                                 ).notify(project)
-                                            completionService.lastResultSucceed = true
-                                            completionService.lastResultMessage = ""
+                                            psaManager.lastResultSucceed = true
+                                            psaManager.lastResultMessage = ""
                                         } catch (e: Exception) {
-                                            completionService.lastResultSucceed = false
-                                            completionService.lastResultMessage = e.message.toString()
+                                            psaManager.lastResultSucceed = false
+                                            psaManager.lastResultMessage = e.message.toString()
                                             NotificationGroupManager
                                                 .getInstance()
                                                 .getNotificationGroup("PSA Notification")
                                                 .createNotification(
-                                                    completionService.lastResultMessage,
+                                                    psaManager.lastResultMessage,
                                                     NotificationType.ERROR,
                                                 ).notify(project)
                                         }
@@ -176,11 +177,11 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                 actionGroup.add(
                     object : AnAction("Show Last Error", "", AllIcons.Debugger.Db_exception_breakpoint) {
                         override fun actionPerformed(e: AnActionEvent) {
-                            if ("" !== completionService.lastResultMessage) {
+                            if ("" !== psaManager.lastResultMessage) {
                                 NotificationGroupManager
                                     .getInstance()
                                     .getNotificationGroup("PSA Notification")
-                                    .createNotification(completionService.lastResultMessage, NotificationType.ERROR)
+                                    .createNotification(psaManager.lastResultMessage, NotificationType.ERROR)
                                     .notify(project)
                             }
                         }
@@ -196,7 +197,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
             }
 
             override fun getTooltipText(): String {
-                if (completionService.lastResultSucceed) {
+                if (psaManager.lastResultSucceed) {
                     return "PSA: Working"
                 }
 
@@ -210,7 +211,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
             }
 
             override fun getIcon(): Icon {
-                if (completionService.lastResultSucceed) {
+                if (psaManager.lastResultSucceed) {
                     return Icons.PluginActiveIcon
                 }
 

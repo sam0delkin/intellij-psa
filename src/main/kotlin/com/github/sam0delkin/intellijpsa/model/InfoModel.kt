@@ -6,6 +6,32 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+enum class EditorActionSource {
+    @SerialName("editor")
+    @JsonProperty("editor")
+    Editor,
+
+    @SerialName("clipboard")
+    @JsonProperty("clipboard")
+    Clipboard,
+}
+
+@Serializable
+enum class EditorActionTarget {
+    @SerialName("editor")
+    @JsonProperty("editor")
+    Editor,
+
+    @SerialName("clipboard")
+    @JsonProperty("clipboard")
+    Clipboard,
+
+    @SerialName("noting")
+    @JsonProperty("noting")
+    Nothing,
+}
+
+@Serializable
 enum class TemplateType {
     @SerialName("single_file")
     @JsonProperty("single_file")
@@ -42,6 +68,22 @@ class FileTemplateModel {
 }
 
 @Serializable
+class EditorActionModel {
+    val name: String = ""
+    val title: String = ""
+
+    @SerialName("group_name")
+    @JsonProperty("group_name")
+    val groupName: String? = null
+
+    @SerialName("path_regex")
+    @JsonProperty("path_regex")
+    val pathRegex: String? = null
+    val source: EditorActionSource = EditorActionSource.Editor
+    val target: EditorActionTarget = EditorActionTarget.Editor
+}
+
+@Serializable
 class StaticCompletionModel {
     val name: String = ""
     val title: String? = null
@@ -75,4 +117,8 @@ class InfoModel {
     @SerialName("supports_static_completions")
     @JsonProperty("supports_static_completions")
     val supportsStaticCompletions: Boolean? = null
+
+    @SerialName("editor_actions")
+    @JsonProperty("editor_actions")
+    val editorActions: List<EditorActionModel>? = null
 }
