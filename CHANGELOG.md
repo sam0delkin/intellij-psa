@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.19] - 2025-03-13
 - Refactorings of static completions
 - Introduced editor actions. For more details, see https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#editor-actions
 - Minor bug fixes and performance improvements
@@ -130,7 +132,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.18...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.19...HEAD
+[0.0.19]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.18...v0.0.19
 [0.0.18]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.15...v0.0.16
