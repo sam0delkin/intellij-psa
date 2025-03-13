@@ -9,7 +9,7 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.19
+  version: 0.0.20
 paths:
   /GenerateFileFromTemplate:
     post:
@@ -354,6 +354,12 @@ components:
           type: object
           additionalProperties:
             type: string
+        any_parent:
+          $ref: "#/components/schemas/PsiElementPatternModel"
+        any_prev:
+          $ref: "#/components/schemas/PsiElementPatternModel"
+        any_next:
+          $ref: "#/components/schemas/PsiElementPatternModel"
     StaticCompletionModel:
       type: object
       properties:

@@ -3,6 +3,9 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Remove some Intellij Internal API usage
+- Added support of `any_parent`, `any_next`, `any_prev` to `PsiElementPatternModel` for easier pattern matching
+- Fixed some bugs when static completions are not automatically updated
 
 ## [0.0.19] - 2025-03-13
 - Refactorings of static completions

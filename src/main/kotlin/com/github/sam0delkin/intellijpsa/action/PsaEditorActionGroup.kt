@@ -125,10 +125,6 @@ class PsaEditorActionGroup :
                                 }
                             }
                         }
-
-                        public override fun setShortcutSet(shortcutSet: ShortcutSet) {
-                            super.setShortcutSet(shortcutSet)
-                        }
                     }
 
                 if (null === action.groupName) {

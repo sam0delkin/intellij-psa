@@ -102,6 +102,7 @@ class PsaStartupActivity :
                         psaManager.lastResultSucceed = false
                         psaManager.lastResultMessage = e.message.toString()
                     }
+                    psaManager.updateStaticCompletions(settings, project, settings.scriptPath!!, false)
                     val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
                     if (null === project.service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
                         project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)

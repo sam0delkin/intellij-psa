@@ -107,8 +107,6 @@ class PsaManager(
             throw Exception(result!!.stdout + "\n" + result!!.stderr)
         }
 
-        this.updateStaticCompletions(settings, project, path, debug)
-
         return Json.decodeFromString<InfoModel>(result!!.stdout)
     }
 
@@ -117,6 +115,7 @@ class PsaManager(
         project: Project,
         path: String,
         debug: Boolean? = null,
+        progressIndicator: ProgressIndicator? = null,
     ): StaticCompletionsModel? {
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput?
@@ -126,7 +125,7 @@ class PsaManager(
         commandLine.environment["PSA_TYPE"] = RequestType.GetStaticCompletions.toString()
         commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
-        val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
+        val indicator = progressIndicator ?: ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
         try {
             ApplicationUtil.runWithCheckCanceled(
@@ -189,10 +188,27 @@ class PsaManager(
             return
         }
 
+        var previousIndicator: ProgressIndicator? = null
+
         ProgressManager.getInstance().run(
             object : Backgroundable(project, "PSA: Updating static completions ...") {
                 override fun run(indicator: ProgressIndicator) {
-                    val completions = getStaticCompletions(settings, project, path, debug)
+                    if (previousIndicator != null) {
+                        previousIndicator!!.cancel()
+                    }
+
+                    previousIndicator = indicator
+
+                    if (indicator.isCanceled) {
+                        return
+                    }
+
+                    val completions = getStaticCompletions(settings, project, path, debug, indicator)
+
+                    if (indicator.isCanceled) {
+                        return
+                    }
+
                     settings.staticCompletionConfigs = completions?.staticCompletions
                 }
             },

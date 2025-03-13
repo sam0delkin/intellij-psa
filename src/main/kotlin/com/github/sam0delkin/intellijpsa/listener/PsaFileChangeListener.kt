@@ -56,6 +56,7 @@ class PsaFileChangeListener : AsyncFileListener {
                                 psaManager.lastResultSucceed = false
                                 psaManager.lastResultMessage = e.message.toString()
                             }
+                            psaManager.updateStaticCompletions(settings, project, settings.scriptPath!!, false)
                         }
                     },
                     500,

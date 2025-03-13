@@ -644,7 +644,10 @@ with `PSA_TYPE` = `GetStaticCompletions`. Your script should return JSON with th
             "additionalProp1": "string",
             "additionalProp2": "string",
             "additionalProp3": "string"
-          }
+          },
+          "any_parent": "string",
+          "any_prev": "string",
+          "any_next": "string"
         }
       ],
       "completions": {
