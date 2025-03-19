@@ -25,7 +25,6 @@ import com.jetbrains.rd.util.string.printToString
 import org.apache.velocity.VelocityContext
 import org.apache.velocity.app.Velocity
 import org.apache.velocity.util.introspection.UberspectImpl
-import org.apache.velocity.util.introspection.UberspectPublicFields
 import java.io.StringWriter
 import java.util.Properties
 
@@ -159,7 +158,7 @@ class AnyCompletionContributor {
                                 val properties = Properties()
                                 properties.setProperty(
                                     "introspector.uberspect.class",
-                                    UberspectImpl::class.java.name + ", " + UberspectPublicFields::class.java.name,
+                                    UberspectImpl::class.java.name,
                                 )
                                 Velocity.init(properties)
                                 json.completions =
