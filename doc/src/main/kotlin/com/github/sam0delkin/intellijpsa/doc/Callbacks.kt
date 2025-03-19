@@ -2,7 +2,7 @@
 
 package com.github.sam0delkin.intellijpsa.doc
 
-import com.github.sam0delkin.intellijpsa.model.CompletionsModel
+import com.github.sam0delkin.intellijpsa.model.CompletionModel
 import com.github.sam0delkin.intellijpsa.model.EditorActionInputModel
 import com.github.sam0delkin.intellijpsa.model.GenerateFileFromTemplateData
 import com.github.sam0delkin.intellijpsa.model.InfoModel
@@ -79,7 +79,7 @@ class Callbacks {
             ApiResponse(
                 responseCode = "200",
                 description = "Completions Model",
-                content = [Content(mediaType = "application/json", schema = Schema(implementation = CompletionsModel::class))],
+                content = [Content(mediaType = "application/json", schema = Schema(implementation = CompletionModel::class))],
             ),
         ],
     )
@@ -124,7 +124,7 @@ class Callbacks {
                 Content(mediaType = "application/json", schema = Schema(implementation = PsiElementModel::class)),
             ],
         ) psaContext: String,
-    ): CompletionsModel? = null
+    ): CompletionModel? = null
 
     @Operation(
         tags = ["Methods"],

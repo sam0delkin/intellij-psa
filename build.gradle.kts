@@ -1,4 +1,3 @@
-import io.swagger.v3.plugins.gradle.tasks.ResolveTask.Format
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import java.util.Base64
@@ -30,9 +29,7 @@ plugins {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-    implementation("io.swagger.core.v3:swagger-core:2.2.28")
-    implementation("javax.ws.rs:javax.ws.rs-api:2.1.1")
-    implementation("org.slf4j:slf4j-simple:2.0.17")
+    compileOnly("org.apache.velocity:velocity-engine-core:2.4.1")
 }
 
 group = properties("pluginGroup")
@@ -160,13 +157,5 @@ tasks {
                     .first(),
             ),
         )
-    }
-
-    resolve {
-        outputFileName.set("doc")
-        outputFormat.set(Format.YAML)
-        prettyPrint.set(true)
-        classpath.from(sourceSets.main.get().output)
-        outputDir.set(file("doc"))
     }
 }

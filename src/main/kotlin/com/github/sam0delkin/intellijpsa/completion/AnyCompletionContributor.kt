@@ -1,19 +1,16 @@
 package com.github.sam0delkin.intellijpsa.completion
 
-import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.model.CompletionsModel
+import com.github.sam0delkin.intellijpsa.model.ExtendedCompletionsModel
 import com.github.sam0delkin.intellijpsa.model.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.psi.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.services.RequestType
-import com.github.sam0delkin.intellijpsa.util.PsiUtil
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.completion.CompletionType
-import com.intellij.codeInsight.completion.PrioritizedLookupElement
-import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -25,6 +22,12 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.jetbrains.rd.util.string.printToString
+import org.apache.velocity.VelocityContext
+import org.apache.velocity.app.Velocity
+import org.apache.velocity.util.introspection.UberspectImpl
+import org.apache.velocity.util.introspection.UberspectPublicFields
+import java.io.StringWriter
+import java.util.Properties
 
 class AnyCompletionContributor {
     class Completion : CompletionContributor() {
@@ -56,7 +59,7 @@ class AnyCompletionContributor {
                         }
 
                         val model = psaManager.psiElementToModel(parameters.originalPosition!!)
-                        var json: CompletionsModel? = null
+                        var json: ExtendedCompletionsModel? = null
 
                         if (null !== settings.staticCompletionConfigs) {
                             for (i in settings.staticCompletionConfigs!!) {
@@ -67,8 +70,7 @@ class AnyCompletionContributor {
                                 for (j in i.patterns) {
                                     if (PsiElementModelHelper.matches(model, j)) {
                                         if (null === json) {
-                                            json = CompletionsModel()
-                                            json.completions = ArrayList(i.completions!!.completions!!)
+                                            json = ExtendedCompletionsModel.createFromModel(i.completions!!)
                                         } else {
                                             json.completions = json.completions!! + ArrayList(i.completions!!.completions!!)
                                         }
@@ -98,34 +100,9 @@ class AnyCompletionContributor {
                             return
                         }
 
-                        if (null !== json.completions) {
-                            for (i in json.completions!!) {
-                                var priority = 0.0
-                                var element = LookupElementBuilder.create(i.text ?: "")
-                                element = element.withIcon(Icons.PluginIcon)
-
-                                if (true == i.bold) {
-                                    element = element.bold()
-                                    priority = 100.0
-                                }
-
-                                if (null !== i.presentableText) {
-                                    element = element.withPresentableText(i.presentableText)
-                                }
-
-                                if (i.tailText != null) {
-                                    element = element.withTailText(i.tailText)
-                                }
-
-                                if (i.type != null) {
-                                    element = element.withTypeText(i.type)
-                                }
-
-                                if (i.priority != null) {
-                                    priority = i.priority
-                                }
-
-                                resultSet.addElement(PrioritizedLookupElement.withPriority(element, priority))
+                        if (null !== json.extendedCompletions) {
+                            for (i in json.extendedCompletions!!) {
+                                resultSet.addElement(i.toCompletionLookupElement())
                             }
                         }
 
@@ -151,7 +128,7 @@ class AnyCompletionContributor {
             val settings = psaManager.getSettings()
             val language = sourceElement.containingFile.language
             var languageString = language.id
-            var psiElements = ArrayList<PsiElement>()
+            val psiElements = ArrayList<PsiElement>()
             if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
                 languageString = language.baseLanguage!!.id
             }
@@ -168,19 +145,58 @@ class AnyCompletionContributor {
             var json: CompletionsModel? = null
 
             if (null !== settings.staticCompletionConfigs) {
-                for (i in settings.staticCompletionConfigs!!) {
-                    if (null === i.patterns) {
+                for (config in settings.staticCompletionConfigs!!) {
+                    if (null === config.patterns) {
                         continue
                     }
 
-                    for (j in i.patterns) {
-                        if (PsiElementModelHelper.matches(model, j)) {
+                    for (pattern in config.patterns) {
+                        if (PsiElementModelHelper.matches(model, pattern)) {
                             json = CompletionsModel()
-                            json.completions = ArrayList(i.completions!!.completions!!)
-                            json.completions = ArrayList(json.completions!!).filter { it.text == sourceElement.text }
+                            json.completions = ArrayList(config.completions!!.completions!!)
+                            var notificationShown = false
+                            if (config.matcher != null) {
+                                val properties = Properties()
+                                properties.setProperty(
+                                    "introspector.uberspect.class",
+                                    UberspectImpl::class.java.name + ", " + UberspectPublicFields::class.java.name,
+                                )
+                                Velocity.init(properties)
+                                json.completions =
+                                    ArrayList(json.completions!!).filter {
+                                        val writer = StringWriter()
+                                        val context = VelocityContext()
+                                        context.put("completion", it)
+                                        context.put("model", model)
 
-                            if (json.completions?.size != 1) {
-                                json = i.completions
+                                        try {
+                                            Velocity.evaluate(context, writer, "", config.matcher)
+                                        } catch (e: Exception) {
+                                            if (!notificationShown) {
+                                                NotificationGroupManager
+                                                    .getInstance()
+                                                    .getNotificationGroup("PSA Notification")
+                                                    .createNotification(
+                                                        "Error evaluating static completion matcher",
+                                                        e.message!!,
+                                                        NotificationType.ERROR,
+                                                    ).notify(project)
+
+                                                notificationShown = true
+                                            }
+
+                                            return@filter false
+                                        }
+
+                                        val result = writer.buffer.toString()
+
+                                        result == "true" || result == "1"
+                                    }
+                            } else {
+                                json.completions = ArrayList(json.completions!!).filter { it.text == sourceElement.text }
+                                if (json.completions?.size != 1) {
+                                    json = config.completions
+                                }
                             }
 
                             break
@@ -215,13 +231,9 @@ class AnyCompletionContributor {
             }
 
             if (json.completions != null) {
-                for (i in json.completions!!) {
-                    val linkData = i.link ?: ""
-                    var text = i.text ?: linkData
-                    if (i.presentableText != null) {
-                        text = i.presentableText
-                    }
-                    psiElements = PsiUtil.processLink(linkData, text, settings, project)
+                val completions = ExtendedCompletionsModel.createFromModel(json)
+                for (completionModel in completions.extendedCompletions!!) {
+                    completionModel.toGoToElementList(project)?.let { psiElements.add(it) }
                 }
             }
 
@@ -237,7 +249,7 @@ private fun processNotifications(
     project: Project,
 ) {
     if (null !== json.notifications) {
-        for (i in json.notifications) {
+        for (i in json.notifications!!) {
             var notificationType = NotificationType.INFORMATION
 
             when (i.type) {

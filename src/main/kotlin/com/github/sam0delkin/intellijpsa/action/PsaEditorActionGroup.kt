@@ -24,6 +24,7 @@ import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import kotlin.concurrent.thread
 
+@Suppress("KotlinConstantConditions")
 class PsaEditorActionGroup :
     ActionGroup(
         "PSA Actions",
@@ -128,6 +129,10 @@ class PsaEditorActionGroup :
                     }
 
                 if (null === action.groupName) {
+                    if (!actions.containsKey(null)) {
+                        actions.set(null, arrayListOf())
+                    }
+
                     actions.get(null)!!.add(newAction)
                 } else {
                     if (!actions.containsKey(action.groupName)) {
@@ -156,7 +161,7 @@ class PsaEditorActionGroup :
                 }
             } else {
                 val actionGroup =
-                    object : ActionGroup(actionGroupName, false) {
+                    object : DefaultActionGroup(actionGroupName, true) {
                         override fun getChildren(e: AnActionEvent?): Array<AnAction> = actions[actionGroupName]!!.toTypedArray()
                     }
 

@@ -36,6 +36,7 @@ class ProjectSettingsForm(
 ) : Configurable {
     private lateinit var enabled: Cell<JBCheckBox>
     private lateinit var debug: Cell<JBCheckBox>
+    private lateinit var showErrors: Cell<JBCheckBox>
     private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
     private lateinit var pathMappings: Cell<PathMappingsComponent>
     private lateinit var supportedLanguages: Cell<JTextField>
@@ -56,6 +57,9 @@ class ProjectSettingsForm(
                     row("Debug") {
                         debug = checkBox("")
                     }.rowComment("Debug mode. Passed as `PSA_DEBUG` into the executable script")
+                    row("Show Errors") {
+                        showErrors = checkBox("")
+                    }.rowComment("Show all errors from the executable script, despite debug mode")
                     row("Script Path") {
                         scriptPath =
                             Utils
@@ -213,6 +217,7 @@ class ProjectSettingsForm(
         (
             enabled.component.isSelected != settings.pluginEnabled ||
                 debug.component.isSelected != settings.debug ||
+                showErrors.component.isSelected != settings.showErrors ||
 
                 scriptPath.component.text != settings.scriptPath ||
                 pathMappings.component.mappingSettings.pathMappings
@@ -228,6 +233,7 @@ class ProjectSettingsForm(
     override fun reset() {
         enabled.component.setSelected(settings.pluginEnabled)
         debug.component.setSelected(settings.debug)
+        showErrors.component.setSelected(settings.showErrors)
         scriptPath.component.setText(settings.scriptPath)
         settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
         pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
@@ -242,6 +248,7 @@ class ProjectSettingsForm(
         val psaManager = project.service<PsaManager>()
         settings.pluginEnabled = enabled.component.isSelected
         settings.debug = debug.component.isSelected
+        settings.showErrors = showErrors.component.isSelected
         settings.scriptPath = scriptPath.component.text.trim()
         settings.pathMappings =
             pathMappings.component.mappingSettings.pathMappings

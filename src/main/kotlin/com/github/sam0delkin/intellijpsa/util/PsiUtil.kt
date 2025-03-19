@@ -2,6 +2,7 @@ package com.github.sam0delkin.intellijpsa.util
 
 import com.github.sam0delkin.intellijpsa.psi.PsaElement
 import com.github.sam0delkin.intellijpsa.settings.Settings
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -14,10 +15,9 @@ class PsiUtil {
         fun processLink(
             linkData: String,
             text: String,
-            settings: Settings,
             project: Project,
-        ): ArrayList<PsiElement> {
-            val psiElements = ArrayList<PsiElement>()
+        ): PsiElement? {
+            val settings = project.service<Settings>()
             val fm = VirtualFileManager.getInstance()
             val pm = PsiManager.getInstance(project)
             val link = linkData.split(':')
@@ -28,21 +28,26 @@ class PsiUtil {
                 val psiFile = pm.findFile(virtualFile)
                 if (null !== psiFile) {
                     if (link.count() > 1) {
-                        val position =
+                        var position =
                             StringUtils.ordinalIndexOf(psiFile.originalFile.text, "\n", link[1].toInt())
+
+                        if (link.count() > 2) {
+                            position += link[2].toInt()
+                        }
+
                         val element = psiFile.findElementAt(position)
                         if (null !== element) {
-                            psiElements.add(PsaElement(element, text))
+                            return PsaElement(element, text)
                         } else {
-                            psiElements.add(PsaElement(psiFile.firstChild, psiFile.name))
+                            return PsaElement(psiFile.firstChild, psiFile.name)
                         }
                     } else {
-                        psiElements.add(PsaElement(psiFile.firstChild, psiFile.name))
+                        return PsaElement(psiFile.firstChild, psiFile.name)
                     }
                 }
             }
 
-            return psiElements
+            return null
         }
     }
 }

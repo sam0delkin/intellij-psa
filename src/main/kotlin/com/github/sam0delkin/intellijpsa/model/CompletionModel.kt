@@ -5,20 +5,20 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-class CompletionModel {
-    val text: String? = null
-    val bold: Boolean? = null
+open class CompletionModel {
+    var text: String? = null
+    var bold: Boolean? = null
 
     @SerialName("presentable_text")
     @JsonProperty("presentable_text")
-    val presentableText: String? = null
+    var presentableText: String? = null
 
     @SerialName("tail_text")
     @JsonProperty("tail_text")
-    val tailText: String? = null
-    val type: String? = null
-    val priority: Double? = null
-    val link: String? = null
+    var tailText: String? = null
+    var type: String? = null
+    var priority: Double? = null
+    var link: String? = null
 }
 
 @Serializable
@@ -28,7 +28,7 @@ class NotificationModel {
 }
 
 @Serializable
-class CompletionsModel {
+open class CompletionsModel {
     var completions: List<CompletionModel>? = null
-    val notifications: List<NotificationModel>? = null
+    var notifications: List<NotificationModel>? = null
 }

@@ -3,6 +3,14 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Fixed a problem with Editor Action Groups
+- Refactoring of Swagger docs, so main project is now not including swagger classes, plugin size decreased
+- Added a settings option to show errors even if debug is disabled
+- Added an optional property `matcher` to the static completions, which is using Apache Velocity to match elements
+- Added support for better element matching, now you can use a `link` like `FilePath:line:column` to match elements
+- Starting to work on reference contributor. Not available now, but will be added in the future releases
+- Improved documentation
+- Fixed some minor issues
 
 ## [0.0.20] - 2025-03-13
 - Remove some Intellij Internal API usage

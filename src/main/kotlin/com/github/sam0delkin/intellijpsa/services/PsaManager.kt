@@ -116,7 +116,7 @@ class PsaManager(
         path: String,
         debug: Boolean? = null,
         progressIndicator: ProgressIndicator? = null,
-    ): StaticCompletionsModel? {
+    ): ExtendedStaticCompletionsModel? {
         val commandLine: GeneralCommandLine?
         var result: ProcessOutput?
         val innerDebug = if (null !== debug) debug else settings.debug
@@ -160,11 +160,11 @@ class PsaManager(
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
-            return Json.decodeFromString<StaticCompletionsModel>(result!!.stdout)
+            return Json.decodeFromString<ExtendedStaticCompletionsModel>(result!!.stdout)
         } catch (e: Throwable) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
-            if (settings.debug) {
+            if (settings.debug || settings.showErrors) {
                 NotificationGroupManager
                     .getInstance()
                     .getNotificationGroup("PSA Notification")
@@ -336,7 +336,7 @@ class PsaManager(
         } catch (e: Exception) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
-            if (settings.debug) {
+            if (settings.debug || settings.showErrors) {
                 NotificationGroupManager
                     .getInstance()
                     .getNotificationGroup("PSA Notification")
@@ -391,7 +391,7 @@ class PsaManager(
         } catch (e: Exception) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
-            if (settings.debug) {
+            if (settings.debug || settings.showErrors) {
                 NotificationGroupManager
                     .getInstance()
                     .getNotificationGroup("PSA Notification")
@@ -493,7 +493,7 @@ class PsaManager(
         debug: Boolean? = null,
         fromIndex: Boolean = false,
         indicator: ProgressIndicator? = null,
-    ): CompletionsModel? {
+    ): ExtendedCompletionsModel? {
         val result =
             getCompletionsOutput(
                 settings,
@@ -528,7 +528,7 @@ class PsaManager(
             }
             this.lastResultSucceed = false
 
-            if (settings.debug) {
+            if (settings.debug || settings.showErrors) {
                 NotificationGroupManager
                     .getInstance()
                     .getNotificationGroup("PSA Notification")
@@ -539,7 +539,9 @@ class PsaManager(
             return null
         }
 
-        return Json.decodeFromString<CompletionsModel>(result.stdout)
+        val completions = Json.decodeFromString<CompletionsModel>(result.stdout)
+
+        return ExtendedCompletionsModel.createFromModel(completions)
     }
 
     fun psiElementToModel(

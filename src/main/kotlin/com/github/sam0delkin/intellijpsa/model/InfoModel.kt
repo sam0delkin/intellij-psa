@@ -84,11 +84,12 @@ class EditorActionModel {
 }
 
 @Serializable
-class StaticCompletionModel {
+open class StaticCompletionModel {
     val name: String = ""
     val title: String? = null
     val patterns: ArrayList<PsiElementPatternModel>? = null
     val completions: CompletionsModel? = null
+    val matcher: String? = null
 }
 
 @Serializable
@@ -112,7 +113,7 @@ class InfoModel {
     @JsonProperty("supports_batch")
     val supportsBatch: Boolean? = null
 
-    val templates: List<FileTemplateModel>? = null
+    val templates: ArrayList<FileTemplateModel>? = null
 
     @SerialName("supports_static_completions")
     @JsonProperty("supports_static_completions")
@@ -120,5 +121,5 @@ class InfoModel {
 
     @SerialName("editor_actions")
     @JsonProperty("editor_actions")
-    val editorActions: List<EditorActionModel>? = null
+    val editorActions: ArrayList<EditorActionModel>? = null
 }

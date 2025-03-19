@@ -1,7 +1,7 @@
 package com.github.sam0delkin.intellijpsa.settings
 
 import com.github.sam0delkin.intellijpsa.model.EditorActionModel
-import com.github.sam0delkin.intellijpsa.model.StaticCompletionModel
+import com.github.sam0delkin.intellijpsa.model.ExtendedStaticCompletionModel
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -96,6 +96,7 @@ class MultipleFileCodeTemplate : SingleFileCodeTemplate() {
 class Settings : PersistentStateComponent<Settings> {
     var pluginEnabled: Boolean = false
     var debug: Boolean = false
+    var showErrors: Boolean = true
     var scriptPath: String? = ".psa/psa.php"
     var pathMappings: Array<PathMapping>? = arrayOf()
     var goToFilter: String? = ""
@@ -104,9 +105,9 @@ class Settings : PersistentStateComponent<Settings> {
     var executionTimeout: Int = 5000
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
     var multipleFileCodeTemplates: ArrayList<MultipleFileCodeTemplate>? = null
-    var staticCompletionConfigs: ArrayList<StaticCompletionModel>? = null
+    var staticCompletionConfigs: ArrayList<ExtendedStaticCompletionModel>? = null
     var supportsStaticCompletions: Boolean = false
-    var editorActions: List<EditorActionModel>? = null
+    var editorActions: ArrayList<EditorActionModel>? = null
 
     @Override
     override fun getState(): Settings = this
