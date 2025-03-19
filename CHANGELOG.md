@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.21] - 2025-03-19
 - Fixed a problem with Editor Action Groups
 - Refactoring of Swagger docs, so main project is now not including swagger classes, plugin size decreased
 - Added a settings option to show errors even if debug is disabled
@@ -145,7 +147,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.20...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.21...HEAD
+[0.0.21]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.20...v0.0.21
 [0.0.20]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.19...v0.0.20
 [0.0.19]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.18...v0.0.19
 [0.0.18]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.17...v0.0.18
