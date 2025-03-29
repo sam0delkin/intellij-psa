@@ -2,7 +2,7 @@ package com.github.sam0delkin.intellijpsa.status.widget
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.services.PsaManager
-import com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm
+import com.github.sam0delkin.intellijpsa.settings.PsaConfigurable
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -82,7 +82,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                 actionGroup.add(
                     object : AnAction("Settings", "", AllIcons.General.Settings) {
                         override fun actionPerformed(e: AnActionEvent) {
-                            ShowSettingsUtil.getInstance().editConfigurable(project, ProjectSettingsForm(project))
+                            ShowSettingsUtil.getInstance().editConfigurable(project, PsaConfigurable(project))
                         }
                     },
                 )
@@ -110,7 +110,6 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                 psaManager.updateStaticCompletions(
                                     settings,
                                     project,
-                                    settings.scriptPath!!,
                                     settings.debug,
                                 )
                             }

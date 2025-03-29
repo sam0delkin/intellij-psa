@@ -31,12 +31,15 @@ import javax.swing.JSpinner
 import javax.swing.JTextField
 import javax.swing.SpinnerNumberModel
 
-class ProjectSettingsForm(
+class PsaConfigurable(
     private val project: Project,
 ) : Configurable {
     private lateinit var enabled: Cell<JBCheckBox>
     private lateinit var debug: Cell<JBCheckBox>
     private lateinit var showErrors: Cell<JBCheckBox>
+    private lateinit var resolveReferences: Cell<JBCheckBox>
+    private lateinit var useVelocityInIndex: Cell<JBCheckBox>
+    private lateinit var annotateUndefinedElements: Cell<JBCheckBox>
     private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
     private lateinit var pathMappings: Cell<PathMappingsComponent>
     private lateinit var supportedLanguages: Cell<JTextField>
@@ -103,6 +106,21 @@ class ProjectSettingsForm(
                     row("Execution Timeout") {
                         executionTimeout = cell(JSpinner(SpinnerNumberModel(5000, 0, 100000, 1000)))
                     }.rowComment("Maximum execution time for your script (in milliseconds). Default: 5000 milliseconds")
+                    row("Resolve References") {
+                        resolveReferences = checkBox("")
+                    }.rowComment(
+                        "Enable reference resolving. Working only with static completions. Using indexing, so may impact performance.",
+                    )
+                    row("Use Apache Velocity in index process") {
+                        useVelocityInIndex = checkBox("")
+                    }.rowComment(
+                        "During indexing, use Apache Velocity additionally to exact match parser. May significantly decrease indexing performance.",
+                    ).enabledIf(resolveReferences.selected)
+                    row("Annotate undefined references") {
+                        annotateUndefinedElements = checkBox("")
+                    }.rowComment(
+                        "Annotate element with weak warning in case of element text is no found in static completions array.",
+                    )
                     row("Path Mappings") {
                         val pathMappingsComponent = PathMappingsComponent()
                         pathMappingsComponent.text = ""
@@ -218,7 +236,9 @@ class ProjectSettingsForm(
             enabled.component.isSelected != settings.pluginEnabled ||
                 debug.component.isSelected != settings.debug ||
                 showErrors.component.isSelected != settings.showErrors ||
-
+                resolveReferences.component.isSelected != settings.resolveReferences ||
+                useVelocityInIndex.component.isSelected != settings.useVelocityInIndex ||
+                annotateUndefinedElements.component.isSelected != settings.annotateUndefinedElements ||
                 scriptPath.component.text != settings.scriptPath ||
                 pathMappings.component.mappingSettings.pathMappings
                     .joinToString(",") { el -> el.localRoot + " ->" + el.remoteRoot } !=
@@ -234,6 +254,9 @@ class ProjectSettingsForm(
         enabled.component.setSelected(settings.pluginEnabled)
         debug.component.setSelected(settings.debug)
         showErrors.component.setSelected(settings.showErrors)
+        resolveReferences.component.setSelected(settings.resolveReferences)
+        useVelocityInIndex.component.setSelected(settings.useVelocityInIndex)
+        annotateUndefinedElements.component.setSelected(settings.annotateUndefinedElements)
         scriptPath.component.setText(settings.scriptPath)
         settings.pathMappings?.map { el -> pathMappings.component.mappingSettings.add(el) }
         pathMappings.component.setMappingSettings(pathMappings.component.mappingSettings)
@@ -249,6 +272,14 @@ class ProjectSettingsForm(
         settings.pluginEnabled = enabled.component.isSelected
         settings.debug = debug.component.isSelected
         settings.showErrors = showErrors.component.isSelected
+        settings.resolveReferences = resolveReferences.component.isSelected
+        settings.useVelocityInIndex = useVelocityInIndex.component.isSelected
+        settings.annotateUndefinedElements = annotateUndefinedElements.component.isSelected
+
+        if (!settings.resolveReferences) {
+            settings.staticCompletionsHash = ""
+        }
+
         settings.scriptPath = scriptPath.component.text.trim()
         settings.pathMappings =
             pathMappings.component.mappingSettings.pathMappings

@@ -1,6 +1,6 @@
 @file:Suppress("ktlint:standard:no-wildcard-imports")
 
-package com.github.sam0delkin.intellijpsa.action
+package com.github.sam0delkin.intellijpsa.action.template
 
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormField

@@ -15,6 +15,8 @@ Currently, supports:
 * Custom code templates (with variables) based on your code
 * Custom editor actions for convert parts of code to the needed format
 * Static completions for faster experience
+* Resolving references (for static completions)
+* Intentions (for static completions)
 
 ### Supported Languages
 Any language that your IDE supports will be supported by plugin.
@@ -42,6 +44,10 @@ Table of Contents
       * [Completions](#completions)
       * [GoTo](#goto)
   * [Static Completions](#static-completions)
+    * [Generate Pattern Model](#generate-pattern-model)
+    * [Resolving References](#resolving-references)
+      * [Internals](#internals)
+    * [GoTo Matcher](#goto-matcher)
   * [Code Templates](#code-templates)
     * [Single File Template](#single-file-template)
     * [Multiple File Template](#multiple-file-template)
@@ -400,21 +406,25 @@ generation DTO classes for PSA.
 3) Show all execution errors, regardless `debug` option. 
 4) Path to the PSA executable script. Must be an executable file.
 5) ![info](doc/images/balloonInformation.svg) button to update info from your PSA script. 
-6) Maximum script execution timeout. If script will execute longer that this value, execution will be interrupted. 
-7) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
+6) Maximum script execution timeout. If script will execute longer that this value, execution will be interrupted.
+7) Is resolving references is enabled for project. Supported only for static completions.
+8) Is using Apache Velocity is enabled. May significantly increase indexing execution time.
+9) Mark undefined references as weak-warnings. So in case of static completion is available for the element, but there
+is nothing to GoTo, element will be marked as error.
+10) Path mappings (for projects that running remotely (within Docker/Vagrant/etc.)). Source mapping should start from `/`
 as project root. 
-8) Programming languages supported by your autocompletion. Separated by comma, read-only.
-9) ![info](doc/images/balloonInformation.svg) button to get all the languages supported by your IDE. Comma separated. 
+11) Programming languages supported by your autocompletion. Separated by comma, read-only.
+12) ![info](doc/images/balloonInformation.svg) button to get all the languages supported by your IDE. Comma separated. 
 Only one of these languages allowed to be passed in `supported_languages` value. 
-10) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
+13) GoTo element filter returned by you autocompletion. Separated by comma, read-only. Read more in 
 [performance](#goto-optimizations) section.
 
 To configure your autocomplete, follow these actions:
 1) Check the `Plugin Enabled` checkbox (1) for enable plugin
-2) Specify a path to your executable in the `Script Path` field (3)
+2) Specify a path to your executable in the `Script Path` field (4)
 3) Click the ![info](doc/images/balloonInformation.svg) icon right to the `Script Path` field to retrieve info from your executable
-4) After that fields `Supported Languages` (5) and optionally `GoTo Element Filter` (6) will be filled automatically in
-case of your script is return data in valid format
+4) After that fields `Supported Languages` (11) and optionally `GoTo Element Filter` (13) will be filled automatically
+in case of your script is return data in valid format
 5) Save settings
 
 ### Custom autocomplete info
@@ -757,6 +767,38 @@ $this->someClass->someMethod('name');
 //                            |
 ```
 
+#### Resolving References
+
+Such as static completions are not using the PSA script directly, and additionally due to the fact that static
+completions are returning an array of pattern models, it's possible to create an index, which will check all files and
+each element in the file, and if the element is referencing to some another element (via static completion link), we
+can resolve the reference to the original element. This is an optional feature and can be disabled in plugin settings.
+
+Nothing special need to be done to support references resolving, any static completion is supporting it by nature. But
+the only one tricky thing is that indexing is involved in references resolving. And while plugin is using the most
+efficient way to index your files, it's not so efficient to use Apache Velocity in references resolving process. That's
+why Apache Velocity references resolving is added as an additional option in config.
+
+##### Internals
+
+To support references resolving, plugin is using
+[FileBasedIndex](https://plugins.jetbrains.com/docs/intellij/file-based-indexes.html) to index your files. Each time
+when static completions are changed, indexing process is starting to index your files. It's checking each element at 
+each file (which language is in supported languages of your PSA script) to match any pattern of the static
+completions, returned by your PSA script. Tricky thing here is that it's not so efficient to use PSI elements within
+indexing process, and better to wither not use AST tree. The best way is to use 
+[LighterAST](https://plugins.jetbrains.com/docs/intellij/indexing-and-psi-stubs.html#improving-indexing-performance).
+But here is the problem that Lighter AST is not providing any options, resolved elements, etc. So for supporting
+references resolving, you should assume that during indexing process, only parent/any_parent options will be checked
+for referencing your element. But it's actually not a problem, such as during indexing process, plugin is getting only
+**potential** references, and not actual references. Later, when plugin needs to actually resolve the references, it
+will check each element from index that it's actually resolving the reference.
+
+Due to Apache Velocity is not so efficient, we can't use it for references resolving process by default. So, plugin is
+using exact matching by default, but you can switch to Apache Velocity references resolving in plugin settings, but
+this can significantly decrease indexing performance.
+
+
 [sfPathCompletion.php](../../paymeter_2/.psa/src/completions/js/common/sfPathCompletion.php)
 #### GoTo Matcher
 
@@ -1075,7 +1117,7 @@ if ('PerformEditorAction' === $type && $context['action_name'] === 'jsonToPhpArr
 ```
 </details>
 
-And in case of your PSA script will return the value and then you can paste it to any place of your code.
+And in case of your PSA script will return the value, and then you can paste it to any place of your code.
 For example, it's useful with `Generate Pattern Model` action, so. You run this action, copy result into some tmp JSON
 file, remove everything not need, then run your own action to convert it into PHP array and Voilà:
 ![convert_json_to_php_array](doc/images/convert_json_to_php_array.png)
@@ -1160,7 +1202,8 @@ where you can see plugin actions menu.
 - [x] Add support of GoTo
 - [x] Add support of single-file custom code templates with variables
 - [x] Add support of multi-file custom code templates with variables
-- [ ] Add support of intentions
+- [x] Resolving references
+- [x] Add support of intentions (added annotator)
 
 ## FAQ / How To
 

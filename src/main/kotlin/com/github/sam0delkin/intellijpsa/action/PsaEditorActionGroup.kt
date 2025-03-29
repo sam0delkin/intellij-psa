@@ -2,10 +2,11 @@
 
 package com.github.sam0delkin.intellijpsa.action
 
+import com.github.sam0delkin.intellijpsa.action.psa.GeneratePatternModelAction
 import com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon
-import com.github.sam0delkin.intellijpsa.model.EditorActionInputModel
 import com.github.sam0delkin.intellijpsa.model.EditorActionSource
 import com.github.sam0delkin.intellijpsa.model.EditorActionTarget
+import com.github.sam0delkin.intellijpsa.model.action.EditorActionInputModel
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.intellij.ide.IdeView
 import com.intellij.notification.NotificationGroupManager
@@ -68,6 +69,7 @@ class PsaEditorActionGroup :
                             val editor: Editor = FileEditorManager.getInstance(e.project!!).selectedTextEditor ?: return
                             val file = FileDocumentManager.getInstance().getFile(editor.document)
                             val selectedText = editor.selectionModel.selectedText
+                            val path = VfsUtil.getRelativePath(file!!, e.project!!.guessProjectDir()!!, '/').toString()
 
                             thread {
                                 var result: String? = null
@@ -79,7 +81,7 @@ class PsaEditorActionGroup :
                                             e.project!!,
                                             EditorActionInputModel(
                                                 action.name,
-                                                file!!.name,
+                                                path,
                                                 selectedText,
                                             ),
                                         )
@@ -90,7 +92,7 @@ class PsaEditorActionGroup :
                                             e.project!!,
                                             EditorActionInputModel(
                                                 action.name,
-                                                file!!.name,
+                                                path,
                                                 clipboard.getData(DataFlavor.stringFlavor).toString(),
                                             ),
                                         )

@@ -2,13 +2,13 @@
 
 package com.github.sam0delkin.intellijpsa.doc
 
-import com.github.sam0delkin.intellijpsa.model.CompletionModel
-import com.github.sam0delkin.intellijpsa.model.EditorActionInputModel
-import com.github.sam0delkin.intellijpsa.model.GenerateFileFromTemplateData
 import com.github.sam0delkin.intellijpsa.model.InfoModel
-import com.github.sam0delkin.intellijpsa.model.PsiElementModel
 import com.github.sam0delkin.intellijpsa.model.StaticCompletionsModel
-import com.github.sam0delkin.intellijpsa.model.TemplateDataModel
+import com.github.sam0delkin.intellijpsa.model.action.EditorActionInputModel
+import com.github.sam0delkin.intellijpsa.model.completion.CompletionModel
+import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModel
+import com.github.sam0delkin.intellijpsa.model.template.GenerateFileFromTemplateData
+import com.github.sam0delkin.intellijpsa.model.template.TemplateDataModel
 import com.github.sam0delkin.intellijpsa.util.BuildConfig
 import io.swagger.v3.oas.annotations.OpenAPIDefinition
 import io.swagger.v3.oas.annotations.Operation

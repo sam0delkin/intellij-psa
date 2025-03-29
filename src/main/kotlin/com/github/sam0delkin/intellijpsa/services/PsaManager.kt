@@ -2,8 +2,16 @@
 
 package com.github.sam0delkin.intellijpsa.services
 
+import com.github.sam0delkin.intellijpsa.index.INDEX_ID
 import com.github.sam0delkin.intellijpsa.model.*
-import com.github.sam0delkin.intellijpsa.model.IndexedPsiElementModel
+import com.github.sam0delkin.intellijpsa.model.action.EditorActionInputModel
+import com.github.sam0delkin.intellijpsa.model.completion.CompletionsModel
+import com.github.sam0delkin.intellijpsa.model.psi.IndexedPsiElementModel
+import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModel
+import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModelChild
+import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModelTextRange
+import com.github.sam0delkin.intellijpsa.model.template.GenerateFileFromTemplateData
+import com.github.sam0delkin.intellijpsa.model.template.TemplateDataModel
 import com.github.sam0delkin.intellijpsa.settings.*
 import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.github.sam0delkin.intellijpsa.util.FileUtils
@@ -12,6 +20,7 @@ import com.intellij.execution.process.ProcessOutput
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ex.ApplicationUtil
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.*
@@ -19,16 +28,23 @@ import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.*
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.elementType
+import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.apache.velocity.app.Velocity
+import org.apache.velocity.util.introspection.UberspectImpl
 import java.io.File
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
-import kotlin.NoSuchElementException
+import java.security.MessageDigest
+import java.util.Properties
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
@@ -66,6 +82,16 @@ class PsaManager(
     private val elementIgnoredMethods = HashMap<String, List<Method>>()
     var lastResultSucceed: Boolean = true
     var lastResultMessage: String = ""
+    var staticCompletionConfigs: ArrayList<ExtendedStaticCompletionModel>? = null
+
+    init {
+        val properties = Properties()
+        properties.setProperty(
+            "introspector.uberspect.class",
+            UberspectImpl::class.java.name,
+        )
+        Velocity.init(properties)
+    }
 
     fun getSettings(): Settings = this.project.service()
 
@@ -160,7 +186,18 @@ class PsaManager(
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
-            return Json.decodeFromString<ExtendedStaticCompletionsModel>(result!!.stdout)
+            return runReadAction {
+                val json = Json.decodeFromString<ExtendedStaticCompletionsModel>(result!!.stdout)
+                val md = MessageDigest.getInstance("MD5")
+                val digest = md.digest(result!!.stdout.toByteArray())
+                json.hash = digest.joinToString("") { "%02x".format(it) }
+                json.staticCompletions =
+                    json.staticCompletions
+                        ?.map { ExtendedStaticCompletionModel.createFromModel(it, project) }
+                        ?.toCollection(ArrayList())
+
+                return@runReadAction json
+            }
         } catch (e: Throwable) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
@@ -181,10 +218,13 @@ class PsaManager(
     fun updateStaticCompletions(
         settings: Settings,
         project: Project,
-        path: String,
         debug: Boolean? = null,
     ) {
         if (!settings.supportsStaticCompletions) {
+            return
+        }
+
+        if (null == settings.scriptPath) {
             return
         }
 
@@ -203,13 +243,19 @@ class PsaManager(
                         return
                     }
 
-                    val completions = getStaticCompletions(settings, project, path, debug, indicator)
+                    val completions = getStaticCompletions(settings, project, settings.scriptPath!!, debug, indicator)
 
                     if (indicator.isCanceled) {
                         return
                     }
 
-                    settings.staticCompletionConfigs = completions?.staticCompletions
+                    staticCompletionConfigs = completions?.staticCompletions
+
+                    if (settings.resolveReferences && settings.staticCompletionsHash != completions?.hash) {
+                        settings.staticCompletionsHash = completions?.hash
+                        settings.targetElementTypes = arrayListOf()
+                        FileBasedIndex.getInstance().requestRebuild(INDEX_ID)
+                    }
                 }
             },
         )
@@ -541,7 +587,7 @@ class PsaManager(
 
         val completions = Json.decodeFromString<CompletionsModel>(result.stdout)
 
-        return ExtendedCompletionsModel.createFromModel(completions)
+        return ExtendedCompletionsModel.createFromModel(completions, project)
     }
 
     fun psiElementToModel(
@@ -559,7 +605,9 @@ class PsaManager(
         val elementType = element.elementType.printToString()
         val methods: List<Method>
 
-        if (this.elementIgnoredMethods[elementType] !== null) {
+        if (!processOptions) {
+            methods = emptyList()
+        } else if (this.elementIgnoredMethods[elementType] !== null) {
             methods = this.elementIgnoredMethods[elementType]!!
         } else {
             methods =
@@ -571,15 +619,16 @@ class PsaManager(
             this.elementIgnoredMethods[elementType] = methods
         }
 
-        var elementName: String? = null
         val elementFqn: String? = null
-        try {
-            val nameMethod = element.javaClass.methods.first { el -> el.name === "name" }
-            elementName = nameMethod.invoke(element) as String
-        } catch (_: NoSuchElementException) {
-        }
 
-        var elementText = element.text
+        val textCachedValue =
+            CachedValuesManager.getManager(project).createCachedValue {
+                CachedValueProvider.Result.create(
+                    element.text,
+                    PsiModificationTracker.MODIFICATION_COUNT,
+                )
+            }
+        var elementText = textCachedValue.value
         if (elementText.length > MAX_STRING_LENGTH) {
             elementText = elementText.substring(0, MAX_STRING_LENGTH)
         }
@@ -588,17 +637,20 @@ class PsaManager(
         var prevElement: PsiElementModel? = null
         val hashCode: String = System.identityHashCode(element).toString()
         val signature: ArrayList<String> = ArrayList()
-        val signatureMethods = element.javaClass.methods.filter { m -> m.name === "getSignature" }
-        if (signatureMethods.isNotEmpty()) {
-            val method = signatureMethods.first()
-            var signatureValue =
-                try {
-                    method.invoke(element) as String
-                } catch (e: InvocationTargetException) {
-                    ""
-                }
-            signatureValue = signatureValue.replace(Regex("#."), "")
-            signature.addAll(signatureValue.split("|"))
+
+        if (processOptions) {
+            val signatureMethods = element.javaClass.methods.filter { m -> m.name === "getSignature" }
+            if (signatureMethods.isNotEmpty()) {
+                val method = signatureMethods.first()
+                var signatureValue =
+                    try {
+                        method.invoke(element) as String
+                    } catch (e: InvocationTargetException) {
+                        ""
+                    }
+                signatureValue = signatureValue.replace(Regex("#."), "")
+                signature.addAll(signatureValue.split("|"))
+            }
         }
 
         if (currentProcessedElements.contains(element)) {
@@ -606,7 +658,7 @@ class PsaManager(
                 hashCode,
                 elementType,
                 options,
-                elementName,
+                "",
                 elementFqn,
                 signature,
                 elementText,
@@ -639,7 +691,14 @@ class PsaManager(
                     continue
                 }
 
-                var result = method.invoke(element)
+                val cachedValue =
+                    CachedValuesManager.getManager(project).createCachedValue {
+                        CachedValueProvider.Result.create(
+                            method.invoke(element),
+                            PsiModificationTracker.MODIFICATION_COUNT,
+                        )
+                    }
+                var result = cachedValue.value
                 var optionName = method.name
                 if (0 == optionName.indexOf("get")) {
                     optionName = optionName.substring(3)
@@ -686,48 +745,60 @@ class PsaManager(
             }
         }
 
-        if (element.parent !== null && processParent) {
-            parentElement =
-                this.psiElementToModel(
-                    element.parent,
-                    processParent = true,
-                    processOptions = true,
-                    processChildOptions = true,
-                    processNext = true,
-                    processPrev = true,
-                    processedElements = currentProcessedElements,
-                )
+        if (processParent) {
+            val parent = element.parent
+
+            if (null !== parent) {
+                parentElement =
+                    this.psiElementToModel(
+                        parent,
+                        processParent = true,
+                        processOptions = processOptions,
+                        processChildOptions = processChildOptions,
+                        processNext = true,
+                        processPrev = true,
+                        processedElements = currentProcessedElements,
+                    )
+            }
         }
-        if (processNext && element.nextSibling !== null) {
-            nextElement =
-                this.psiElementToModel(
-                    element.nextSibling,
-                    processParent = false,
-                    processOptions = true,
-                    processChildOptions = true,
-                    processNext = true,
-                    processPrev = false,
-                    processedElements = currentProcessedElements,
-                )
+        if (processNext) {
+            val nextSibling = element.nextSibling
+
+            if (null !== nextSibling) {
+                nextElement =
+                    this.psiElementToModel(
+                        nextSibling,
+                        processParent = false,
+                        processOptions = processOptions,
+                        processChildOptions = processChildOptions,
+                        processNext = true,
+                        processPrev = false,
+                        processedElements = currentProcessedElements,
+                    )
+            }
         }
-        if (processPrev && element.prevSibling !== null) {
-            prevElement =
-                this.psiElementToModel(
-                    element.prevSibling,
-                    processParent = false,
-                    processOptions = true,
-                    processChildOptions = true,
-                    processNext = false,
-                    processPrev = true,
-                    processedElements = currentProcessedElements,
-                )
+        if (processPrev) {
+            val prevSibling = element.prevSibling
+
+            if (null !== prevSibling) {
+                prevElement =
+                    this.psiElementToModel(
+                        prevSibling,
+                        processParent = false,
+                        processOptions = processOptions,
+                        processChildOptions = processChildOptions,
+                        processNext = false,
+                        processPrev = true,
+                        processedElements = currentProcessedElements,
+                    )
+            }
         }
 
         return PsiElementModel(
             hashCode,
             elementType,
             options,
-            elementName,
+            "",
             elementFqn,
             signature,
             elementText,

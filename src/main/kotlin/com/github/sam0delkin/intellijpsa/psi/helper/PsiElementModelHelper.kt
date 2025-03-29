@@ -1,14 +1,19 @@
-package com.github.sam0delkin.intellijpsa.psi
+package com.github.sam0delkin.intellijpsa.psi.helper
 
-import com.github.sam0delkin.intellijpsa.model.PsiElementModel
-import com.github.sam0delkin.intellijpsa.model.PsiElementPatternModel
+import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModel
+import com.github.sam0delkin.intellijpsa.model.psi.PsiElementPatternModel
 import com.github.sam0delkin.intellijpsa.util.PropertyAccessor
+import com.intellij.lang.LighterASTNode
+import com.intellij.lang.LighterASTTokenNode
+import com.intellij.lang.TreeBackedLighterAST
+import com.jetbrains.rd.util.string.printToString
 
 class PsiElementModelHelper {
     companion object {
         fun matches(
             model: PsiElementModel,
             pattern: PsiElementPatternModel,
+            checkOptions: Boolean = true,
         ): Boolean {
             if (null !== pattern.withType && pattern.withType != model.elementType) {
                 return false
@@ -22,7 +27,7 @@ class PsiElementModelHelper {
                 return false
             }
 
-            if (null !== pattern.parent && !matches(model.parent!!, pattern.parent!!)) {
+            if (null !== pattern.parent && !matches(model.parent!!, pattern.parent!!, checkOptions)) {
                 return false
             }
 
@@ -38,7 +43,7 @@ class PsiElementModelHelper {
                         return false
                     }
 
-                    if (matches(currentElement, pattern.anyParent!!)) {
+                    if (matches(currentElement, pattern.anyParent!!, checkOptions)) {
                         return true
                     }
 
@@ -62,7 +67,7 @@ class PsiElementModelHelper {
                         return false
                     }
 
-                    if (matches(currentElement, pattern.anyPrev!!)) {
+                    if (matches(currentElement, pattern.anyPrev!!, checkOptions)) {
                         return true
                     }
 
@@ -70,7 +75,7 @@ class PsiElementModelHelper {
                 }
             }
 
-            if (null !== pattern.prev && !matches(model.prev!!, pattern.prev!!)) {
+            if (null !== pattern.prev && !matches(model.prev!!, pattern.prev!!, checkOptions)) {
                 return false
             }
 
@@ -90,7 +95,7 @@ class PsiElementModelHelper {
                         return false
                     }
 
-                    if (matches(currentElement, pattern.anyNext!!)) {
+                    if (matches(currentElement, pattern.anyNext!!, checkOptions)) {
                         return true
                     }
 
@@ -102,13 +107,59 @@ class PsiElementModelHelper {
                 return false
             }
 
-            if (null !== pattern.withOptions) {
+            if (checkOptions && null !== pattern.withOptions) {
                 for (option in pattern.withOptions!!) {
                     val propertyValue = PropertyAccessor.getPropertyValue(model, option.key)
 
                     if (propertyValue != option.value) {
                         return false
                     }
+                }
+            }
+
+            return true
+        }
+
+        fun matches(
+            tree: TreeBackedLighterAST,
+            element: LighterASTNode,
+            pattern: PsiElementPatternModel,
+        ): Boolean {
+            if (null !== pattern.withType && pattern.withType != element.tokenType.printToString()) {
+                return false
+            }
+
+            if (element is LighterASTTokenNode && pattern.withText != null && pattern.withText != element.text) {
+                return false
+            }
+
+            val parent = tree.getParent(element)
+
+            if (null !== pattern.parent && null === parent) {
+                return false
+            }
+
+            if (null !== pattern.parent && !matches(tree, parent!!, pattern.parent!!)) {
+                return false
+            }
+
+            if (null !== pattern.anyParent && null === parent) {
+                return false
+            }
+
+            if (null !== pattern.anyParent) {
+                var currentElement = parent
+
+                while (true) {
+                    if (null === currentElement) {
+                        return false
+                    }
+
+                    if (matches(tree, currentElement, pattern.anyParent!!)) {
+                        return true
+                    }
+
+                    currentElement = tree.getParent(currentElement)
                 }
             }
 

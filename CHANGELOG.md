@@ -3,6 +3,18 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Passing a relative file path (from project root) to the `PerformEditorAction` action instead of just file name
+- Implemented a smart references to static GoTo. So, even if file is changed, reference to the element will be still
+valid
+- Now you can use a `link` like `FilePath:line:column` to match elements
+- Resolving references. Now you can go back from the GoTo to the original element. Works only in context of static
+completions.
+- Added an optional weak warning (Intention) in case of element is not matching any completions. Works only in context 
+of static completions.
+- Refactor classes/files structure
+- Improved documentation
+- Improved performance
+- Fixed some minor issues
 
 ## [0.0.21] - 2025-03-19
 - Fixed a problem with Editor Action Groups

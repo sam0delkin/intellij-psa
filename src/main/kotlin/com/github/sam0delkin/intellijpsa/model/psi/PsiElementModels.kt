@@ -1,4 +1,4 @@
-package com.github.sam0delkin.intellijpsa.model
+package com.github.sam0delkin.intellijpsa.model.psi
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable

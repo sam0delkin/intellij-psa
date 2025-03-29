@@ -1,4 +1,4 @@
-package com.github.sam0delkin.intellijpsa.model
+package com.github.sam0delkin.intellijpsa.model.action
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.serialization.SerialName

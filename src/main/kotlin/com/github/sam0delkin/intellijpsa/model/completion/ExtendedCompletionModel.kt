@@ -1,5 +1,6 @@
-package com.github.sam0delkin.intellijpsa.model
+package com.github.sam0delkin.intellijpsa.model.completion
 
+import com.github.sam0delkin.intellijpsa.exception.UpdateStaticCompletionsException
 import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.util.PsiUtil
 import com.intellij.codeInsight.completion.PrioritizedLookupElement
@@ -7,12 +8,19 @@ import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import kotlinx.serialization.Serializable
 
 @Serializable
 class ExtendedCompletionModel : CompletionModel() {
+    var reference: SmartPsiElementPointer<PsiElement>? = null
+
     companion object {
-        fun create(completionModel: CompletionModel): ExtendedCompletionModel =
+        fun create(
+            completionModel: CompletionModel,
+            project: Project,
+        ): ExtendedCompletionModel =
             ExtendedCompletionModel().apply {
                 this.text = completionModel.text
                 this.presentableText = completionModel.presentableText
@@ -21,6 +29,10 @@ class ExtendedCompletionModel : CompletionModel() {
                 this.priority = completionModel.priority
                 this.link = completionModel.link
                 this.bold = completionModel.bold
+                val goToElementList = this.toGoToElement(project)
+                if (null !== goToElementList) {
+                    this.reference = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(goToElementList)
+                }
             }
     }
 
@@ -53,7 +65,11 @@ class ExtendedCompletionModel : CompletionModel() {
         return PrioritizedLookupElement.withPriority(element, priority)
     }
 
-    fun toGoToElementList(project: Project): PsiElement? {
+    fun toGoToElement(project: Project): PsiElement? {
+        if (null != this.reference) {
+            return this.reference!!.element ?: throw UpdateStaticCompletionsException()
+        }
+
         val linkData = this.link ?: ""
         var text = this.text ?: linkData
         if (this.presentableText != null) {

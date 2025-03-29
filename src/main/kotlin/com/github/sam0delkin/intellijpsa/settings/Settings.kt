@@ -1,7 +1,6 @@
 package com.github.sam0delkin.intellijpsa.settings
 
 import com.github.sam0delkin.intellijpsa.model.EditorActionModel
-import com.github.sam0delkin.intellijpsa.model.ExtendedStaticCompletionModel
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -105,8 +104,12 @@ class Settings : PersistentStateComponent<Settings> {
     var executionTimeout: Int = 5000
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
     var multipleFileCodeTemplates: ArrayList<MultipleFileCodeTemplate>? = null
-    var staticCompletionConfigs: ArrayList<ExtendedStaticCompletionModel>? = null
     var supportsStaticCompletions: Boolean = false
+    var resolveReferences: Boolean = false
+    var useVelocityInIndex: Boolean = false
+    var annotateUndefinedElements: Boolean = false
+    var targetElementTypes: ArrayList<String>? = null
+    var staticCompletionsHash: String? = null
     var editorActions: ArrayList<EditorActionModel>? = null
 
     @Override

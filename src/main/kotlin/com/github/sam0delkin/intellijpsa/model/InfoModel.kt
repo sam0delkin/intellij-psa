@@ -1,6 +1,8 @@
 package com.github.sam0delkin.intellijpsa.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.github.sam0delkin.intellijpsa.model.completion.CompletionsModel
+import com.github.sam0delkin.intellijpsa.model.psi.PsiElementPatternModel
 import com.github.sam0delkin.intellijpsa.settings.TemplateFormFieldType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -85,11 +87,11 @@ class EditorActionModel {
 
 @Serializable
 open class StaticCompletionModel {
-    val name: String = ""
-    val title: String? = null
-    val patterns: ArrayList<PsiElementPatternModel>? = null
-    val completions: CompletionsModel? = null
-    val matcher: String? = null
+    var name: String = ""
+    var title: String? = null
+    var patterns: ArrayList<PsiElementPatternModel>? = null
+    var completions: CompletionsModel? = null
+    var matcher: String? = null
 }
 
 @Serializable

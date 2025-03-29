@@ -9,8 +9,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectConfigurable
                 parentId="tools"
-                instance="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm"
-                id="com.github.sam0delkin.intellijpsa.settings.ProjectSettingsForm"
+                instance="com.github.sam0delkin.intellijpsa.settings.PsaConfigurable"
+                id="com.github.sam0delkin.intellijpsa.settings.PsaConfigurable"
                 displayName="Project Specific Autocomplete"
                 nonDefaultProject="true"/>
 
@@ -32,11 +32,15 @@
         <backgroundPostStartupActivity implementation="com.github.sam0delkin.intellijpsa.activity.PsaStartupActivity"/>
 
         <iconProvider implementation="com.github.sam0delkin.intellijpsa.ide.presentation.IconProvider"/>
+        <fileBasedIndex implementation="com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex"/>
+        <psi.referenceContributor implementation="com.github.sam0delkin.intellijpsa.psi.reference.PsaReferenceContributor"
+                                  language=""/>
+        <annotator implementationClass="com.github.sam0delkin.intellijpsa.annotator.PsaAnnotator" language=""/>
     </extensions>
     <actions>
         <group
-                id="com.github.sam0delkin.intellijpsa.action.PsaFileTemplateActionGroup"
-                class="com.github.sam0delkin.intellijpsa.action.PsaFileTemplateActionGroup"
+                id="com.github.sam0delkin.intellijpsa.action.template.PsaFileTemplateActionGroup"
+                class="com.github.sam0delkin.intellijpsa.action.template.PsaFileTemplateActionGroup"
                 icon="com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon"
                 popup="true">
             <add-to-group

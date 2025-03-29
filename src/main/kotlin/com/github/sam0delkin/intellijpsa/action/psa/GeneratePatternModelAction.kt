@@ -1,7 +1,7 @@
-package com.github.sam0delkin.intellijpsa.action
+package com.github.sam0delkin.intellijpsa.action.psa
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
-import com.github.sam0delkin.intellijpsa.psi.PsiElementModelHelper
+import com.github.sam0delkin.intellijpsa.psi.helper.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType

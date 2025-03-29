@@ -1,4 +1,4 @@
-package com.github.sam0delkin.intellijpsa.action
+package com.github.sam0delkin.intellijpsa.action.template
 
 import com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon
 import com.github.sam0delkin.intellijpsa.services.PsaManager

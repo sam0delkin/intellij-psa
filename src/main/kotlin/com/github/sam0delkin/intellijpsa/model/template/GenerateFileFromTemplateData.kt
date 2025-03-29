@@ -1,4 +1,4 @@
-package com.github.sam0delkin.intellijpsa.model
+package com.github.sam0delkin.intellijpsa.model.template
 
 import kotlinx.serialization.Serializable
 

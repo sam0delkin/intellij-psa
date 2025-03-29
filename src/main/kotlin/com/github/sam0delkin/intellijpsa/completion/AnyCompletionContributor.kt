@@ -1,9 +1,11 @@
 package com.github.sam0delkin.intellijpsa.completion
 
-import com.github.sam0delkin.intellijpsa.model.CompletionsModel
+import com.github.sam0delkin.intellijpsa.annotator.ANNOTATOR_COMPLETION_TITLE
+import com.github.sam0delkin.intellijpsa.exception.UpdateStaticCompletionsException
 import com.github.sam0delkin.intellijpsa.model.ExtendedCompletionsModel
-import com.github.sam0delkin.intellijpsa.model.IndexedPsiElementModel
-import com.github.sam0delkin.intellijpsa.psi.PsiElementModelHelper
+import com.github.sam0delkin.intellijpsa.model.completion.CompletionsModel
+import com.github.sam0delkin.intellijpsa.model.psi.IndexedPsiElementModel
+import com.github.sam0delkin.intellijpsa.psi.helper.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.services.RequestType
 import com.intellij.codeInsight.completion.CompletionContributor
@@ -14,19 +16,23 @@ import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiReferenceService
+import com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry
 import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.jetbrains.rd.util.string.printToString
 import org.apache.velocity.VelocityContext
 import org.apache.velocity.app.Velocity
-import org.apache.velocity.util.introspection.UberspectImpl
 import java.io.StringWriter
-import java.util.Properties
+
+val RETURN_ALL_STATIC_COMPLETIONS = -2
 
 class AnyCompletionContributor {
     class Completion : CompletionContributor() {
@@ -60,16 +66,16 @@ class AnyCompletionContributor {
                         val model = psaManager.psiElementToModel(parameters.originalPosition!!)
                         var json: ExtendedCompletionsModel? = null
 
-                        if (null !== settings.staticCompletionConfigs) {
-                            for (i in settings.staticCompletionConfigs!!) {
-                                if (null === i.patterns) {
+                        if (null !== psaManager.staticCompletionConfigs) {
+                            for (i in psaManager.staticCompletionConfigs!!) {
+                                if (null == i.patterns) {
                                     continue
                                 }
 
-                                for (j in i.patterns) {
+                                for (j in i.patterns!!) {
                                     if (PsiElementModelHelper.matches(model, j)) {
                                         if (null === json) {
-                                            json = ExtendedCompletionsModel.createFromModel(i.completions!!)
+                                            json = ExtendedCompletionsModel.createFromModel(i.completions!!, project)
                                         } else {
                                             json.completions = json.completions!! + ArrayList(i.completions!!.completions!!)
                                         }
@@ -112,6 +118,7 @@ class AnyCompletionContributor {
         }
     }
 
+    @Service(Service.Level.PROJECT)
     class GotoDeclaration : GotoDeclarationHandler {
         override fun getGotoDeclarationTargets(
             sourceElement: PsiElement?,
@@ -128,6 +135,11 @@ class AnyCompletionContributor {
             val language = sourceElement.containingFile.language
             var languageString = language.id
             val psiElements = ArrayList<PsiElement>()
+
+            if (!settings.pluginEnabled) {
+                return null
+            }
+
             if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
                 languageString = language.baseLanguage!!.id
             }
@@ -136,33 +148,36 @@ class AnyCompletionContributor {
                 return null
             }
 
-            if (!settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString())) {
+            if (
+                !settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString()) &&
+                (
+                    null == settings.targetElementTypes ||
+                        !settings.targetElementTypes!!.contains(sourceElement.elementType.printToString())
+                )
+            ) {
                 return null
             }
+
             val model = psaManager.psiElementToModel(sourceElement)
 
-            var json: CompletionsModel? = null
+            var json: ExtendedCompletionsModel? = null
 
-            if (null !== settings.staticCompletionConfigs) {
-                for (config in settings.staticCompletionConfigs!!) {
+            if (null !== psaManager.staticCompletionConfigs) {
+                for (config in psaManager.staticCompletionConfigs!!) {
                     if (null === config.patterns) {
                         continue
                     }
 
-                    for (pattern in config.patterns) {
+                    for (pattern in config.patterns!!) {
                         if (PsiElementModelHelper.matches(model, pattern)) {
-                            json = CompletionsModel()
-                            json.completions = ArrayList(config.completions!!.completions!!)
+                            json = ExtendedCompletionsModel()
+                            json.extendedCompletions = ArrayList(config.extendedCompletions!!.extendedCompletions!!)
+                            sourceElement.putUserData(ANNOTATOR_COMPLETION_TITLE, config.title)
+
                             var notificationShown = false
                             if (config.matcher != null) {
-                                val properties = Properties()
-                                properties.setProperty(
-                                    "introspector.uberspect.class",
-                                    UberspectImpl::class.java.name,
-                                )
-                                Velocity.init(properties)
-                                json.completions =
-                                    ArrayList(json.completions!!).filter {
+                                json.extendedCompletions =
+                                    ArrayList(json.extendedCompletions!!).filter {
                                         val writer = StringWriter()
                                         val context = VelocityContext()
                                         context.put("completion", it)
@@ -192,9 +207,9 @@ class AnyCompletionContributor {
                                         result == "true" || result == "1"
                                     }
                             } else {
-                                json.completions = ArrayList(json.completions!!).filter { it.text == sourceElement.text }
-                                if (json.completions?.size != 1) {
-                                    json = config.completions
+                                json.extendedCompletions = ArrayList(json.extendedCompletions!!).filter { it.text == sourceElement.text }
+                                if (offset == RETURN_ALL_STATIC_COMPLETIONS || json.extendedCompletions!!.size > 1) {
+                                    json = config.extendedCompletions
                                 }
                             }
 
@@ -208,7 +223,38 @@ class AnyCompletionContributor {
                 }
             }
 
-            if (null === json) {
+            if (json?.extendedCompletions != null) {
+                for (completionModel in json!!.extendedCompletions!!) {
+                    try {
+                        completionModel.toGoToElement(project)?.let { psiElements.add(it) }
+                    } catch (_: UpdateStaticCompletionsException) {
+                        psaManager.updateStaticCompletions(settings, project)
+                        json = null
+
+                        break
+                    }
+                }
+
+                return psiElements.toTypedArray()
+            }
+
+            if (offset >= 0 && !DumbService.getInstance(project).isDumb) {
+                val references = ReferenceProvidersRegistry.getReferencesFromProviders(sourceElement, PsiReferenceService.Hints.NO_HINTS)
+                if (references.isNotEmpty()) {
+                    for (reference in references) {
+                        val resolvedReference = reference.resolve()
+                        if (null != resolvedReference) {
+                            psiElements.add(resolvedReference)
+                        }
+                    }
+                }
+
+                if (psiElements.isNotEmpty()) {
+                    return psiElements.toTypedArray()
+                }
+            }
+
+            if (null === json && offset >= 0) {
                 json =
                     psaManager
                         .getCompletions(
@@ -229,10 +275,15 @@ class AnyCompletionContributor {
                 return null
             }
 
-            if (json.completions != null) {
-                val completions = ExtendedCompletionsModel.createFromModel(json)
-                for (completionModel in completions.extendedCompletions!!) {
-                    completionModel.toGoToElementList(project)?.let { psiElements.add(it) }
+            if (json.extendedCompletions != null) {
+                for (completionModel in json.extendedCompletions!!) {
+                    try {
+                        completionModel.toGoToElement(project)?.let { psiElements.add(it) }
+                    } catch (_: UpdateStaticCompletionsException) {
+                        psaManager.updateStaticCompletions(settings, project)
+
+                        return psiElements.toTypedArray()
+                    }
                 }
             }
 
