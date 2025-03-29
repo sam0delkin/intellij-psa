@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.22] - 2025-03-29
 - Passing a relative file path (from project root) to the `PerformEditorAction` action instead of just file name
 - Implemented a smart references to static GoTo. So, even if file is changed, reference to the element will be still
 valid
@@ -159,7 +161,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.21...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.22...HEAD
+[0.0.22]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.21...v0.0.22
 [0.0.21]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.20...v0.0.21
 [0.0.20]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.19...v0.0.20
 [0.0.19]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.18...v0.0.19
