@@ -798,8 +798,6 @@ Due to Apache Velocity is not so efficient, we can't use it for references resol
 using exact matching by default, but you can switch to Apache Velocity references resolving in plugin settings, but
 this can significantly decrease indexing performance.
 
-
-[sfPathCompletion.php](../../paymeter_2/.psa/src/completions/js/common/sfPathCompletion.php)
 #### GoTo Matcher
 
 By default, PSA is matching static completions for GoTo by just comparing string content of elements, anf if content
