@@ -143,7 +143,7 @@ class MultipleFileTemplateAction(
                                 .getInstance()
                                 .getFileTypeByFileName(fileName)
                         fileTypes.add(newFileType)
-                        this.tabbedPane!!.setTitleAt(key, fileName)
+                        tabbedPane!!.setTitleAt(key, fileName)
                         filePathFields[key].text = "File Path: $filePath"
                         filePaths.add(filePath)
                     }

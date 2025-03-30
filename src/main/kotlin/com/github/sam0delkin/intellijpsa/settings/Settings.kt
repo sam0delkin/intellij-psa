@@ -7,9 +7,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.PathMappingSettings.PathMapping
 import com.intellij.util.xmlb.XmlSerializerUtil
-import kotlinx.serialization.Serializable
 
-@Serializable
 enum class TemplateFormFieldType {
     Text,
     RichText,

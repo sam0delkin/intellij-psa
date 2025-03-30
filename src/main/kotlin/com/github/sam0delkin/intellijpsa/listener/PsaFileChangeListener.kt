@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.listener
 
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.ProjectManager
@@ -10,7 +11,9 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import java.util.Timer
 import java.util.TimerTask
 
-class PsaFileChangeListener : AsyncFileListener {
+class PsaFileChangeListener :
+    AsyncFileListener,
+    Disposable {
     private var timer: Timer? = null
 
     override fun prepareChange(events: MutableList<out VFileEvent>): AsyncFileListener.ChangeApplier? {
@@ -65,5 +68,12 @@ class PsaFileChangeListener : AsyncFileListener {
         }
 
         return null
+    }
+
+    override fun dispose() {
+        if (null !== timer) {
+            timer!!.cancel()
+            timer = null
+        }
     }
 }

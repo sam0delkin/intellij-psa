@@ -3,6 +3,7 @@ package com.github.sam0delkin.intellijpsa.index
 import com.github.sam0delkin.intellijpsa.psi.helper.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.util.PsiUtil
+import com.intellij.lang.LighterASTNode
 import com.intellij.lang.LighterASTTokenNode
 import com.intellij.lang.TreeBackedLighterAST
 import com.intellij.openapi.components.service
@@ -12,26 +13,30 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.impl.source.tree.RecursiveLighterASTNodeWalkingVisitor
 import com.intellij.psi.util.elementType
+import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.FileBasedIndex
+import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
 import com.intellij.util.indexing.PsiDependentFileContent
-import com.intellij.util.indexing.SingleEntryFileBasedIndexExtension
-import com.intellij.util.indexing.SingleEntryIndexer
 import com.intellij.util.io.DataExternalizer
+import com.intellij.util.io.EnumeratorIntegerDescriptor
+import com.intellij.util.io.KeyDescriptor
 import com.jetbrains.rd.util.string.printToString
 import org.apache.velocity.VelocityContext
 import org.apache.velocity.app.Velocity
 import java.io.StringWriter
+import java.util.Collections
+import kotlin.math.abs
 
 val INDEX_ID: ID<Int, Map<String, String>> = ID.create("com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex")
 
-class PsaStaticReferenceIndex : SingleEntryFileBasedIndexExtension<Map<String, String>>() {
+class PsaStaticReferenceIndex : FileBasedIndexExtension<Int, Map<String, String>>() {
     override fun getName(): ID<Int, Map<String, String>> = INDEX_ID
 
-    override fun getIndexer(): SingleEntryIndexer<Map<String, String>> {
-        return object : SingleEntryIndexer<Map<String, String>>(true) {
-            override fun computeValue(inputData: FileContent): Map<String, String> {
+    override fun getIndexer(): DataIndexer<Int, Map<String, String>, FileContent> {
+        return object : DataIndexer<Int, Map<String, String>, FileContent> {
+            fun computeValue(inputData: FileContent): Map<String, String> {
                 val manager = inputData.project.service<PsaManager>()
                 val settings = manager.getSettings()
                 val fileResult = mutableMapOf<String, String>()
@@ -65,8 +70,12 @@ class PsaStaticReferenceIndex : SingleEntryFileBasedIndexExtension<Map<String, S
 
                 val visitor =
                     object : RecursiveLighterASTNodeWalkingVisitor(lighterAst) {
-                        override fun visitTokenNode(element: LighterASTTokenNode) {
-                            super.visitTokenNode(element)
+                        override fun visitNode(element: LighterASTNode) {
+                            super.visitNode(element)
+
+                            if (element !is LighterASTTokenNode) {
+                                return
+                            }
 
                             if (!settings.goToFilter!!.contains(element.tokenType.printToString())) {
                                 return
@@ -155,8 +164,19 @@ class PsaStaticReferenceIndex : SingleEntryFileBasedIndexExtension<Map<String, S
 
                 return fileResult
             }
+
+            override fun map(inputData: FileContent): MutableMap<Int, Map<String, String>> {
+                val value = this.computeValue(inputData)
+
+                val file = inputData.file
+                val key = abs(FileBasedIndex.getFileId(file).toDouble()).toInt()
+
+                return Collections.singletonMap(key, value)
+            }
         }
     }
+
+    override fun getKeyDescriptor(): KeyDescriptor<Int> = EnumeratorIntegerDescriptor.INSTANCE
 
     override fun getValueExternalizer(): DataExternalizer<Map<String, String>> = MapDataExternalizer()
 

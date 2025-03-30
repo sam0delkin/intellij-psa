@@ -136,6 +136,13 @@ tasks {
         systemProperty("jb.consents.confirmation.enabled", "false")
     }
 
+    runIde {
+        jvmArgs =
+            listOf(
+                "-XX:+UnlockDiagnosticVMOptions",
+            )
+    }
+
     signPlugin {
         certificateChain.set(base64decode(System.getenv("CERTIFICATE_CHAIN")))
         privateKey.set(base64decode(System.getenv("PRIVATE_KEY")))

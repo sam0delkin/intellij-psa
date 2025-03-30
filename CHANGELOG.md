@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Removed some internal API usages
+- Some small refactorings
 
 ## [0.0.22] - 2025-03-29
 - Passing a relative file path (from project root) to the `PerformEditorAction` action instead of just file name

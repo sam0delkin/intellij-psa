@@ -6,6 +6,7 @@ import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.intellij.ide.util.RunOnceUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
@@ -21,7 +22,8 @@ import java.util.TimerTask
 
 class PsaStartupActivity :
     StartupActivity,
-    DumbAware {
+    DumbAware,
+    Disposable {
     private var timer: Timer? = null
 
     override fun runActivity(project: Project) {
@@ -112,5 +114,12 @@ class PsaStartupActivity :
             },
             500,
         )
+    }
+
+    override fun dispose() {
+        if (null !== timer) {
+            timer!!.cancel()
+            timer = null
+        }
     }
 }
