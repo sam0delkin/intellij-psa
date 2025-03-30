@@ -108,12 +108,12 @@ jobs:
         with:
           files: ${{ github.workspace }}/build/reports/kover/xml/report.xml
 
-      # Cache Plugin Verifier IDEs
-      - name: Setup Plugin Verifier IDEs Cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pluginVerifier/ides
-          key: plugin-verifier-${{ hashFiles('build/listProductsReleases.txt') }}
+#      # Cache Plugin Verifier IDEs
+#      - name: Setup Plugin Verifier IDEs Cache
+#        uses: actions/cache@v3
+#        with:
+#          path: ~/.cache/pluginVerifier/ides
+#          key: plugin-verifier-${{ hashFiles('build/listProductsReleases.txt') }}
 
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
       - name: Run Plugin Verification tasks
