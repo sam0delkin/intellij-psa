@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.24] - 2025-04-03
 - Significantly increased resolving references speed due to rewriting index.
 - References are now showed with icon instead of replacing standard GoTo.
 - Small fixes and improvements.
@@ -168,7 +170,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.23...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.24...HEAD
+[0.0.24]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.22...v0.0.23
 [0.0.22]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.21...v0.0.22
 [0.0.21]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.20...v0.0.21
