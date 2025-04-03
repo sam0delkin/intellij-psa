@@ -3,11 +3,11 @@ package com.github.sam0delkin.intellijpsa.completion
 import com.github.sam0delkin.intellijpsa.annotator.ANNOTATOR_COMPLETION_TITLE
 import com.github.sam0delkin.intellijpsa.exception.UpdateStaticCompletionsException
 import com.github.sam0delkin.intellijpsa.model.ExtendedCompletionsModel
+import com.github.sam0delkin.intellijpsa.model.RequestType
 import com.github.sam0delkin.intellijpsa.model.completion.CompletionsModel
 import com.github.sam0delkin.intellijpsa.model.psi.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.psi.helper.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
-import com.github.sam0delkin.intellijpsa.services.RequestType
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -16,15 +16,13 @@ import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiReferenceService
-import com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry
 import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.jetbrains.rd.util.string.printToString
@@ -177,41 +175,48 @@ class AnyCompletionContributor {
                             var notificationShown = false
                             if (config.matcher != null) {
                                 json.extendedCompletions =
-                                    ArrayList(json.extendedCompletions!!).filter {
-                                        val writer = StringWriter()
-                                        val context = VelocityContext()
-                                        context.put("completion", it)
-                                        context.put("model", model)
+                                    ArrayList(json.extendedCompletions!!)
+                                        .filter {
+                                            val writer = StringWriter()
+                                            val context = VelocityContext()
+                                            context.put("completion", it)
+                                            context.put("model", model)
 
-                                        try {
-                                            Velocity.evaluate(context, writer, "", config.matcher)
-                                        } catch (e: Exception) {
-                                            if (!notificationShown) {
-                                                NotificationGroupManager
-                                                    .getInstance()
-                                                    .getNotificationGroup("PSA Notification")
-                                                    .createNotification(
-                                                        "Error evaluating static completion matcher",
-                                                        e.message!!,
-                                                        NotificationType.ERROR,
-                                                    ).notify(project)
+                                            try {
+                                                Velocity.evaluate(context, writer, "", config.matcher)
+                                            } catch (e: Exception) {
+                                                if (!notificationShown) {
+                                                    NotificationGroupManager
+                                                        .getInstance()
+                                                        .getNotificationGroup("PSA Notification")
+                                                        .createNotification(
+                                                            "Error evaluating static completion matcher",
+                                                            e.message!!,
+                                                            NotificationType.ERROR,
+                                                        ).notify(project)
 
-                                                notificationShown = true
+                                                    notificationShown = true
+                                                }
+
+                                                return@filter false
                                             }
 
-                                            return@filter false
+                                            val result = writer.buffer.toString()
+
+                                            result == "true" || result == "1"
                                         }
-
-                                        val result = writer.buffer.toString()
-
-                                        result == "true" || result == "1"
-                                    }
                             } else {
                                 json.extendedCompletions = ArrayList(json.extendedCompletions!!).filter { it.text == sourceElement.text }
                                 if (offset == RETURN_ALL_STATIC_COMPLETIONS || json.extendedCompletions!!.size > 1) {
                                     json = config.extendedCompletions
                                 }
                             }
+
+                            json!!.extendedCompletions =
+                                json.extendedCompletions!!.map {
+                                    it.completionName = config.title!!
+                                    it
+                                }
 
                             break
                         }
@@ -238,21 +243,21 @@ class AnyCompletionContributor {
                 return psiElements.toTypedArray()
             }
 
-            if (offset >= 0 && !DumbService.getInstance(project).isDumb) {
-                val references = ReferenceProvidersRegistry.getReferencesFromProviders(sourceElement, PsiReferenceService.Hints.NO_HINTS)
-                if (references.isNotEmpty()) {
-                    for (reference in references) {
-                        val resolvedReference = reference.resolve()
-                        if (null != resolvedReference) {
-                            psiElements.add(resolvedReference)
-                        }
-                    }
-                }
-
-                if (psiElements.isNotEmpty()) {
-                    return psiElements.toTypedArray()
-                }
-            }
+//            if (offset >= 0 && !DumbService.getInstance(project).isDumb) {
+//                val references = ReferenceProvidersRegistry.getReferencesFromProviders(sourceElement, PsiReferenceService.Hints.NO_HINTS)
+//                if (references.isNotEmpty()) {
+//                    for (reference in references) {
+//                        val resolvedReference = reference.resolve()
+//                        if (null != resolvedReference) {
+//                            psiElements.add(resolvedReference)
+//                        }
+//                    }
+//                }
+//
+//                if (psiElements.isNotEmpty()) {
+//                    return psiElements.toTypedArray()
+//                }
+//            }
 
             if (null === json && offset >= 0) {
                 json =
@@ -291,6 +296,8 @@ class AnyCompletionContributor {
 
             return psiElements.toTypedArray()
         }
+
+        override fun getActionText(context: DataContext): String = "PSA"
     }
 }
 

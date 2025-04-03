@@ -7,14 +7,13 @@ import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.util.PsiUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceContributor
 import com.intellij.psi.PsiReferenceProvider
 import com.intellij.psi.PsiReferenceRegistrar
-import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.intellij.util.indexing.FileBasedIndex
@@ -37,28 +36,15 @@ class PsaReferenceContributor : PsiReferenceContributor() {
                         return emptyArray()
                     }
 
-                    val targetElements = mutableListOf(element)
                     val project = element.project
                     val psaManager = project.service<PsaManager>()
                     val settings = psaManager.getSettings()
 
-                    if (element is LeafPsiElement) {
-                        targetElements.add(element.parent)
-
-                        if (
-                            null != settings.targetElementTypes &&
-                            !settings.targetElementTypes!!.contains(element.elementType.printToString()) &&
-                            !settings.targetElementTypes!!.contains(element.parent.elementType.printToString())
-                        ) {
-                            return emptyArray()
-                        }
-                    } else {
-                        if (
-                            null != settings.targetElementTypes &&
-                            !settings.targetElementTypes!!.contains(element.elementType.printToString())
-                        ) {
-                            return emptyArray()
-                        }
+                    if (
+                        null != settings.targetElementTypes &&
+                        !settings.targetElementTypes!!.contains(element.elementType.printToString())
+                    ) {
+                        return emptyArray()
                     }
 
                     if (!settings.pluginEnabled) {
@@ -99,66 +85,46 @@ class PsaReferenceContributor : PsiReferenceContributor() {
                     val goToDeclarationHandler = project.service<AnyCompletionContributor.GotoDeclaration>()
 
                     try {
+                        val elementUrl = element.containingFile.virtualFile.url + ":" + element.textOffset
                         val indexKeys =
-                            index.getAllKeys(
+                            index.getValues(
                                 INDEX_ID,
-                                project,
+                                elementUrl,
+                                GlobalSearchScope.projectScope(project),
                             )
 
-                        for (fileId in indexKeys) {
-                            val virtualFile = PersistentFS.getInstance().findFileById(fileId) ?: continue
-                            if (virtualFile.url.indexOf(projectDir.url) != 0) {
-                                continue
-                            }
+                        for (key in indexKeys) {
+                            for (keyEl in key) {
+                                val targetEl =
+                                    PsiUtil.processLink("file://$keyEl", null, project, false)
+                                        ?: continue
 
-                            val fileData = index.getFileData(INDEX_ID, virtualFile, project)
-
-                            fileData.values.map {
-                                it?.map {
-                                    val indexEl = it
-                                    val sourceEls = it.value.split(",")
-                                    sourceEls.map(
-                                        {
-                                            val targetEl = PsiUtil.processLink("file://" + indexEl.key, null, project, false)
-                                            val sourceEl = PsiUtil.processLink(it, null, project)
-                                            if (null == targetEl ||
-                                                null == sourceEl ||
-                                                sourceEl.getOriginalPsiElement().containingFile != element.containingFile
-                                            ) {
-                                                @Suppress("LABEL_NAME_CLASH")
-                                                return@map
-                                            }
-
-                                            val targets =
-                                                goToDeclarationHandler.getGotoDeclarationTargets(
-                                                    targetEl.getOriginalPsiElement(),
-                                                    -1,
-                                                    null,
-                                                )
-
-                                            if (null == targets) {
-                                                @Suppress("LABEL_NAME_CLASH")
-                                                return@map
-                                            }
-
-                                            targets.map {
-                                                var el = it
-                                                if (el is PsaElement) {
-                                                    el = el.getOriginalPsiElement()
-                                                }
-                                                targetElements.map { targetElement ->
-                                                    if (
-                                                        targetElement == sourceEl.getOriginalPsiElement() &&
-                                                        el == sourceEl.getOriginalPsiElement() &&
-                                                        !elements.contains(indexEl.key)
-                                                    ) {
-                                                        elements.add(indexEl.key)
-                                                        list.add(PsaReference(targetElement, targetEl))
-                                                    }
-                                                }
-                                            }
-                                        },
+                                val targets =
+                                    goToDeclarationHandler.getGotoDeclarationTargets(
+                                        targetEl.getOriginalPsiElement(),
+                                        -1,
+                                        null,
                                     )
+
+                                if (null == targets) {
+                                    continue
+                                }
+
+                                val filteredTargets =
+                                    targets.filter {
+                                        if (it is PsaElement) {
+                                            return@filter element == it.getOriginalPsiElement()
+                                        }
+
+                                        return@filter it == element
+                                    }
+
+                                if (
+                                    filteredTargets.isNotEmpty() &&
+                                    !elements.contains(keyEl)
+                                ) {
+                                    elements.add(keyEl)
+                                    list.add(PsaReference(element, targetEl))
                                 }
                             }
                         }

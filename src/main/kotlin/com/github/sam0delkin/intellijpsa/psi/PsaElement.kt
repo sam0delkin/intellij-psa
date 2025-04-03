@@ -11,6 +11,7 @@ import javax.swing.Icon
 class PsaElement(
     private val element: PsiElement,
     private val text: String,
+    private val completionTitle: String? = null,
 ) : FakePsiElement() {
     override fun getParent(): PsiElement = element.parent
 

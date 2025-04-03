@@ -36,6 +36,9 @@
         <psi.referenceContributor implementation="com.github.sam0delkin.intellijpsa.psi.reference.PsaReferenceContributor"
                                   language=""/>
         <annotator implementationClass="com.github.sam0delkin.intellijpsa.annotator.PsaAnnotator" language=""/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="com.github.sam0delkin.intellijpsa.lineMarkerProvider.PsaLineMarkerProvider"
+                language="" />
     </extensions>
     <actions>
         <group

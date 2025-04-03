@@ -18,6 +18,7 @@ class PsiUtil {
             text: String?,
             project: Project,
             appendProjectDir: Boolean = true,
+            completionTitle: String? = null,
         ): PsaElement? {
             val settings = project.service<Settings>()
             val fm = VirtualFileManager.getInstance()
@@ -47,12 +48,12 @@ class PsiUtil {
 
                         val element = psiFile.findElementAt(position)
                         if (null !== element) {
-                            return PsaElement(element, text ?: element.text)
+                            return PsaElement(element, text ?: element.text, completionTitle)
                         } else {
-                            return PsaElement(psiFile.firstChild, psiFile.name)
+                            return PsaElement(psiFile.firstChild, psiFile.name, completionTitle)
                         }
                     } else {
-                        return PsaElement(psiFile.firstChild, psiFile.name)
+                        return PsaElement(psiFile.firstChild, psiFile.name, completionTitle)
                     }
                 }
             }

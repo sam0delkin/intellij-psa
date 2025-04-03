@@ -9,7 +9,7 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.22
+  version: 0.0.24
 paths:
   /GenerateFileFromTemplate:
     post:

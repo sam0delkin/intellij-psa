@@ -50,17 +50,6 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.reflect.full.memberFunctions
 
-enum class RequestType {
-    Completion,
-    BatchCompletion,
-    GoTo,
-    BatchGoTo,
-    Info,
-    GenerateFileFromTemplate,
-    GetStaticCompletions,
-    PerformEditorAction,
-}
-
 private const val MAX_STRING_LENGTH = 1000
 
 @Service(Service.Level.PROJECT)

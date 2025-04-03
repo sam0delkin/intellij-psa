@@ -48,7 +48,7 @@ class PsaAnnotator : Annotator {
 
         fileData.values.map {
             it?.map {
-                val sourceEl = PsiUtil.processLink("file://" + it.key, null, element.project, false)
+                val sourceEl = PsiUtil.processLink("file://$it", null, element.project, false)
                 if (sourceEl != null && sourceEl.getOriginalPsiElement().textOffset == element.textOffset) {
                     processed = true
                     val targets =

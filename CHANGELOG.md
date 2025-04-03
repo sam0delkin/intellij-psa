@@ -3,6 +3,9 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Significantly increased resolving references speed due to rewriting index.
+- References are now showed with icon instead of replacing standard GoTo.
+- Small fixes and improvements.
 
 ## [0.0.23] - 2025-03-30
 - Removed some internal API usages

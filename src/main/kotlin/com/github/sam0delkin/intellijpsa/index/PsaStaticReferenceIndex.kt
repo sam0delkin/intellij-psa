@@ -20,26 +20,25 @@ import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
 import com.intellij.util.indexing.PsiDependentFileContent
 import com.intellij.util.io.DataExternalizer
-import com.intellij.util.io.EnumeratorIntegerDescriptor
+import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
 import com.jetbrains.rd.util.string.printToString
 import org.apache.velocity.VelocityContext
 import org.apache.velocity.app.Velocity
 import java.io.StringWriter
-import java.util.Collections
-import kotlin.math.abs
 
-val INDEX_ID: ID<Int, Map<String, String>> = ID.create("com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex")
+val INDEX_ID: ID<String, List<String>> = ID.create("com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex")
 
-class PsaStaticReferenceIndex : FileBasedIndexExtension<Int, Map<String, String>>() {
-    override fun getName(): ID<Int, Map<String, String>> = INDEX_ID
+class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() {
+    override fun getName(): ID<String, List<String>> = INDEX_ID
 
-    override fun getIndexer(): DataIndexer<Int, Map<String, String>, FileContent> {
-        return object : DataIndexer<Int, Map<String, String>, FileContent> {
-            fun computeValue(inputData: FileContent): Map<String, String> {
+    override fun getIndexer(): DataIndexer<String, List<String>, FileContent> {
+        return object : DataIndexer<String, List<String>, FileContent> {
+            override fun map(inputData: FileContent): MutableMap<String, List<String>> {
                 val manager = inputData.project.service<PsaManager>()
                 val settings = manager.getSettings()
-                val fileResult = mutableMapOf<String, String>()
+                val fileResult = mutableMapOf<String, List<String>>()
+                val currentResult = mutableMapOf<String, MutableList<String>>()
                 if (null == settings.targetElementTypes) {
                     settings.targetElementTypes = arrayListOf()
                 }
@@ -148,12 +147,18 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<Int, Map<String, String>
                                         if (!settings.targetElementTypes!!.contains(elementType)) {
                                             settings.targetElementTypes!!.add(elementType)
                                         }
-                                    }
 
-                                    if (!fileResult.containsKey(key)) {
-                                        fileResult.put(key, it)
-                                    } else {
-                                        fileResult[key] = fileResult[key] + "," + it
+                                        val elementUrl =
+                                            psiElement
+                                                .getOriginalPsiElement()
+                                                .containingFile.virtualFile.url + ":" +
+                                                psiElement.getOriginalPsiElement().textOffset
+
+                                        if (!currentResult.containsKey(elementUrl)) {
+                                            currentResult.put(elementUrl, mutableListOf(key))
+                                        } else {
+                                            currentResult[elementUrl]!!.add(key)
+                                        }
                                     }
                                 }
                             }
@@ -162,23 +167,16 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<Int, Map<String, String>
 
                 visitor.visitNode(lighterAst.root)
 
+                currentResult.map { (k, v) -> fileResult.put(k, v.toList()) }
+
                 return fileResult
-            }
-
-            override fun map(inputData: FileContent): MutableMap<Int, Map<String, String>> {
-                val value = this.computeValue(inputData)
-
-                val file = inputData.file
-                val key = abs(FileBasedIndex.getFileId(file).toDouble()).toInt()
-
-                return Collections.singletonMap(key, value)
             }
         }
     }
 
-    override fun getKeyDescriptor(): KeyDescriptor<Int> = EnumeratorIntegerDescriptor.INSTANCE
+    override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
-    override fun getValueExternalizer(): DataExternalizer<Map<String, String>> = MapDataExternalizer()
+    override fun getValueExternalizer(): DataExternalizer<List<String>> = ListDataExternalizer()
 
     override fun getVersion(): Int = 1
 

@@ -5,29 +5,27 @@ import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
 
-class MapDataExternalizer : DataExternalizer<Map<String, String>> {
+class ListDataExternalizer : DataExternalizer<List<String>> {
     @Throws(IOException::class)
     override fun save(
         out: DataOutput,
-        map: Map<String, String>,
+        list: List<String>,
     ) {
-        out.writeInt(map.size)
-        for ((key, value) in map) {
-            out.writeUTF(key)
+        out.writeInt(list.size)
+        for (value in list) {
             out.writeUTF(value)
         }
     }
 
     @Throws(IOException::class)
-    override fun read(`in`: DataInput): Map<String, String> {
+    override fun read(`in`: DataInput): List<String> {
         val size: Int = `in`.readInt()
-        val map: MutableMap<String, String> = HashMap(size)
+        val list: MutableList<String> = mutableListOf()
         for (i in 0..<size) {
-            val key: String = `in`.readUTF()
             val value: String = `in`.readUTF()
-            map[key] = value
+            list.add(value)
         }
 
-        return map
+        return list
     }
 }

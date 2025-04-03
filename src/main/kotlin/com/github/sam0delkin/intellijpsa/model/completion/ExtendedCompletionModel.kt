@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 class ExtendedCompletionModel : CompletionModel() {
     var reference: SmartPsiElementPointer<PsiElement>? = null
+    var completionName: String? = null
 
     companion object {
         fun create(
@@ -76,6 +77,6 @@ class ExtendedCompletionModel : CompletionModel() {
             text = this.presentableText!!
         }
 
-        return PsiUtil.processLink(linkData, text, project)
+        return PsiUtil.processLink(linkData, text, project, true, this.completionName)
     }
 }
