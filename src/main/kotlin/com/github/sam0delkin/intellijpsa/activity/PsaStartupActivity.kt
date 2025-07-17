@@ -96,7 +96,7 @@ class PsaStartupActivity :
             object : TimerTask() {
                 override fun run() {
                     try {
-                        val info = psaManager.getInfo(settings, project, settings.scriptPath!!, false)
+                        val info = psaManager.getInfo(settings, project, false)
                         psaManager.updateInfo(settings, info)
                         psaManager.lastResultSucceed = true
                         psaManager.lastResultMessage = ""

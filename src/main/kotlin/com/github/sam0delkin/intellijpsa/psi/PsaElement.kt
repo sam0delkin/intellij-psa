@@ -1,7 +1,7 @@
 package com.github.sam0delkin.intellijpsa.psi
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
-import com.github.sam0delkin.intellijpsa.util.PsiUtil
+import com.github.sam0delkin.intellijpsa.util.PsiUtils
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
 import com.intellij.psi.PsiElement
@@ -11,7 +11,6 @@ import javax.swing.Icon
 class PsaElement(
     private val element: PsiElement,
     private val text: String,
-    private val completionTitle: String? = null,
 ) : FakePsiElement() {
     override fun getParent(): PsiElement = element.parent
 
@@ -21,7 +20,7 @@ class PsaElement(
 
     override fun getPresentation(): ItemPresentation =
         object : ItemPresentation {
-            override fun getPresentableText(): String = PsiUtil.normalizeElementText(text)
+            override fun getPresentableText(): String = PsiUtils.normalizeElementText(text)
 
             override fun getLocationString(): String {
                 val lineNumber: Int =

@@ -11,6 +11,7 @@ import kotlinx.serialization.Transient
 @Serializable
 class ExtendedStaticCompletionModel : StaticCompletionModel() {
     @Transient
+    @com.intellij.util.xmlb.annotations.Transient
     var extendedCompletions: ExtendedCompletionsModel? = null
 
     companion object {
@@ -29,12 +30,24 @@ class ExtendedStaticCompletionModel : StaticCompletionModel() {
             return extendedModel
         }
     }
+
+    fun toStaticCompletionModel(): StaticCompletionModel {
+        val model = StaticCompletionModel()
+        model.name = name
+        model.title = title
+        model.patterns = patterns
+        model.matcher = matcher
+        model.completions = completions
+
+        return model
+    }
 }
 
 @Serializable
 class ExtendedCompletionsModel : CompletionsModel() {
     @Transient
-    var extendedCompletions: List<ExtendedCompletionModel>? = null
+    @com.intellij.util.xmlb.annotations.Transient
+    var extendedCompletions: MutableList<ExtendedCompletionModel>? = null
 
     companion object {
         fun createFromModel(
@@ -43,7 +56,7 @@ class ExtendedCompletionsModel : CompletionsModel() {
         ): ExtendedCompletionsModel {
             val extendedModel = ExtendedCompletionsModel()
             extendedModel.completions = model.completions
-            extendedModel.extendedCompletions = model.completions!!.map { ExtendedCompletionModel.create(it, project) }
+            extendedModel.extendedCompletions = model.completions!!.map { ExtendedCompletionModel.create(it, project) }.toMutableList()
             extendedModel.notifications = model.notifications
 
             return extendedModel

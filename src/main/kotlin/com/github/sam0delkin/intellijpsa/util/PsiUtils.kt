@@ -11,7 +11,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiManager
 import org.apache.commons.lang3.StringUtils
 
-class PsiUtil {
+class PsiUtils {
     companion object {
         fun processLink(
             linkData: String,
@@ -48,12 +48,12 @@ class PsiUtil {
 
                         val element = psiFile.findElementAt(position)
                         if (null !== element) {
-                            return PsaElement(element, text ?: element.text, completionTitle)
+                            return PsaElement(element, text ?: element.text)
                         } else {
-                            return PsaElement(psiFile.firstChild, psiFile.name, completionTitle)
+                            return PsaElement(psiFile.firstChild, psiFile.name)
                         }
                     } else {
-                        return PsaElement(psiFile.firstChild, psiFile.name, completionTitle)
+                        return PsaElement(psiFile.firstChild, psiFile.name)
                     }
                 }
             }

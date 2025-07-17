@@ -104,6 +104,7 @@ class Settings : PersistentStateComponent<Settings> {
     var multipleFileCodeTemplates: ArrayList<MultipleFileCodeTemplate>? = null
     var supportsStaticCompletions: Boolean = false
     var resolveReferences: Boolean = false
+    var indexFolder: String? = ""
     var useVelocityInIndex: Boolean = false
     var annotateUndefinedElements: Boolean = false
     var targetElementTypes: ArrayList<String>? = null

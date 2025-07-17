@@ -15,7 +15,6 @@ import com.github.sam0delkin.intellijpsa.model.template.TemplateDataModel
 import com.github.sam0delkin.intellijpsa.settings.*
 import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.github.sam0delkin.intellijpsa.util.FileUtils
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessOutput
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -56,7 +55,9 @@ private const val MAX_STRING_LENGTH = 1000
 class PsaManager(
     private val project: Project,
 ) {
-    private val baseMethods = PsiElement::class.memberFunctions.map { el -> el.name }
+    private val baseMethods: List<String>
+        get() = PsiElement::class.memberFunctions.map { el -> el.name }
+
     private val ignoredMethods =
         arrayOf(
             "clone",
@@ -67,11 +68,11 @@ class PsaManager(
             "getTreePrev",
             "getTreeNext",
             "copyElement",
+            "getUserDataString",
         )
     private val elementIgnoredMethods = HashMap<String, List<Method>>()
     var lastResultSucceed: Boolean = true
     var lastResultMessage: String = ""
-    var staticCompletionConfigs: ArrayList<ExtendedStaticCompletionModel>? = null
 
     init {
         val properties = Properties()
@@ -87,14 +88,12 @@ class PsaManager(
     fun getInfo(
         settings: Settings,
         project: Project,
-        path: String,
         debug: Boolean? = null,
     ): InfoModel {
-        val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
         val innerDebug = if (null !== debug) debug else settings.debug
 
-        commandLine = GeneralCommandLine(path)
+        val commandLine = ExecutionUtils.getCommandLine(settings, project)
         commandLine.environment["PSA_TYPE"] = RequestType.Info.toString()
         commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
@@ -122,21 +121,28 @@ class PsaManager(
             throw Exception(result!!.stdout + "\n" + result!!.stderr)
         }
 
-        return Json.decodeFromString<InfoModel>(result!!.stdout)
+        for (extension in EP_NAME.extensionList) {
+            extension.updateInfo(project, result!!.stdout)
+        }
+
+        val json =
+            Json {
+                ignoreUnknownKeys = true
+            }
+
+        return json.decodeFromString<InfoModel>(result!!.stdout)
     }
 
     fun getStaticCompletions(
         settings: Settings,
         project: Project,
-        path: String,
         debug: Boolean? = null,
         progressIndicator: ProgressIndicator? = null,
-    ): ExtendedStaticCompletionsModel? {
-        val commandLine: GeneralCommandLine?
+    ): StaticCompletionsModel? {
         var result: ProcessOutput?
         val innerDebug = if (null !== debug) debug else settings.debug
 
-        commandLine = GeneralCommandLine(path)
+        val commandLine = ExecutionUtils.getCommandLine(settings, project)
         commandLine.environment["PSA_TYPE"] = RequestType.GetStaticCompletions.toString()
         commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
@@ -176,14 +182,7 @@ class PsaManager(
             this.lastResultMessage = ""
 
             return runReadAction {
-                val json = Json.decodeFromString<ExtendedStaticCompletionsModel>(result!!.stdout)
-                val md = MessageDigest.getInstance("MD5")
-                val digest = md.digest(result!!.stdout.toByteArray())
-                json.hash = digest.joinToString("") { "%02x".format(it) }
-                json.staticCompletions =
-                    json.staticCompletions
-                        ?.map { ExtendedStaticCompletionModel.createFromModel(it, project) }
-                        ?.toCollection(ArrayList())
+                val json = Json.decodeFromString<StaticCompletionsModel>(result!!.stdout)
 
                 return@runReadAction json
             }
@@ -232,22 +231,33 @@ class PsaManager(
                         return
                     }
 
-                    val completions = getStaticCompletions(settings, project, settings.scriptPath!!, debug, indicator)
+                    val completions = getStaticCompletions(settings, project, debug, indicator)
 
                     if (indicator.isCanceled) {
                         return
                     }
 
-                    staticCompletionConfigs = completions?.staticCompletions
+                    setStaticCompletionConfigs(completions?.staticCompletions)
 
-                    if (settings.resolveReferences && settings.staticCompletionsHash != completions?.hash) {
-                        settings.staticCompletionsHash = completions?.hash
-                        settings.targetElementTypes = arrayListOf()
-                        FileBasedIndex.getInstance().requestRebuild(INDEX_ID)
+                    if (settings.resolveReferences) {
+                        val oldHash = settings.staticCompletionsHash
+                        updateStaticCompletionsHash(settings)
+
+                        if (oldHash != settings.staticCompletionsHash) {
+                            settings.targetElementTypes = arrayListOf()
+                            FileBasedIndex.getInstance().requestRebuild(INDEX_ID)
+                        }
                     }
                 }
             },
         )
+    }
+
+    fun updateStaticCompletionsHash(settings: Settings) {
+        val md = MessageDigest.getInstance("MD5")
+        val digest =
+            md.digest(Json.encodeToString(this.getStaticCompletionConfigs()).toByteArray())
+        settings.staticCompletionsHash = digest.joinToString("") { "%02x".format(it) }
     }
 
     fun updateInfo(
@@ -327,7 +337,6 @@ class PsaManager(
         originatorFieldName: String?,
         formFields: Map<String, String>,
     ): TemplateDataModel? {
-        val commandLine: GeneralCommandLine?
         val result: ProcessOutput?
 
         try {
@@ -342,7 +351,7 @@ class PsaManager(
                     ),
                 )
             val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
-            commandLine = GeneralCommandLine(settings.scriptPath)
+            val commandLine = ExecutionUtils.getCommandLine(settings, project)
             commandLine.environment["PSA_CONTEXT"] = filePath
             commandLine.environment["PSA_TYPE"] = RequestType.GenerateFileFromTemplate.toString()
             commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
@@ -390,14 +399,13 @@ class PsaManager(
         project: Project,
         action: EditorActionInputModel,
     ): String? {
-        val commandLine: GeneralCommandLine?
         val result: ProcessOutput?
 
         try {
             val data =
                 Json.encodeToString(action)
             val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
-            commandLine = GeneralCommandLine(settings.scriptPath)
+            val commandLine = ExecutionUtils.getCommandLine(settings, project)
             commandLine.environment["PSA_CONTEXT"] = filePath
             commandLine.environment["PSA_TYPE"] = RequestType.PerformEditorAction.toString()
             commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
@@ -446,9 +454,6 @@ class PsaManager(
         requestType: RequestType,
         language: String,
         editorOffset: Int? = null,
-        debug: Boolean? = null,
-        fromIndex: Boolean = false,
-        indicator: ProgressIndicator? = null,
     ): ProcessOutput? {
         if (!settings.pluginEnabled) {
             return null
@@ -462,7 +467,6 @@ class PsaManager(
             val firstModel = model[0]
             val file = File(firstModel.model.filePath!!)
             if (
-                firstModel.model.filePath?.indexOf("example") != 0 &&
                 file.parent.indexOf(settings.getScriptDir()!!) >= 0
             ) {
                 return null
@@ -472,41 +476,28 @@ class PsaManager(
             data = Json.encodeToString(model.map { e -> e.model })
         }
         val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
-        val commandLine: GeneralCommandLine?
         var result: ProcessOutput? = null
-        val debugValue = if (null !== debug) debug else settings.debug
-        val normalizedIndicator = indicator ?: (ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator())
+        val normalizedIndicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
-        commandLine = GeneralCommandLine(settings.scriptPath)
+        val commandLine = ExecutionUtils.getCommandLine(settings, project)
         commandLine.environment["PSA_CONTEXT"] = filePath
         commandLine.environment["PSA_TYPE"] = requestType.toString()
         commandLine.environment["PSA_LANGUAGE"] = language
         commandLine.environment["PSA_OFFSET"] = if (null !== editorOffset) editorOffset.toString() else ""
-        commandLine.environment["PSA_DEBUG"] = if (debugValue) "1" else "0"
+        commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
         commandLine.setWorkDirectory(project.guessProjectDir()?.path)
 
-        if (fromIndex) {
-            result =
-                ExecutionUtils.executeWithIndicatorAndTimeout(
-                    commandLine,
-                    normalizedIndicator,
-                    settings.executionTimeout,
-                )
-        } else {
-            ApplicationUtil.runWithCheckCanceled(
-                {
-                    result =
-                        runBlocking {
-                            ExecutionUtils.executeWithIndicatorAndTimeout(
-                                commandLine,
-                                normalizedIndicator,
-                                settings.executionTimeout,
-                            )
-                        }
-                },
-                normalizedIndicator,
-            )
-        }
+        ApplicationUtil.runWithCheckCanceled(
+            {
+                result =
+                    ExecutionUtils.executeWithIndicatorAndTimeout(
+                        commandLine,
+                        normalizedIndicator,
+                        settings.executionTimeout,
+                    )
+            },
+            normalizedIndicator,
+        )
 
         try {
             val fileVal = File(filePath)
@@ -525,9 +516,6 @@ class PsaManager(
         requestType: RequestType,
         language: String,
         editorOffset: Int? = null,
-        debug: Boolean? = null,
-        fromIndex: Boolean = false,
-        indicator: ProgressIndicator? = null,
     ): ExtendedCompletionsModel? {
         val result =
             getCompletionsOutput(
@@ -536,9 +524,6 @@ class PsaManager(
                 requestType,
                 language,
                 editorOffset,
-                debug,
-                fromIndex,
-                indicator,
             )
 
         this.lastResultSucceed = true
@@ -586,6 +571,7 @@ class PsaManager(
         processChildOptions: Boolean = true,
         processNext: Boolean = true,
         processPrev: Boolean = true,
+        fromOption: Boolean = false,
         processedElements: ArrayList<PsiElement>? = null,
     ): PsiElementModel {
         val filePath = if (null === processedElements) element.containingFile.virtualFile.path else null
@@ -658,7 +644,9 @@ class PsaManager(
             )
         }
 
-        currentProcessedElements.add(element)
+        if (!fromOption) {
+            currentProcessedElements.add(element)
+        }
 
         for (method in methods) {
             val interfaces = this.getAllExtendedOrImplementedInterfacesRecursively(method.returnType)
@@ -674,6 +662,7 @@ class PsaManager(
                 if (
                     !method.returnType.isAssignableFrom(String::class.java) &&
                     !method.returnType.isAssignableFrom(Number::class.java) &&
+                    !method.returnType.isAssignableFrom(PsiElement::class.java) &&
                     !interfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) } &&
                     !componentTypeInterfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) }
                 ) {
@@ -708,6 +697,7 @@ class PsaManager(
                                 processChildOptions = false,
                                 processNext = false,
                                 processPrev = false,
+                                fromOption = true,
                                 processedElements = currentProcessedElements,
                             ),
                             null,
@@ -724,6 +714,7 @@ class PsaManager(
                                 processChildOptions = false,
                                 processNext = false,
                                 processPrev = false,
+                                fromOption = true,
                                 processedElements = currentProcessedElements,
                             )
                     }
@@ -737,7 +728,7 @@ class PsaManager(
         if (processParent) {
             val parent = element.parent
 
-            if (null !== parent) {
+            if (null !== parent && element.parent !is PsiFile) {
                 parentElement =
                     this.psiElementToModel(
                         parent,
@@ -746,6 +737,7 @@ class PsaManager(
                         processChildOptions = processChildOptions,
                         processNext = true,
                         processPrev = true,
+                        fromOption = fromOption,
                         processedElements = currentProcessedElements,
                     )
             }
@@ -762,6 +754,7 @@ class PsaManager(
                         processChildOptions = processChildOptions,
                         processNext = true,
                         processPrev = false,
+                        fromOption = fromOption,
                         processedElements = currentProcessedElements,
                     )
             }
@@ -778,6 +771,7 @@ class PsaManager(
                         processChildOptions = processChildOptions,
                         processNext = false,
                         processPrev = true,
+                        fromOption = fromOption,
                         processedElements = currentProcessedElements,
                     )
             }
@@ -805,6 +799,24 @@ class PsaManager(
             filePath,
         )
     }
+
+    fun getStaticCompletionConfigs(): MutableList<ExtendedStaticCompletionModel>? =
+        this.project
+            .service<PsaStaticCompletionsConfig>()
+            .getStaticCompletionConfigs()
+
+    fun setStaticCompletionConfigs(configs: MutableList<StaticCompletionModel>?) {
+        this.project
+            .service<PsaStaticCompletionsConfig>()
+            .updateStaticCompletionConfigs(configs)
+    }
+
+    fun getStaticCompletionByName(name: String): ExtendedStaticCompletionModel? =
+        this
+            .getStaticCompletionConfigs()
+            ?.first {
+                it.name == name
+            }
 
     private fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>> {
         val res: MutableSet<Class<*>> = HashSet()

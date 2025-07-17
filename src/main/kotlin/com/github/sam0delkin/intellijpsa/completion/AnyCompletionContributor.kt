@@ -30,7 +30,7 @@ import org.apache.velocity.VelocityContext
 import org.apache.velocity.app.Velocity
 import java.io.StringWriter
 
-val RETURN_ALL_STATIC_COMPLETIONS = -2
+const val RETURN_ALL_STATIC_COMPLETIONS = -2
 
 class AnyCompletionContributor {
     class Completion : CompletionContributor() {
@@ -64,8 +64,10 @@ class AnyCompletionContributor {
                         val model = psaManager.psiElementToModel(parameters.originalPosition!!)
                         var json: ExtendedCompletionsModel? = null
 
-                        if (null !== psaManager.staticCompletionConfigs) {
-                            for (i in psaManager.staticCompletionConfigs!!) {
+                        val staticCompletionConfigs = psaManager.getStaticCompletionConfigs()
+
+                        if (null !== staticCompletionConfigs) {
+                            for (i in staticCompletionConfigs) {
                                 if (null == i.patterns) {
                                     continue
                                 }
@@ -146,22 +148,17 @@ class AnyCompletionContributor {
                 return null
             }
 
-            if (
-                !settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString()) &&
-                (
-                    null == settings.targetElementTypes ||
-                        !settings.targetElementTypes!!.contains(sourceElement.elementType.printToString())
-                )
-            ) {
+            if (!settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString())) {
                 return null
             }
 
             val model = psaManager.psiElementToModel(sourceElement)
 
             var json: ExtendedCompletionsModel? = null
+            val staticCompletionConfigs = psaManager.getStaticCompletionConfigs()
 
-            if (null !== psaManager.staticCompletionConfigs) {
-                for (config in psaManager.staticCompletionConfigs!!) {
+            if (null !== staticCompletionConfigs) {
+                for (config in staticCompletionConfigs) {
                     if (null === config.patterns) {
                         continue
                     }
@@ -175,7 +172,7 @@ class AnyCompletionContributor {
                             var notificationShown = false
                             if (config.matcher != null) {
                                 json.extendedCompletions =
-                                    ArrayList(json.extendedCompletions!!)
+                                    (json.extendedCompletions!!)
                                         .filter {
                                             val writer = StringWriter()
                                             val context = VelocityContext()
@@ -204,19 +201,21 @@ class AnyCompletionContributor {
                                             val result = writer.buffer.toString()
 
                                             result == "true" || result == "1"
-                                        }
+                                        }.toMutableList()
                             } else {
-                                json.extendedCompletions = ArrayList(json.extendedCompletions!!).filter { it.text == sourceElement.text }
-                                if (offset == RETURN_ALL_STATIC_COMPLETIONS || json.extendedCompletions!!.size > 1) {
+                                json.extendedCompletions =
+                                    ArrayList(json.extendedCompletions!!).filter { it.text == sourceElement.text }.toMutableList()
+                                if (offset == RETURN_ALL_STATIC_COMPLETIONS) {
                                     json = config.extendedCompletions
                                 }
                             }
 
                             json!!.extendedCompletions =
-                                json.extendedCompletions!!.map {
-                                    it.completionName = config.title!!
-                                    it
-                                }
+                                json.extendedCompletions!!
+                                    .map {
+                                        it.completionName = config.title!!
+                                        it
+                                    }.toMutableList()
 
                             break
                         }
@@ -233,7 +232,7 @@ class AnyCompletionContributor {
                     try {
                         completionModel.toGoToElement(project)?.let { psiElements.add(it) }
                     } catch (_: UpdateStaticCompletionsException) {
-                        psaManager.updateStaticCompletions(settings, project)
+//                        psaManager.updateStaticCompletions(settings, project)
                         json = null
 
                         break
@@ -242,22 +241,6 @@ class AnyCompletionContributor {
 
                 return psiElements.toTypedArray()
             }
-
-//            if (offset >= 0 && !DumbService.getInstance(project).isDumb) {
-//                val references = ReferenceProvidersRegistry.getReferencesFromProviders(sourceElement, PsiReferenceService.Hints.NO_HINTS)
-//                if (references.isNotEmpty()) {
-//                    for (reference in references) {
-//                        val resolvedReference = reference.resolve()
-//                        if (null != resolvedReference) {
-//                            psiElements.add(resolvedReference)
-//                        }
-//                    }
-//                }
-//
-//                if (psiElements.isNotEmpty()) {
-//                    return psiElements.toTypedArray()
-//                }
-//            }
 
             if (null === json && offset >= 0) {
                 json =
@@ -285,8 +268,6 @@ class AnyCompletionContributor {
                     try {
                         completionModel.toGoToElement(project)?.let { psiElements.add(it) }
                     } catch (_: UpdateStaticCompletionsException) {
-                        psaManager.updateStaticCompletions(settings, project)
-
                         return psiElements.toTypedArray()
                     }
                 }

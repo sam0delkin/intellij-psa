@@ -11,5 +11,5 @@
 
 * Enabled plugin in the IDE `Tools` -> `Project Specific Autocomplete` settings
 * Copy-Paste examples dir into your project root
-* Specify `examples/{LANGUAGE}/psa.sh`
+* Specify `examples/{LANGUAGE}/.psa/psa.sh`
 as a `Script Path` in the IDE `Tools` -> `Project Specific Autocomplete` settings

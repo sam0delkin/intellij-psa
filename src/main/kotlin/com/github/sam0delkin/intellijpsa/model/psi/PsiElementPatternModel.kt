@@ -7,15 +7,17 @@ import kotlinx.serialization.Serializable
 @Serializable
 class PsiElementPatternModel {
     constructor(
-        withText: String?,
-        withType: String?,
-        withOptions: Map<String, String>?,
-        parent: PsiElementPatternModel?,
-        anyParent: PsiElementPatternModel?,
-        prev: PsiElementPatternModel?,
-        anyPrev: PsiElementPatternModel?,
-        next: PsiElementPatternModel?,
-        anyNext: PsiElementPatternModel?,
+        withText: String? = null,
+        withType: String? = null,
+        withOptions: Map<String, String>? = null,
+        parent: PsiElementPatternModel? = null,
+        anyParent: PsiElementPatternModel? = null,
+        prev: PsiElementPatternModel? = null,
+        anyPrev: PsiElementPatternModel? = null,
+        next: PsiElementPatternModel? = null,
+        anyNext: PsiElementPatternModel? = null,
+        anyChild: PsiElementPatternModel? = null,
+        withMatcher: String? = null,
     ) {
         this.withText = withText
         this.withType = withType
@@ -26,6 +28,8 @@ class PsiElementPatternModel {
         this.anyPrev = anyPrev
         this.next = next
         this.anyNext = anyNext
+        this.anyChild = anyChild
+        this.withMatcher = withMatcher
     }
 
     @SerialName("with_text")
@@ -54,4 +58,12 @@ class PsiElementPatternModel {
     @SerialName("any_next")
     @JsonProperty("any_next")
     var anyNext: PsiElementPatternModel? = null
+
+    @SerialName("any_child")
+    @JsonProperty("any_child")
+    var anyChild: PsiElementPatternModel? = null
+
+    @SerialName("with_matcher")
+    @JsonProperty("with_matcher")
+    var withMatcher: String? = null
 }

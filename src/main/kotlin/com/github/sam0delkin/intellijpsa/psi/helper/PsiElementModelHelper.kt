@@ -3,10 +3,14 @@ package com.github.sam0delkin.intellijpsa.psi.helper
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModel
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementPatternModel
 import com.github.sam0delkin.intellijpsa.util.PropertyAccessor
+import com.intellij.lang.ASTNode
 import com.intellij.lang.LighterASTNode
 import com.intellij.lang.LighterASTTokenNode
 import com.intellij.lang.TreeBackedLighterAST
 import com.jetbrains.rd.util.string.printToString
+import org.apache.velocity.VelocityContext
+import org.apache.velocity.app.Velocity
+import java.io.StringWriter
 
 class PsiElementModelHelper {
     companion object {
@@ -161,6 +165,104 @@ class PsiElementModelHelper {
 
                     currentElement = tree.getParent(currentElement)
                 }
+            }
+
+            if (null !== pattern.anyChild && tree.getChildren(element).isEmpty()) {
+                return false
+            }
+
+            if (null !== pattern.anyChild) {
+                val hasAnyChild =
+                    tree.getChildren(element).any {
+                        var currentElement = it
+
+                        matches(tree, currentElement, pattern.anyParent!!)
+                    }
+
+                if (!hasAnyChild) {
+                    return false
+                }
+            }
+
+            return true
+        }
+
+        fun matches(
+            element: ASTNode,
+            pattern: PsiElementPatternModel,
+        ): Boolean {
+            if (null !== pattern.withType && pattern.withType != element.elementType.printToString()) {
+                return false
+            }
+
+            if (pattern.withText != null && pattern.withText != element.text) {
+                return false
+            }
+
+            val parent = element.treeParent
+
+            if (null !== pattern.parent && null === parent) {
+                return false
+            }
+
+            if (null !== pattern.parent && !matches(parent!!, pattern.parent!!)) {
+                return false
+            }
+
+            if (null !== pattern.anyParent && null === parent) {
+                return false
+            }
+
+            if (null !== pattern.anyParent) {
+                var currentElement = parent
+
+                while (true) {
+                    if (null === currentElement) {
+                        return false
+                    }
+
+                    if (!matches(currentElement, pattern.anyParent!!)) {
+                        return false
+                    }
+
+                    currentElement = currentElement.treeParent
+                }
+            }
+
+            if (null !== pattern.anyChild && element.getChildren(null).isEmpty()) {
+                return false
+            }
+
+            if (null !== pattern.anyChild) {
+                val hasAnyChild =
+                    element.getChildren(null).any {
+                        var currentElement = it
+
+                        matches(currentElement, pattern.anyChild!!)
+                    }
+
+                if (!hasAnyChild) {
+                    return false
+                }
+            }
+
+            if (null !== pattern.withMatcher) {
+                val context = VelocityContext()
+                val writer = StringWriter()
+                context.put(
+                    "element",
+                    element.psi,
+                )
+                try {
+                    Velocity.evaluate(context, writer, "", pattern.withMatcher)
+                } catch (_: Exception) {
+                    return false
+                }
+
+                val result = writer.buffer.toString().trim()
+                writer.flush()
+
+                return result == "true" || result == "1"
             }
 
             return true

@@ -2,6 +2,7 @@
 
 package com.github.sam0delkin.intellijpsa.doc
 
+import com.github.sam0delkin.intellijpsa.language.php.model.PhpInfoModel
 import com.github.sam0delkin.intellijpsa.model.InfoModel
 import com.github.sam0delkin.intellijpsa.model.StaticCompletionsModel
 import com.github.sam0delkin.intellijpsa.model.action.EditorActionInputModel
@@ -9,6 +10,7 @@ import com.github.sam0delkin.intellijpsa.model.completion.CompletionModel
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModel
 import com.github.sam0delkin.intellijpsa.model.template.GenerateFileFromTemplateData
 import com.github.sam0delkin.intellijpsa.model.template.TemplateDataModel
+import com.github.sam0delkin.intellijpsa.model.typeProvider.TypeProvidersModel
 import com.github.sam0delkin.intellijpsa.util.BuildConfig
 import io.swagger.v3.oas.annotations.OpenAPIDefinition
 import io.swagger.v3.oas.annotations.Operation
@@ -48,7 +50,7 @@ class Callbacks {
             ApiResponse(
                 responseCode = "200",
                 description = "Info Model",
-                content = [Content(mediaType = "application/json", schema = Schema(implementation = InfoModel::class))],
+                content = [Content(mediaType = "application/json", schema = Schema(oneOf = [InfoModel::class, PhpInfoModel::class]))],
             ),
         ],
     )
@@ -222,6 +224,39 @@ class Callbacks {
         @Parameter(
             description = "PSA_TYPE",
             schema = Schema(types = ["string"], allowableValues = ["GetStaticCompletions"], defaultValue = "GetStaticCompletions"),
+        )
+        @QueryParam("PSA_TYPE") psaType: String,
+        @Parameter(
+            description = "PSA_DEBUG",
+            schema = Schema(types = ["string"], allowableValues = ["1", "0"], defaultValue = "0"),
+        )
+        @QueryParam("PSA_DEBUG") psaDebug: String,
+    ) = null
+
+    // PHP
+
+    @Operation(
+        tags = ["Methods"],
+        description =
+            "Retrieve type providers for PHP extension. For more info, see " +
+                "<a href=\"https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#code-templates\">" +
+                "documentation" +
+                "</a>. Note that all params are passed via ENV variables",
+        operationId = "GetTypeProviders",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Type Providers Data Model",
+                content = [Content(mediaType = "application/json", schema = Schema(implementation = TypeProvidersModel::class))],
+            ),
+        ],
+    )
+    @POST
+    @Path("PHP/GetTypeProviders")
+    fun getTypeProviders(
+        @Parameter(
+            description = "PSA_TYPE",
+            schema = Schema(types = ["string"], allowableValues = ["GetTypeProviders"], defaultValue = "GetTypeProviders"),
         )
         @QueryParam("PSA_TYPE") psaType: String,
         @Parameter(

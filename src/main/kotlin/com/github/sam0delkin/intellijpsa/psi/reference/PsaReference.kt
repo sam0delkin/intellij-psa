@@ -6,7 +6,8 @@ import com.intellij.psi.PsiReferenceBase
 
 class PsaReference(
     originalElement: PsiElement,
-    private val reference: PsiElement,
+    val reference: PsiElement,
+    val staticCompletionName: String? = null,
 ) : PsiReferenceBase<PsiElement>(originalElement) {
     override fun resolve(): PsiElement = this.reference
 

@@ -4,7 +4,7 @@ import com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor
 import com.github.sam0delkin.intellijpsa.index.INDEX_ID
 import com.github.sam0delkin.intellijpsa.psi.PsaElement
 import com.github.sam0delkin.intellijpsa.services.PsaManager
-import com.github.sam0delkin.intellijpsa.util.PsiUtil
+import com.github.sam0delkin.intellijpsa.util.PsiUtils
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.patterns.PlatformPatterns
@@ -55,7 +55,7 @@ class PsaReferenceContributor : PsiReferenceContributor() {
                         return emptyArray()
                     }
 
-                    if (!settings.supportsStaticCompletions || null === psaManager.staticCompletionConfigs) {
+                    if (!settings.supportsStaticCompletions || null === psaManager.getStaticCompletionConfigs()) {
                         return emptyArray()
                     }
 
@@ -94,37 +94,39 @@ class PsaReferenceContributor : PsiReferenceContributor() {
                             )
 
                         for (key in indexKeys) {
-                            for (keyEl in key) {
-                                val targetEl =
-                                    PsiUtil.processLink("file://$keyEl", null, project, false)
-                                        ?: continue
+                            for (entry in key.entries) {
+                                for (keyEl in entry.value) {
+                                    val targetEl =
+                                        PsiUtils.processLink("file://$keyEl", null, project, false)
+                                            ?: continue
 
-                                val targets =
-                                    goToDeclarationHandler.getGotoDeclarationTargets(
-                                        targetEl.getOriginalPsiElement(),
-                                        -1,
-                                        null,
-                                    )
+                                    val targets =
+                                        goToDeclarationHandler.getGotoDeclarationTargets(
+                                            targetEl.getOriginalPsiElement(),
+                                            -1,
+                                            null,
+                                        )
 
-                                if (null == targets) {
-                                    continue
-                                }
-
-                                val filteredTargets =
-                                    targets.filter {
-                                        if (it is PsaElement) {
-                                            return@filter element == it.getOriginalPsiElement()
-                                        }
-
-                                        return@filter it == element
+                                    if (null == targets) {
+                                        continue
                                     }
 
-                                if (
-                                    filteredTargets.isNotEmpty() &&
-                                    !elements.contains(keyEl)
-                                ) {
-                                    elements.add(keyEl)
-                                    list.add(PsaReference(element, targetEl))
+                                    val filteredTargets =
+                                        targets.filter {
+                                            if (it is PsaElement) {
+                                                return@filter element == it.getOriginalPsiElement()
+                                            }
+
+                                            return@filter it == element
+                                        }
+
+                                    if (
+                                        filteredTargets.isNotEmpty() &&
+                                        !elements.contains(keyEl)
+                                    ) {
+                                        elements.add(keyEl)
+                                        list.add(PsaReference(element, targetEl, entry.key))
+                                    }
                                 }
                             }
                         }

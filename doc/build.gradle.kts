@@ -1,13 +1,6 @@
 import io.swagger.v3.plugins.gradle.tasks.ResolveTask.Format
-import java.util.Base64
 
 fun properties(key: String) = project.findProperty(key).toString()
-
-fun base64decode(data: String): String {
-    val decoder = Base64.getDecoder()
-
-    return decoder.decode(data).decodeToString()
-}
 
 plugins {
     // Java support
@@ -38,7 +31,7 @@ repositories {
 
 // Set the JVM language level used to build the project. Use Java 11 for 2020.3+, and Java 17 for 2022.2+.
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(providers.gradleProperty("jvmToolchainVersion").get().toInt())
 }
 
 buildConfig {

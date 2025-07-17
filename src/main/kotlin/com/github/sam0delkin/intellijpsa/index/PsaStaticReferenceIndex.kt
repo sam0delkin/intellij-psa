@@ -2,11 +2,13 @@ package com.github.sam0delkin.intellijpsa.index
 
 import com.github.sam0delkin.intellijpsa.psi.helper.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
-import com.github.sam0delkin.intellijpsa.util.PsiUtil
+import com.github.sam0delkin.intellijpsa.util.PsiUtils
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.lang.LighterASTNode
 import com.intellij.lang.LighterASTTokenNode
 import com.intellij.lang.TreeBackedLighterAST
 import com.intellij.openapi.components.service
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFile
@@ -27,23 +29,25 @@ import org.apache.velocity.VelocityContext
 import org.apache.velocity.app.Velocity
 import java.io.StringWriter
 
-val INDEX_ID: ID<String, List<String>> = ID.create("com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex")
+val INDEX_ID: ID<String, Map<String, List<String>>> = ID.create("com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex")
 
-class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() {
-    override fun getName(): ID<String, List<String>> = INDEX_ID
+class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List<String>>>() {
+    override fun getName(): ID<String, Map<String, List<String>>> = INDEX_ID
 
-    override fun getIndexer(): DataIndexer<String, List<String>, FileContent> {
-        return object : DataIndexer<String, List<String>, FileContent> {
-            override fun map(inputData: FileContent): MutableMap<String, List<String>> {
+    override fun getIndexer(): DataIndexer<String, Map<String, List<String>>, FileContent> {
+        return object : DataIndexer<String, Map<String, List<String>>, FileContent> {
+            override fun map(inputData: FileContent): MutableMap<String, Map<String, List<String>>> {
                 val manager = inputData.project.service<PsaManager>()
                 val settings = manager.getSettings()
-                val fileResult = mutableMapOf<String, List<String>>()
-                val currentResult = mutableMapOf<String, MutableList<String>>()
+                val fileResult = mutableMapOf<String, Map<String, List<String>>>()
+                val currentResult = mutableMapOf<String, MutableMap<String, MutableList<String>>>()
                 if (null == settings.targetElementTypes) {
                     settings.targetElementTypes = arrayListOf()
                 }
 
-                if (!settings.pluginEnabled || null == manager.staticCompletionConfigs || !settings.resolveReferences) {
+                val staticCompletionsConfigs = manager.getStaticCompletionConfigs()
+
+                if (!settings.pluginEnabled || null == staticCompletionsConfigs || !settings.resolveReferences) {
                     return fileResult
                 }
 
@@ -64,6 +68,13 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() 
                     return fileResult
                 }
 
+                if (null !== settings.indexFolder &&
+                    "" != settings.indexFolder &&
+                    inputData.file.path.indexOf(projectDir.path + "/" + settings.indexFolder!!) < 0
+                ) {
+                    return fileResult
+                }
+
                 val psiDependantFileContent = inputData as PsiDependentFileContent
                 val lighterAst = psiDependantFileContent.lighterAST as TreeBackedLighterAST
 
@@ -80,7 +91,7 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() 
                                 return
                             }
 
-                            for (staticCompletion in manager.staticCompletionConfigs!!) {
+                            for (staticCompletion in staticCompletionsConfigs) {
                                 if (null === staticCompletion.patterns) {
                                     continue
                                 }
@@ -102,7 +113,7 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() 
                                     continue
                                 }
 
-                                val text = PsiUtil.normalizeElementText(element.text.toString())
+                                val text = PsiUtils.normalizeElementText(element.text.toString())
                                 var filtered =
                                     staticCompletion.completions!!.completions!!.filter {
                                         text == it.text
@@ -139,8 +150,8 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() 
                                 }
 
                                 filtered.filter { null != it.link }.map { it.link!! }.map {
-                                    val key = PsiUtil.getLighterASTTokenNodeLink(inputData.file, element)
-                                    val psiElement = PsiUtil.processLink(it, "", inputData.project)
+                                    val key = PsiUtils.getLighterASTTokenNodeLink(inputData.file, element)
+                                    val psiElement = PsiUtils.processLink(it, "", inputData.project)
 
                                     if (null != psiElement) {
                                         val elementType = psiElement.elementType.printToString()
@@ -148,17 +159,27 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() 
                                             settings.targetElementTypes!!.add(elementType)
                                         }
 
-                                        val elementUrl =
+                                        val filePath =
                                             psiElement
                                                 .getOriginalPsiElement()
-                                                .containingFile.virtualFile.url + ":" +
+                                                .containingFile.virtualFile.url
+                                        val elementUrl =
+                                            filePath + ":" +
                                                 psiElement.getOriginalPsiElement().textOffset
 
+                                        currentResult.put(filePath, mutableMapOf())
                                         if (!currentResult.containsKey(elementUrl)) {
-                                            currentResult.put(elementUrl, mutableListOf(key))
-                                        } else {
-                                            currentResult[elementUrl]!!.add(key)
+                                            currentResult.put(elementUrl, mutableMapOf())
                                         }
+
+                                        if (!currentResult[elementUrl]!!.containsKey(staticCompletion.name)) {
+                                            currentResult[elementUrl]!!.put(
+                                                staticCompletion.name,
+                                                mutableListOf(),
+                                            )
+                                        }
+
+                                        currentResult[elementUrl]!![staticCompletion.name]!!.add(key)
                                     }
                                 }
                             }
@@ -167,7 +188,11 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() 
 
                 visitor.visitNode(lighterAst.root)
 
-                currentResult.map { (k, v) -> fileResult.put(k, v.toList()) }
+                currentResult.map { (k, v) -> fileResult.put(k, v) }
+
+                if (!DumbService.isDumb(inputData.project)) {
+                    DaemonCodeAnalyzer.getInstance(inputData.project).restart(inputData.psiFile)
+                }
 
                 return fileResult
             }
@@ -176,9 +201,9 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, List<String>>() 
 
     override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
-    override fun getValueExternalizer(): DataExternalizer<List<String>> = ListDataExternalizer()
+    override fun getValueExternalizer(): DataExternalizer<Map<String, List<String>>> = MapDataExternalizer()
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
     override fun getInputFilter(): FileBasedIndex.InputFilter {
         return object : FileBasedIndex.InputFilter {

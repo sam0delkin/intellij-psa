@@ -1,0 +1,12 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.jetbrains">
+        <php.typeProvider4
+            implementation="com.github.sam0delkin.intellijpsa.language.php.typeProvider.PsaTypeProvider" />
+    </extensions>
+    <extensions defaultExtensionNs="com.intellij">
+        <annotator implementationClass="com.github.sam0delkin.intellijpsa.language.php.annotator.TypeProviderAnnotator" language="PHP"/>
+    </extensions>
+    <extensions defaultExtensionNs="com.github.sam0delkin.intellijpsa">
+        <psaExtension implementation="com.github.sam0delkin.intellijpsa.language.php.PhpPsaExtension"/>
+    </extensions>
+</idea-plugin>

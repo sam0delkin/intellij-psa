@@ -44,7 +44,7 @@ repositories {
 
 // Set the JVM language level used to build the project. Use Java 11 for 2020.3+, and Java 17 for 2022.2+.
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(providers.gradleProperty("jvmToolchainVersion").get().toInt())
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
@@ -60,6 +60,9 @@ intellij {
 
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+    pluginsRepositories {
+        marketplace()
+    }
 }
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
@@ -125,6 +128,12 @@ tasks {
                 }
             },
         )
+    }
+
+    prepareUiTestingSandbox {
+        intellij {
+            plugins.set(properties("debugPlatformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+        }
     }
 
     // Configure UI tests plugin

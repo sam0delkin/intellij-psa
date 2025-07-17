@@ -1,5 +1,5 @@
 # intellij-psa
-## ![example](src/main/resources/icons/pluginIcon_16.svg) Intellij Project-Specific Autocomplete
+## ![icon](src/main/resources/icons/pluginIcon_16.svg) Intellij Project-Specific Autocomplete
 
 ![Build](https://github.com/sam0delkin/intellij-psa/workflows/Build/badge.svg)
 [![Version](https://img.shields.io/jetbrains/plugin/v/24604.svg)](https://plugins.jetbrains.com/plugin/24604)
@@ -7,13 +7,13 @@
 
 
 <!-- Plugin description -->
-Small plugin which adds support for custom autocomplete & GoTo on the language you're writing your project.
+Plugin which adds support of custom autocomplete & GoTo on the language you're writing your project.
 
 Currently, supports:
 * Custom autocomplete based on your code (Ctrl + Space)
 * Custom GoTo based on your code (Ctrl/Command + Click)
 * Custom code templates (with variables) based on your code
-* Custom editor actions for convert parts of code to the needed format
+* Custom editor actions for convert parts of code to the needed format or perform some other actions
 * Static completions for faster experience
 * Resolving references (for static completions)
 * Intentions (for static completions)
@@ -599,7 +599,7 @@ settings, a ENV variable `PSA_DEBUG` will be passed to your script with value `1
 
 You can always execute your script with debug option, but it will slow down the execution during the time you're not 
 need to debug autocomplete. For this purpose a `PSA_DEBUG` option is passing to your script. Some examples for 
-[PHP](examples/php/psa.sh), [JavaScript](examples/js/psa.sh), [TypeScript](examples/ts/psa.sh) are shown in the 
+[PHP](examples/php/.psa/psa.sh), [JavaScript](examples/js/.psa/psa.sh), [TypeScript](examples/ts/.psa/psa.sh) are shown in the 
 [examples](examples) folder.
 
 ##### Completions
@@ -943,7 +943,7 @@ As a result, your script should return a simple JSON object with the following f
 > [!NOTE]
 > `form_fields` - is an optional field. Each inner value of `form_fields` is optional as well.
 
-Some examples for [PHP](examples/php/psa.php), [JavaScript](examples/js/psa.js), [TypeScript](examples/ts/psa.ts) 
+Some examples for [PHP](examples/php/.psa/psa.php), [JavaScript](examples/js/.psa/psa.js), [TypeScript](examples/ts/.psa/psa.ts) 
 are shown in the [examples](examples/README.md) folder.
 
 
@@ -1201,7 +1201,11 @@ where you can see plugin actions menu.
 - [x] Add support of single-file custom code templates with variables
 - [x] Add support of multi-file custom code templates with variables
 - [x] Resolving references
+- [x] Editor actions
 - [x] Add support of intentions (added annotator)
+- [x] [PHP] Add support of type providers
+- [ ] Add support of static providers, which will not call the PSA script on each request
+- [ ] Cover all the code by tests
 
 ## FAQ / How To
 

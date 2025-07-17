@@ -2,6 +2,7 @@
 
 package com.github.sam0delkin.intellijpsa.settings
 
+import com.github.sam0delkin.intellijpsa.extension.extensionPoints.PsaExtension
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.github.sam0delkin.intellijpsa.ui.components.Utils
@@ -11,6 +12,7 @@ import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.components.service
+import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
@@ -31,22 +33,25 @@ import javax.swing.JSpinner
 import javax.swing.JTextField
 import javax.swing.SpinnerNumberModel
 
+val EP_NAME: ExtensionPointName<PsaExtension> = ExtensionPointName.create("com.github.sam0delkin.intellijpsa.psaExtension")
+
 class PsaConfigurable(
     private val project: Project,
 ) : Configurable {
     private lateinit var enabled: Cell<JBCheckBox>
     private lateinit var debug: Cell<JBCheckBox>
     private lateinit var showErrors: Cell<JBCheckBox>
+    private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
+    private lateinit var infoButton: Cell<ActionButton>
+    private lateinit var executionTimeout: Cell<JSpinner>
     private lateinit var resolveReferences: Cell<JBCheckBox>
+    private lateinit var indexFolder: Cell<TextFieldWithBrowseButton>
     private lateinit var useVelocityInIndex: Cell<JBCheckBox>
     private lateinit var annotateUndefinedElements: Cell<JBCheckBox>
-    private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
     private lateinit var pathMappings: Cell<PathMappingsComponent>
     private lateinit var supportedLanguages: Cell<JTextField>
-    private lateinit var goToElementFilter: Cell<JTextField>
-    private lateinit var infoButton: Cell<ActionButton>
     private lateinit var supportedLanguagesButton: Cell<ActionButton>
-    private lateinit var executionTimeout: Cell<JSpinner>
+    private lateinit var goToElementFilter: Cell<JTextField>
     private var changed: Boolean = false
 
     private fun createComponents(): DialogPanel {
@@ -68,7 +73,7 @@ class PsaConfigurable(
                             Utils
                                 .textFieldWithBrowseButton(
                                     this,
-                                    "Choose PSA Executable FIle",
+                                    "Choose PSA Executable File",
                                     project,
                                     FileChooserDescriptorFactory
                                         .createSingleFileDescriptor()
@@ -111,10 +116,35 @@ class PsaConfigurable(
                     }.rowComment(
                         "Enable reference resolving. Working only with static completions. Using indexing, so may impact performance.",
                     )
+                    row("Indexing directory") {
+                        indexFolder =
+                            Utils
+                                .textFieldWithBrowseButton(
+                                    this,
+                                    "Choose directory",
+                                    project,
+                                    FileChooserDescriptorFactory
+                                        .createSingleFolderDescriptor(),
+                                ) { chosenFile ->
+                                    run {
+                                        val projectDirectory = project.guessProjectDir()
+                                        assert(projectDirectory != null)
+                                        var path = VfsUtil.getRelativePath(chosenFile, projectDirectory!!, '/')
+                                        if (null == path) {
+                                            path = chosenFile.path
+                                        }
+                                        updateInfoButtonEnabled()
+
+                                        path!!
+                                    }
+                                }
+                    }.rowComment(
+                        "Filter indexing directory (to not index node_modules or vendor dir)",
+                    ).enabledIf(resolveReferences.selected)
                     row("Use Apache Velocity in index process") {
                         useVelocityInIndex = checkBox("")
                     }.rowComment(
-                        "During indexing, use Apache Velocity additionally to exact match parser. May significantly decrease indexing performance.",
+                        "During indexing, use Apache Velocity additionally as exact match parser. May significantly decrease indexing performance.",
                     ).enabledIf(resolveReferences.selected)
                     row("Annotate undefined references") {
                         annotateUndefinedElements = checkBox("")
@@ -170,6 +200,10 @@ class PsaConfigurable(
                     .rowComment(
                         "For more info, please check the <a href=\"https://github.com/sam0delkin/intellij-psa#documentation\">documentation</a>.",
                     )
+
+                for (extension in EP_NAME.extensionList) {
+                    extension.configure(this, project)
+                }
             }
 
         return panel
@@ -180,7 +214,7 @@ class PsaConfigurable(
         try {
             this.goToElementFilter.component.text = ""
             this.supportedLanguages.component.text = ""
-            val info = service.getInfo(settings, project, this.scriptPath.component.text)
+            val info = service.getInfo(settings, project)
             var filter: List<String> = listOf()
             var templateCount = 0
 
@@ -231,12 +265,13 @@ class PsaConfigurable(
         this.infoButton.component.setEnabled(this.enabled.component.isSelected && this.scriptPath.component.text !== "")
     }
 
-    override fun isModified(): Boolean =
-        (
+    override fun isModified(): Boolean {
+        var modified =
             enabled.component.isSelected != settings.pluginEnabled ||
                 debug.component.isSelected != settings.debug ||
                 showErrors.component.isSelected != settings.showErrors ||
                 resolveReferences.component.isSelected != settings.resolveReferences ||
+                indexFolder.component.text != settings.indexFolder ||
                 useVelocityInIndex.component.isSelected != settings.useVelocityInIndex ||
                 annotateUndefinedElements.component.isSelected != settings.annotateUndefinedElements ||
                 scriptPath.component.text != settings.scriptPath ||
@@ -248,13 +283,19 @@ class PsaConfigurable(
                 executionTimeout.component.value != settings.executionTimeout ||
                 changed
 
-        )
+        for (extension in EP_NAME.extensionList) {
+            modified = modified || extension.isModified(project)
+        }
+
+        return modified
+    }
 
     override fun reset() {
         enabled.component.setSelected(settings.pluginEnabled)
         debug.component.setSelected(settings.debug)
         showErrors.component.setSelected(settings.showErrors)
         resolveReferences.component.setSelected(settings.resolveReferences)
+        indexFolder.component.setText(settings.indexFolder)
         useVelocityInIndex.component.setSelected(settings.useVelocityInIndex)
         annotateUndefinedElements.component.setSelected(settings.annotateUndefinedElements)
         scriptPath.component.setText(settings.scriptPath)
@@ -264,6 +305,10 @@ class PsaConfigurable(
         goToElementFilter.component.text = settings.goToFilter
         executionTimeout.component.value = settings.executionTimeout
         changed = false
+
+        for (extension in EP_NAME.extensionList) {
+            extension.reset(project)
+        }
     }
 
     @Throws(ConfigurationException::class)
@@ -273,6 +318,7 @@ class PsaConfigurable(
         settings.debug = debug.component.isSelected
         settings.showErrors = showErrors.component.isSelected
         settings.resolveReferences = resolveReferences.component.isSelected
+        settings.indexFolder = indexFolder.component.text.trim()
         settings.useVelocityInIndex = useVelocityInIndex.component.isSelected
         settings.annotateUndefinedElements = annotateUndefinedElements.component.isSelected
 
@@ -294,6 +340,10 @@ class PsaConfigurable(
         } else if (settings.pluginEnabled && psaManager.lastResultSucceed) {
             psaManager.lastResultSucceed = true
             psaManager.lastResultMessage = ""
+        }
+
+        for (extension in EP_NAME.extensionList) {
+            extension.apply(project)
         }
 
         val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()

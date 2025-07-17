@@ -102,7 +102,7 @@ class StaticCompletionsModel {
 }
 
 @Serializable
-class InfoModel {
+open class InfoModel {
     @SerialName("supported_languages")
     @JsonProperty("supported_languages")
     val supportedLanguages: ArrayList<String> = ArrayList()

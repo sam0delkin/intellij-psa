@@ -9,7 +9,7 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.24
+  version: 0.0.25
 paths:
   /GenerateFileFromTemplate:
     post:
@@ -134,6 +134,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StaticCompletionsModel"
+  /PHP/GetTypeProviders:
+    post:
+      tags:
+      - Methods
+      description: "Retrieve type providers for PHP extension. For more info, see\
+        \ <a href=\"https://github.com/sam0delkin/intellij-psa/tree/main?tab=readme-ov-file#code-templates\"\
+        >documentation</a>. Note that all params are passed via ENV variables"
+      operationId: GetTypeProviders
+      parameters:
+      - name: PSA_TYPE
+        in: query
+        description: PSA_TYPE
+        schema:
+          type: string
+          default: GetTypeProviders
+          enum:
+          - GetTypeProviders
+      - name: PSA_DEBUG
+        in: query
+        description: PSA_DEBUG
+        schema:
+          type: string
+          default: "0"
+          enum:
+          - "1"
+          - "0"
+      responses:
+        "200":
+          description: Type Providers Data Model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TypeProvidersModel"
   /Info:
     post:
       tags:
@@ -165,7 +198,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InfoModel"
+                oneOf:
+                - $ref: "#/components/schemas/InfoModel"
+                - $ref: "#/components/schemas/PhpInfoModel"
   /PerformEditorAction:
     post:
       tags:
@@ -360,6 +395,10 @@ components:
           $ref: "#/components/schemas/PsiElementPatternModel"
         any_next:
           $ref: "#/components/schemas/PsiElementPatternModel"
+        any_child:
+          $ref: "#/components/schemas/PsiElementPatternModel"
+        with_matcher:
+          type: string
     StaticCompletionModel:
       type: object
       properties:
@@ -382,6 +421,22 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/StaticCompletionModel"
+    TypeProviderModel:
+      type: object
+      properties:
+        language:
+          type: string
+        pattern:
+          $ref: "#/components/schemas/PsiElementPatternModel"
+        type:
+          type: string
+    TypeProvidersModel:
+      type: object
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TypeProviderModel"
     EditorActionModel:
       type: object
       properties:
@@ -469,6 +524,31 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EditorActionModel"
+    PhpInfoModel:
+      type: object
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileTemplateModel"
+        supported_languages:
+          type: array
+          items:
+            type: string
+        goto_element_filter:
+          type: array
+          items:
+            type: string
+        supports_batch:
+          type: boolean
+        supports_static_completions:
+          type: boolean
+        editor_actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/EditorActionModel"
+        supports_type_providers:
+          type: boolean
     EditorActionInputModel:
       type: object
       properties:

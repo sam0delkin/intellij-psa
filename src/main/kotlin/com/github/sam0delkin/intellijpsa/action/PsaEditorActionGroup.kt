@@ -1,8 +1,7 @@
-@file:Suppress("DialogTitleCapitalization", "ktlint:standard:no-wildcard-imports")
-
 package com.github.sam0delkin.intellijpsa.action
 
 import com.github.sam0delkin.intellijpsa.action.psa.GeneratePatternModelAction
+import com.github.sam0delkin.intellijpsa.action.psa.InspectPsiElementModelAction
 import com.github.sam0delkin.intellijpsa.icons.Icons.PluginIcon
 import com.github.sam0delkin.intellijpsa.model.EditorActionSource
 import com.github.sam0delkin.intellijpsa.model.EditorActionTarget
@@ -11,7 +10,13 @@ import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.intellij.ide.IdeView
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.LangDataKeys
+import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -25,16 +30,15 @@ import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import kotlin.concurrent.thread
 
-@Suppress("KotlinConstantConditions")
 class PsaEditorActionGroup :
     ActionGroup(
         "PSA Actions",
-        "Project Specific Autocomplete actions",
+        "Project specific Autocomplete actions",
         PluginIcon,
     ) {
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
         val actions = HashMap<String?, ArrayList<AnAction>>()
-        actions.set(null, arrayListOf(GeneratePatternModelAction()))
+        actions.set(null, arrayListOf(GeneratePatternModelAction(), InspectPsiElementModelAction()))
 
         val psaManager = e?.project?.service<PsaManager>() ?: return this.getActions(actions)
         val settings = psaManager.getSettings()
@@ -59,6 +63,11 @@ class PsaEditorActionGroup :
 
             for (action in settings.editorActions!!) {
                 if (null !== action.pathRegex && !directoryPath.matches(Regex(action.pathRegex))) {
+                    continue
+                }
+
+                @Suppress("KotlinConstantConditions")
+                if ("" == action.title) {
                     continue
                 }
 
@@ -154,7 +163,7 @@ class PsaEditorActionGroup :
 
         for (actionGroupName in actions.keys) {
             if (null === actionGroupName) {
-                for (action in actions[actionGroupName]!!) {
+                for (action in actions[null]!!) {
                     if (action is ActionGroup) {
                         continue
                     }

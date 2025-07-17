@@ -5,6 +5,12 @@
     <vendor>sam0delkin</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends
+            optional="true"
+            config-file="intellijpsa-apache-velocity.xml">com.intellij.velocity</depends>
+    <depends
+            optional="true"
+            config-file="intellijpsa-php.xml">com.jetbrains.php</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <projectConfigurable
@@ -35,7 +41,7 @@
         <fileBasedIndex implementation="com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex"/>
         <psi.referenceContributor implementation="com.github.sam0delkin.intellijpsa.psi.reference.PsaReferenceContributor"
                                   language=""/>
-        <annotator implementationClass="com.github.sam0delkin.intellijpsa.annotator.PsaAnnotator" language=""/>
+        <annotator implementationClass="com.github.sam0delkin.intellijpsa.annotator.PsaReferenceAnnotator" language=""/>
         <codeInsight.lineMarkerProvider
                 implementationClass="com.github.sam0delkin.intellijpsa.lineMarkerProvider.PsaLineMarkerProvider"
                 language="" />
@@ -62,4 +68,12 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </group>
     </actions>
+
+    <extensionPoints>
+        <extensionPoint
+                name="psaExtension"
+                interface="com.github.sam0delkin.intellijpsa.extension.extensionPoints.PsaExtension"
+                dynamic="true"
+        />
+    </extensionPoints>
 </idea-plugin>

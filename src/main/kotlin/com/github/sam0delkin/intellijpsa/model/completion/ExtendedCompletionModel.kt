@@ -2,7 +2,7 @@ package com.github.sam0delkin.intellijpsa.model.completion
 
 import com.github.sam0delkin.intellijpsa.exception.UpdateStaticCompletionsException
 import com.github.sam0delkin.intellijpsa.icons.Icons
-import com.github.sam0delkin.intellijpsa.util.PsiUtil
+import com.github.sam0delkin.intellijpsa.util.PsiUtils
 import com.intellij.codeInsight.completion.PrioritizedLookupElement
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
@@ -77,6 +77,6 @@ class ExtendedCompletionModel : CompletionModel() {
             text = this.presentableText!!
         }
 
-        return PsiUtil.processLink(linkData, text, project, true, this.completionName)
+        return PsiUtils.processLink(linkData, text, project, true, this.completionName)
     }
 }

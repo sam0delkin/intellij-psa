@@ -2,6 +2,7 @@ package com.github.sam0delkin.intellijpsa.status.widget
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.settings.EP_NAME
 import com.github.sam0delkin.intellijpsa.settings.PsaConfigurable
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
@@ -123,7 +124,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                 val thread =
                                     Thread {
                                         try {
-                                            val info = psaManager.getInfo(settings, project, settings.scriptPath!!)
+                                            val info = psaManager.getInfo(settings, project)
                                             var filter: List<String> = listOf()
                                             var templateCount = 0
 
@@ -186,6 +187,11 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                         }
                     },
                 )
+
+                for (extension in EP_NAME.extensionList) {
+                    extension.modifyStatusBar(project, actionGroup)
+                }
+
                 return JBPopupFactory.getInstance().createActionGroupPopup(
                     "Project Specific Autocomplete",
                     actionGroup,

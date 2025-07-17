@@ -1,0 +1,7 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <completion.contributor
+                language="any"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.velocity.PsaCompletionContributor"/>
+    </extensions>
+</idea-plugin>

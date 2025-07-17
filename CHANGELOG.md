@@ -3,6 +3,18 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Major refactorings
+- Performance improvements
+- Improved windows support, thanks to [rapt0p7](https://github.com/rapt0p7). Added `.bat` files to examples
+- Fixed a bug that example scripts didn't work
+- Fixed a bug that PSA Line Marker disappeared after file modification
+- Added a new option to filter indexing folder, to speed-up indexing
+- Added an Extension Point for adding new languages/features support
+- Added support of Apache Velocity autocompletion with `matcher` option
+- Added an action to inspect PSI element with support of Velocity autocompletion
+- [Experimental] Added support of renaming PSA references via Ctrl/Command + click on the PSA Line Marker icon
+- [Optional] [Experimental] Added PHP PSA extension (via newly added extension point), which adds PHP type providers 
+support. Will only be available for users who're using PhpStorm or IntelliJ IDEA Ultimate with PHP plugin installed
 
 ## [0.0.24] - 2025-04-03
 - Significantly increased resolving references speed due to rewriting index.
