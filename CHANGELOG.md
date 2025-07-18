@@ -15,6 +15,7 @@
 - [Experimental] Added support of renaming PSA references via Ctrl/Command + click on the PSA Line Marker icon
 - [Optional] [Experimental] Added PHP PSA extension (via newly added extension point), which adds PHP type providers 
 support. Will only be available for users who're using PhpStorm or IntelliJ IDEA Ultimate with PHP plugin installed
+- Increased the minimum IntelliJ IDEA version to 2023.2
 
 ## [0.0.24] - 2025-04-03
 - Significantly increased resolving references speed due to rewriting index.
