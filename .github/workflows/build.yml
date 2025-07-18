@@ -37,16 +37,16 @@ jobs:
       changelog: ${{ steps.properties.outputs.changelog }}
     steps:
       # Free GitHub Actions Environment Disk Space
-      - name: Maximize build space
-        uses: AdityaGarg8/remove-unwanted-software@v3
-        with:
-          remove-android: 'true'
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-          remove-large-packages: 'true'
-          remove-cached-tools: 'true'
+#      - name: Maximize build space
+#        uses: AdityaGarg8/remove-unwanted-software@v3
+#        with:
+#          remove-android: 'true'
+#          remove-dotnet: 'true'
+#          remove-haskell: 'true'
+#          remove-codeql: 'true'
+#          remove-docker-images: 'true'
+#          remove-large-packages: 'true'
+#          remove-cached-tools: 'true'
 
       # Check out current repository
       - name: Fetch Sources
