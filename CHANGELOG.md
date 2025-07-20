@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.25] - 2025-07-18
 - Major refactorings
 - Performance improvements
 - Improved windows support, thanks to [rapt0p7](https://github.com/rapt0p7). Added `.bat` files to examples
@@ -183,7 +185,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.24...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.25...HEAD
+[0.0.25]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.24...v0.0.25
 [0.0.24]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.22...v0.0.23
 [0.0.22]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.21...v0.0.22
