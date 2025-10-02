@@ -3,6 +3,7 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Fix deprecations/internal API usage
 
 ## [0.0.26] - 2025-10-02
 - Some internal refactorings. Now all plugin extensions are using independent configs and not using global config

@@ -6,7 +6,6 @@ import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
 import com.intellij.xdebugger.XDebuggerManagerListener
-import com.intellij.xdebugger.impl.XDebugSessionImpl
 import com.jetbrains.php.debug.xdebug.debugger.XdebugStackFrame
 
 class PsaXdebugManagerListener(
@@ -44,14 +43,13 @@ class PsaXdebugManagerListener(
     }
 
     fun processStackFrame(session: XDebugSession) {
-        if (session is XDebugSessionImpl) {
-            val stackFrame = session.currentStackFrame
-            if (stackFrame !is XdebugStackFrame) {
-                return
-            }
-            if (session.currentStackFrame !is PhpPsaStackFrame) {
-                session.setCurrentStackFrame(session.currentExecutionStack!!, PhpPsaStackFrame(project, stackFrame))
-            }
+        val stackFrame = session.currentStackFrame
+        val context = session.suspendContext
+        if (stackFrame !is XdebugStackFrame) {
+            return
+        }
+        if (session.currentStackFrame !is PhpPsaStackFrame) {
+            session.setCurrentStackFrame(context?.activeExecutionStack!!, PhpPsaStackFrame(project, stackFrame))
         }
     }
 }
