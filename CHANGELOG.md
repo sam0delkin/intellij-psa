@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.26] - 2025-10-02
 - Some internal refactorings. Now all plugin extensions are using independent configs and not using global config
 - Minor bug fixes
 - Fix the freezing bugs due to running autocomplete command synchronously
@@ -192,7 +194,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.25...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.26...HEAD
+[0.0.26]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.24...v0.0.25
 [0.0.24]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.22...v0.0.23
