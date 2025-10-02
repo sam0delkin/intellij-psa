@@ -18,7 +18,6 @@ class PsiUtils {
             text: String?,
             project: Project,
             appendProjectDir: Boolean = true,
-            completionTitle: String? = null,
         ): PsaElement? {
             val settings = project.service<Settings>()
             val fm = VirtualFileManager.getInstance()

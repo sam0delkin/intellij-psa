@@ -6,6 +6,10 @@ class PropertyAccessor {
             obj: Any,
             propertyPath: String,
         ): String? {
+            if (propertyPath.isEmpty()) {
+                return obj.toString()
+            }
+
             val parts = propertyPath.split(".")
             var current: Any? = obj
 

@@ -10,4 +10,8 @@ class PhpInfoModel : InfoModel() {
     @SerialName("supports_type_providers")
     @JsonProperty("supports_type_providers")
     val supportsTypeProviders: Boolean? = null
+
+    @SerialName("to_string_value_formatter")
+    @JsonProperty("to_string_value_formatter")
+    val toStringValueFormatter: String? = null
 }

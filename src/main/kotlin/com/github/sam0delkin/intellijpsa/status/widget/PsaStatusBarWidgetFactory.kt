@@ -44,7 +44,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
             val settings = psaManager.getSettings()
 
             settings.pluginEnabled
-        } catch (e: IllegalStateException) {
+        } catch (_: IllegalStateException) {
             false
         }
 
@@ -163,11 +163,11 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                                 .getInstance()
                                                 .getNotificationGroup("PSA Notification")
                                                 .createNotification(
-                                                    psaManager.lastResultMessage,
+                                                    psaManager.lastResultMessage.trim().ifEmpty { "Failed to retrieve info" },
                                                     NotificationType.ERROR,
                                                 ).notify(project)
                                         }
-                                        project.service<StatusBarWidgetsManager>().updateAllWidgets()
+                                        service<StatusBarWidgetsManager>().updateAllWidgets()
                                     }
                                 thread.start()
                             }

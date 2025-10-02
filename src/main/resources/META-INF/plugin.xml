@@ -22,7 +22,8 @@
 
         <completion.contributor
                 language="any"
-                implementationClass="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$Completion"/>
+                implementationClass="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$Completion"
+                order="first"/>
 
         <gotoDeclarationHandler
                 implementation="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$GotoDeclaration"/>

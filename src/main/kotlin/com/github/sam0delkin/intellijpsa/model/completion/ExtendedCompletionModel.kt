@@ -77,6 +77,6 @@ class ExtendedCompletionModel : CompletionModel() {
             text = this.presentableText!!
         }
 
-        return PsiUtils.processLink(linkData, text, project, true, this.completionName)
+        return PsiUtils.processLink(linkData, text, project, true)
     }
 }

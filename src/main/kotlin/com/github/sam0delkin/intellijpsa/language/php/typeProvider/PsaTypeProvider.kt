@@ -41,7 +41,9 @@ class PsaTypeProvider : PhpTypeProvider4 {
             return null
         }
 
-        element.nextLeafs.first().putUserData(PSA_TYPE_PROVIDER_ANNOTATOR_KEY, SmartPointerManager.createPointer(element))
+        if (element.nextLeafs.count() > 0) {
+            element.nextLeafs.first().putUserData(PSA_TYPE_PROVIDER_ANNOTATOR_KEY, SmartPointerManager.createPointer(element))
+        }
 
         var type: String? = null
         try {

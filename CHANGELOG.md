@@ -3,6 +3,13 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Some internal refactorings. Now all plugin extensions are using independent configs and not using global config
+- Minor bug fixes
+- Fix the freezing bugs due to running autocomplete command synchronously
+- [PHP] Small refactorings
+- [PHP] Added support of `to_string_value_formatter`, which allows seeing values inline during xdebug session 
+(thanks [c1tru55](https://github.com/c1tru55) for the idea)
+- Updated documentation
 
 ## [0.0.25] - 2025-07-18
 - Major refactorings

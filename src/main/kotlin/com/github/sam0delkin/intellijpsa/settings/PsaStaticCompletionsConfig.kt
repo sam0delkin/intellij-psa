@@ -3,58 +3,50 @@ package com.github.sam0delkin.intellijpsa.settings
 import com.github.sam0delkin.intellijpsa.model.ExtendedStaticCompletionModel
 import com.github.sam0delkin.intellijpsa.model.StaticCompletionModel
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.PersistentStateComponentWithModificationTracker
+import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
+import com.intellij.util.xmlb.XmlSerializerUtil
 
 @Service(Service.Level.PROJECT)
 @State(
-    name = "PSAStaticAutocompleteSettings",
-    storages = [Storage("psa_static_completions.xml")],
+    name = "PsaStaticCompletionsConfig",
+    storages = [Storage("psa_static_completions_new.xml")],
 )
-class PsaStaticCompletionsConfig(
-    private val project: Project,
-) : PersistentStateComponentWithModificationTracker<PsaStaticCompletionsConfig.State> {
-    private var myState = State()
-    private var staticCompletionConfigs: MutableList<ExtendedStaticCompletionModel>? = null
-    private var stateModificationCount = 0L
+class PsaStaticCompletionsConfig : PersistentStateComponent<PsaStaticCompletionsConfig> {
+    var staticCompletionConfigs: ArrayList<StaticCompletionModel?>? = null
+    private var extendedStaticCompletionConfigs: ArrayList<ExtendedStaticCompletionModel>? = null
 
-    data class State(
-        var staticCompletionConfigs: MutableList<StaticCompletionModel>? = null,
-    )
+    @Override
+    override fun getState(): PsaStaticCompletionsConfig = this
 
-    override fun getState(): State = myState
-
-    override fun getStateModificationCount(): Long = stateModificationCount
-
-    override fun loadState(state: State) {
-        myState =
-            state.copy(
-                staticCompletionConfigs =
-                    state.staticCompletionConfigs,
-            )
-        runReadAction {
-            staticCompletionConfigs =
-                myState.staticCompletionConfigs
-                    ?.map {
-                        ExtendedStaticCompletionModel.createFromModel(it, project)
-                    }?.toMutableList()
-        }
+    override fun loadState(settings: PsaStaticCompletionsConfig) {
+        XmlSerializerUtil.copyBean(settings, this)
     }
 
-    fun getStaticCompletionConfigs(): MutableList<ExtendedStaticCompletionModel>? = this.staticCompletionConfigs
+    fun getExtendedStaticCompletionConfigs(project: Project): ArrayList<ExtendedStaticCompletionModel> {
+        if (null !== this.extendedStaticCompletionConfigs) {
+            return this.extendedStaticCompletionConfigs!!
+        }
+
+        runReadAction {
+            this.extendedStaticCompletionConfigs = this.staticCompletionConfigs
+                ?.filter { null !== it }
+                ?.map {
+                    ExtendedStaticCompletionModel.createFromModel(it!!, project)
+                }?.toCollection(ArrayList()) ?: arrayListOf()
+        }
+
+        return this.extendedStaticCompletionConfigs ?: arrayListOf()
+    }
 
     fun updateStaticCompletionConfigs(configs: MutableList<StaticCompletionModel>?) {
-        myState.staticCompletionConfigs = configs
-        runReadAction {
-            staticCompletionConfigs =
-                myState.staticCompletionConfigs
-                    ?.map {
-                        ExtendedStaticCompletionModel.createFromModel(it, project)
-                    }?.toMutableList()
-        }
-        stateModificationCount++
+        val result = arrayListOf<StaticCompletionModel?>()
+        result.addAll(configs?.toList() ?: emptyList())
+
+        this.staticCompletionConfigs = result
+        this.extendedStaticCompletionConfigs = null
     }
 }

@@ -16,6 +16,7 @@ class PhpPsaSettings : PersistentStateComponent<PhpPsaSettings> {
     var enabled: Boolean = false
     var debugTypeProvider: Boolean = false
     var supportsTypeProviders: Boolean = false
+    var toStringValueFormatter: String? = null
     var typeProviders: ArrayList<TypeProviderModel>? = null
 
     @Override

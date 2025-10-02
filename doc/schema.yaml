@@ -9,7 +9,7 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.25
+  version: 0.0.26
 paths:
   /GenerateFileFromTemplate:
     post:
@@ -549,6 +549,8 @@ components:
             $ref: "#/components/schemas/EditorActionModel"
         supports_type_providers:
           type: boolean
+        to_string_value_formatter:
+          type: string
     EditorActionInputModel:
       type: object
       properties:

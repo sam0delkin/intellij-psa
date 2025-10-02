@@ -33,8 +33,6 @@ import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.elementType
 import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.rd.util.string.printToString
-import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.apache.velocity.app.Velocity
@@ -102,13 +100,11 @@ class PsaManager(
         ApplicationUtil.runWithCheckCanceled(
             {
                 result =
-                    runBlocking {
-                        ExecutionUtils.executeWithIndicatorAndTimeout(
-                            commandLine,
-                            indicator,
-                            settings.executionTimeout,
-                        )
-                    }
+                    ExecutionUtils.executeWithIndicatorAndTimeout(
+                        commandLine,
+                        indicator,
+                        settings.executionTimeout,
+                    )
             },
             indicator,
         )
@@ -152,13 +148,11 @@ class PsaManager(
             ApplicationUtil.runWithCheckCanceled(
                 {
                     result =
-                        runBlocking {
-                            ExecutionUtils.executeWithIndicatorAndTimeout(
-                                commandLine,
-                                indicator,
-                                settings.executionTimeout,
-                            )
-                        }
+                        ExecutionUtils.executeWithIndicatorAndTimeout(
+                            commandLine,
+                            indicator,
+                            settings.executionTimeout,
+                        )
                 },
                 indicator,
             )
@@ -216,16 +210,12 @@ class PsaManager(
             return
         }
 
-        var previousIndicator: ProgressIndicator? = null
+        val previousIndicator: ProgressIndicator? = null
 
         ProgressManager.getInstance().run(
             object : Backgroundable(project, "PSA: Updating static completions ...") {
                 override fun run(indicator: ProgressIndicator) {
-                    if (previousIndicator != null) {
-                        previousIndicator!!.cancel()
-                    }
-
-                    previousIndicator = indicator
+                    previousIndicator?.cancel()
 
                     if (indicator.isCanceled) {
                         return
@@ -620,7 +610,7 @@ class PsaManager(
                 var signatureValue =
                     try {
                         method.invoke(element) as String
-                    } catch (e: InvocationTargetException) {
+                    } catch (_: InvocationTargetException) {
                         ""
                     }
                 signatureValue = signatureValue.replace(Regex("#."), "")
@@ -720,7 +710,7 @@ class PsaManager(
                     }
                     options[optionName] = PsiElementModelChild(null, null, arr)
                 }
-            } catch (e: Throwable) {
+            } catch (_: Throwable) {
                 continue
             }
         }
@@ -800,23 +790,16 @@ class PsaManager(
         )
     }
 
-    fun getStaticCompletionConfigs(): MutableList<ExtendedStaticCompletionModel>? =
+    fun getStaticCompletionConfigs(): MutableList<ExtendedStaticCompletionModel> =
         this.project
             .service<PsaStaticCompletionsConfig>()
-            .getStaticCompletionConfigs()
+            .getExtendedStaticCompletionConfigs(project)
 
     fun setStaticCompletionConfigs(configs: MutableList<StaticCompletionModel>?) {
         this.project
             .service<PsaStaticCompletionsConfig>()
             .updateStaticCompletionConfigs(configs)
     }
-
-    fun getStaticCompletionByName(name: String): ExtendedStaticCompletionModel? =
-        this
-            .getStaticCompletionConfigs()
-            ?.first {
-                it.name == name
-            }
 
     private fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>> {
         val res: MutableSet<Class<*>> = HashSet()

@@ -25,6 +25,14 @@ To check how to add custom autocomplete, GoTo and custom code templates, please 
 [documentation](https://github.com/sam0delkin/intellij-psa#documentation) 
 <!-- Plugin description end -->
 
+#### Extended Support
+Plugin can be extended via 
+Intellij's [Extension Points](https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html)
+and extending itself for the languages listed below. You can check detailed documentation for each language using links
+below.
+
+- [PHP](README.PHP.md)
+
 ![example](doc/images/autocomplete_example.png)
 
 Table of Contents
