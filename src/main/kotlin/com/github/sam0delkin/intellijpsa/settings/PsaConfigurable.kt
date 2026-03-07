@@ -44,6 +44,7 @@ class PsaConfigurable(
     private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
     private lateinit var infoButton: Cell<ActionButton>
     private lateinit var executionTimeout: Cell<JSpinner>
+    private lateinit var maxNestingLevel: Cell<JSpinner>
     private lateinit var resolveReferences: Cell<JBCheckBox>
     private lateinit var indexFolder: Cell<TextFieldWithBrowseButton>
     private lateinit var useVelocityInIndex: Cell<JBCheckBox>
@@ -108,6 +109,9 @@ class PsaConfigurable(
                             }
                         infoButton = Utils.actionButton(action, "bottom", this)
                     }.rowComment("Path to the PSA executable script. Must be an executable file")
+                    row("Maximum PSI Model Nesting Level") {
+                        maxNestingLevel = cell(JSpinner(SpinnerNumberModel(100, 0, 10000, 1)))
+                    }.rowComment("Maximum nesting level for PSI model during serialization. Default: 100.")
                     row("Execution Timeout") {
                         executionTimeout = cell(JSpinner(SpinnerNumberModel(5000, 0, 100000, 1000)))
                     }.rowComment("Maximum execution time for your script (in milliseconds). Default: 5000 milliseconds")
@@ -281,6 +285,7 @@ class PsaConfigurable(
                 supportedLanguages.component.text != settings.supportedLanguages ||
                 goToElementFilter.component.text != settings.goToFilter ||
                 executionTimeout.component.value != settings.executionTimeout ||
+                maxNestingLevel.component.value != settings.maxNestingLevel ||
                 changed
 
         for (extension in EP_NAME.extensionList) {
@@ -304,6 +309,7 @@ class PsaConfigurable(
         supportedLanguages.component.text = settings.supportedLanguages
         goToElementFilter.component.text = settings.goToFilter
         executionTimeout.component.value = settings.executionTimeout
+        maxNestingLevel.component.value = settings.maxNestingLevel
         changed = false
 
         for (extension in EP_NAME.extensionList) {
@@ -333,6 +339,7 @@ class PsaConfigurable(
         settings.supportedLanguages = supportedLanguages.component.text
         settings.goToFilter = goToElementFilter.component.text
         settings.executionTimeout = executionTimeout.component.value as Int
+        settings.maxNestingLevel = maxNestingLevel.component.value as Int
         changed = false
         if (!settings.pluginEnabled && psaManager.lastResultSucceed) {
             psaManager.lastResultSucceed = false

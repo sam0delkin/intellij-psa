@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Add support of find usages of some single param of function. Thanks to [c1tru55](https://github.com/c1tru55)
+- Added configurable nesting level for PSI element serializing. Useful for large PSI trees
 
 ## [0.0.27] - 2025-10-02
 - Fix deprecations/internal API usage
@@ -27,7 +29,7 @@
 - Added support of Apache Velocity autocompletion with `matcher` option
 - Added an action to inspect PSI element with support of Velocity autocompletion
 - [Experimental] Added support of renaming PSA references via Ctrl/Command + click on the PSA Line Marker icon
-- [Optional] [Experimental] Added PHP PSA extension (via newly added extension point), which adds PHP type providers 
+- [Optional] (Experimental) Added PHP PSA extension (via newly added extension point), which adds PHP type providers 
 support. Will only be available for users who're using PhpStorm or IntelliJ IDEA Ultimate with PHP plugin installed
 - Increased the minimum IntelliJ IDEA version to 2023.2
 

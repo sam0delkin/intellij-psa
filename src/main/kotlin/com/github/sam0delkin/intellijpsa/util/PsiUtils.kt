@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import org.apache.commons.lang3.StringUtils
 
@@ -76,6 +77,29 @@ class PsiUtils {
             }
 
             return result
+        }
+
+        fun getPrevElementByType(
+            element: PsiElement?,
+            type: String,
+            maxLength: Int = 10,
+        ): PsiElement? {
+            var prevElement: PsiElement? = null
+            var currentElement: PsiElement? = element
+            var length = 0
+            while (currentElement != null && prevElement == null) {
+                if (currentElement.node.elementType.toString() == type) {
+                    prevElement = currentElement
+                }
+                currentElement = currentElement.prevSibling
+                length += 1
+
+                if (length > maxLength) {
+                    break
+                }
+            }
+
+            return prevElement
         }
     }
 }

@@ -4,7 +4,13 @@
             implementation="com.github.sam0delkin.intellijpsa.language.php.typeProvider.PsaTypeProvider" />
     </extensions>
     <extensions defaultExtensionNs="com.intellij">
-        <annotator implementationClass="com.github.sam0delkin.intellijpsa.language.php.annotator.TypeProviderAnnotator" language="PHP"/>
+        <annotator
+                implementationClass="com.github.sam0delkin.intellijpsa.language.php.annotator.TypeProviderAnnotator"
+                language="PHP"
+        />
+        <referencesSearch
+                implementation="com.github.sam0delkin.intellijpsa.language.php.searchQueryExecutor.ParameterUsageSearcher"
+        />
     </extensions>
     <extensions defaultExtensionNs="com.github.sam0delkin.intellijpsa">
         <psaExtension implementation="com.github.sam0delkin.intellijpsa.language.php.PhpPsaExtension"/>

@@ -100,6 +100,7 @@ class Settings : PersistentStateComponent<Settings> {
     var supportsBatch: Boolean = false
     var supportedLanguages: String? = ""
     var executionTimeout: Int = 5000
+    var maxNestingLevel: Int = 100
     var singleFileCodeTemplates: ArrayList<SingleFileCodeTemplate>? = null
     var multipleFileCodeTemplates: ArrayList<MultipleFileCodeTemplate>? = null
     var supportsStaticCompletions: Boolean = false

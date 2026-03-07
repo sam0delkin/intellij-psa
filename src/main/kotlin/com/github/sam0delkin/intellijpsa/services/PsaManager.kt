@@ -563,6 +563,7 @@ class PsaManager(
         processPrev: Boolean = true,
         fromOption: Boolean = false,
         processedElements: ArrayList<PsiElement>? = null,
+        nestingLevel: Int = 0,
     ): PsiElementModel {
         val filePath = if (null === processedElements) element.containingFile.virtualFile.path else null
         val currentProcessedElements = if (null !== processedElements) processedElements else ArrayList()
@@ -638,6 +639,22 @@ class PsaManager(
             currentProcessedElements.add(element)
         }
 
+        if (nestingLevel > this.getSettings().maxNestingLevel) {
+            return PsiElementModel(
+                hashCode,
+                elementType,
+                options,
+                "",
+                elementFqn,
+                signature,
+                elementText,
+                null,
+                null,
+                null,
+                null,
+            )
+        }
+
         for (method in methods) {
             val interfaces = this.getAllExtendedOrImplementedInterfacesRecursively(method.returnType)
             val componentTypeInterfaces =
@@ -689,6 +706,7 @@ class PsaManager(
                                 processPrev = false,
                                 fromOption = true,
                                 processedElements = currentProcessedElements,
+                                nestingLevel = nestingLevel + 1,
                             ),
                             null,
                         )
@@ -706,6 +724,7 @@ class PsaManager(
                                 processPrev = false,
                                 fromOption = true,
                                 processedElements = currentProcessedElements,
+                                nestingLevel = nestingLevel + 1,
                             )
                     }
                     options[optionName] = PsiElementModelChild(null, null, arr)
@@ -729,6 +748,7 @@ class PsaManager(
                         processPrev = true,
                         fromOption = fromOption,
                         processedElements = currentProcessedElements,
+                        nestingLevel = nestingLevel + 1,
                     )
             }
         }
@@ -746,6 +766,7 @@ class PsaManager(
                         processPrev = false,
                         fromOption = fromOption,
                         processedElements = currentProcessedElements,
+                        nestingLevel = nestingLevel + 1,
                     )
             }
         }
@@ -763,6 +784,7 @@ class PsaManager(
                         processPrev = true,
                         fromOption = fromOption,
                         processedElements = currentProcessedElements,
+                        nestingLevel = nestingLevel + 1,
                     )
             }
         }
