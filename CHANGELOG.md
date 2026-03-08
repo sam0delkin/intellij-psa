@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.28] - 2026-03-08
 - Add support of find usages of some single param of function. Thanks to [c1tru55](https://github.com/c1tru55)
 - Added configurable nesting level for PSI element serializing. Useful for large PSI trees
 
@@ -199,7 +201,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.27...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.28...HEAD
+[0.0.28]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.24...v0.0.25
