@@ -4,15 +4,16 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class CompletionModelTest : BasePlatformTestCase() {
     fun testCompletionModelCreation() {
-        val model = CompletionModel().apply {
-            text = "My Completion"
-            bold = true
-            presentableText = "Presentable"
-            tailText = "Tail"
-            type = "MyType"
-            priority = 123.0
-            link = "/path/to/file.php:10:20"
-        }
+        val model =
+            CompletionModel().apply {
+                text = "My Completion"
+                bold = true
+                presentableText = "Presentable"
+                tailText = "Tail"
+                type = "MyType"
+                priority = 123.0
+                link = "/path/to/file.php:10:20"
+            }
 
         assertEquals("My Completion", model.text)
         assertEquals(true, model.bold)
@@ -36,34 +37,38 @@ class CompletionModelTest : BasePlatformTestCase() {
     }
 
     fun testNotificationModel() {
-        val notification = NotificationModel().apply {
-            type = "info"
-            text = "Hello from PSA"
-        }
+        val notification =
+            NotificationModel().apply {
+                type = "info"
+                text = "Hello from PSA"
+            }
 
         assertEquals("info", notification.type)
         assertEquals("Hello from PSA", notification.text)
     }
 
     fun testCompletionsModel() {
-        val completions = CompletionsModel().apply {
-            completions = listOf(
-                CompletionModel().apply {
-                    text = "Completion 1"
-                    type = "Type1"
-                },
-                CompletionModel().apply {
-                    text = "Completion 2"
-                    type = "Type2"
-                }
-            )
-            notifications = listOf(
-                NotificationModel().apply {
-                    type = "info"
-                    text = "Info message"
-                }
-            )
-        }
+        val completions =
+            CompletionsModel().apply {
+                completions =
+                    listOf(
+                        CompletionModel().apply {
+                            text = "Completion 1"
+                            type = "Type1"
+                        },
+                        CompletionModel().apply {
+                            text = "Completion 2"
+                            type = "Type2"
+                        },
+                    )
+                notifications =
+                    listOf(
+                        NotificationModel().apply {
+                            type = "info"
+                            text = "Info message"
+                        },
+                    )
+            }
 
         assertEquals(2, completions.completions?.size)
         assertEquals(1, completions.notifications?.size)
