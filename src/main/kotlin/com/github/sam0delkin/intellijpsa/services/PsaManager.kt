@@ -73,12 +73,16 @@ class PsaManager(
     var lastResultMessage: String = ""
 
     init {
-        val properties = Properties()
-        properties.setProperty(
-            "introspector.uberspect.class",
-            UberspectImpl::class.java.name,
-        )
-        Velocity.init(properties)
+        try {
+            val properties = Properties()
+            properties.setProperty(
+                "introspector.uberspect.class",
+                UberspectImpl::class.java.name,
+            )
+            Velocity.init(properties)
+        } catch (_: Throwable) {
+            // Ignore in tests or if already initialized
+        }
     }
 
     fun getSettings(): Settings = this.project.service()

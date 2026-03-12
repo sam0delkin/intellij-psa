@@ -1,7 +1,7 @@
 <idea-plugin>
     <extensions defaultExtensionNs="com.jetbrains">
         <php.typeProvider4
-            implementation="com.github.sam0delkin.intellijpsa.language.php.typeProvider.PsaTypeProvider" />
+                implementation="com.github.sam0delkin.intellijpsa.language.php.typeProvider.PsaTypeProvider"/>
     </extensions>
     <extensions defaultExtensionNs="com.intellij">
         <annotator
@@ -10,6 +10,9 @@
         />
         <referencesSearch
                 implementation="com.github.sam0delkin.intellijpsa.language.php.searchQueryExecutor.ParameterUsageSearcher"
+        />
+        <lang.structureViewExtension
+                implementation="com.github.sam0delkin.intellijpsa.language.php.structureView.TraitMethodStructureViewExtension"
         />
     </extensions>
     <extensions defaultExtensionNs="com.github.sam0delkin.intellijpsa">

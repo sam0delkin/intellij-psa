@@ -3,9 +3,12 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Added some initial tests to cover core functionality
+- Added check that PHP enabled for PHP-related features
+- [PHP] Added an extension to see all methods of the class (including trait methods) in structured view
 
 ## [0.0.28] - 2026-03-08
-- Add support of find usages of some single param of function. Thanks to [c1tru55](https://github.com/c1tru55)
+- [PHP] Add support of find usages of some single param of function. Thanks to [c1tru55](https://github.com/c1tru55)
 - Added configurable nesting level for PSI element serializing. Useful for large PSI trees
 
 ## [0.0.27] - 2025-10-02

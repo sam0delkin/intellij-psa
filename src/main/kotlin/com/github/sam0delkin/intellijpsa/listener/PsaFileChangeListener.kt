@@ -2,6 +2,7 @@ package com.github.sam0delkin.intellijpsa.listener
 
 import com.github.sam0delkin.intellijpsa.index.INDEX_ID
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
@@ -24,8 +25,7 @@ class PsaFileChangeListener :
         val projects = ProjectManager.getInstance().openProjects
 
         for (project in projects) {
-            val psaManager = project.service<PsaManager>()
-            val settings = psaManager.getSettings()
+            val settings = project.service<Settings>()
 
             if (!settings.pluginEnabled || null === settings.scriptPath) {
                 continue
@@ -39,6 +39,13 @@ class PsaFileChangeListener :
             if (null === projectDir) {
                 continue
             }
+
+            val psaManager =
+                try {
+                    project.service<PsaManager>()
+                } catch (_: Throwable) {
+                    null
+                } ?: continue
 
             scriptDir = projectDir.path + '/' + scriptDir
             if (events.none { e -> e.path.indexOf(scriptDir) >= 0 }) {

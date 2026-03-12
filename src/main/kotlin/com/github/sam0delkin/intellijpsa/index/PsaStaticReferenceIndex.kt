@@ -2,6 +2,7 @@ package com.github.sam0delkin.intellijpsa.index
 
 import com.github.sam0delkin.intellijpsa.psi.helper.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.util.PsiUtils
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.lang.LighterASTNode
@@ -134,7 +135,7 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
 
                                             try {
                                                 Velocity.evaluate(context, writer, "", staticCompletion.matcher)
-                                            } catch (e: Exception) {
+                                            } catch (_: Exception) {
                                                 return@filter false
                                             }
 
@@ -212,8 +213,7 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
                     .getInstance()
                     .openProjects
                     .map {
-                        val psaManager = it.service<PsaManager>()
-                        val settings = psaManager.getSettings()
+                        val settings = it.service<Settings>()
                         val fileManager = PsiManager.getInstance(it)
 
                         if (!settings.pluginEnabled) {

@@ -1,7 +1,9 @@
 package com.github.sam0delkin.intellijpsa.language.php.searchQueryExecutor
 
+import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.util.PsiUtils
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.components.service
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.search.searches.ReferencesSearch
@@ -23,6 +25,9 @@ class ParameterUsageSearcher : QueryExecutor<PsiReference, ReferencesSearch.Sear
     ): Boolean {
         val target = params.elementToSearch
         if (target !is Parameter) return true
+
+        val settings = target.project.service<Settings>()
+        if (!settings.pluginEnabled) return true
 
         ReadAction.run<RuntimeException> {
             val parameterList = target.parent as? ParameterList ?: return@run
@@ -50,8 +55,6 @@ class ParameterUsageSearcher : QueryExecutor<PsiReference, ReferencesSearch.Sear
                         }
                     }
                 }
-
-                true
             }
         }
 
@@ -86,6 +89,12 @@ class ParameterUsageSearcher : QueryExecutor<PsiReference, ReferencesSearch.Sear
             }
         }
 
-        return arguments.size > index
+        if (arguments.size > index) {
+            val argAtIndex = arguments[index]
+            val prevColon = PsiUtils.getPrevElementByType(argAtIndex, "colon")
+            PsiUtils.getPrevElementByType(prevColon, "identifier") ?: return true
+        }
+
+        return false
     }
 }
