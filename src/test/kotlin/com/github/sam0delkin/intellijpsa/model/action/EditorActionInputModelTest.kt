@@ -4,10 +4,11 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class EditorActionInputModelTest : BasePlatformTestCase() {
     fun testEditorActionInputModelConstructor() {
-        val model = EditorActionInputModel(
-            actionName = "my_action",
-            fileName = "/path/to/file.php"
-        )
+        val model =
+            EditorActionInputModel(
+                actionName = "my_action",
+                fileName = "/path/to/file.php",
+            )
 
         assertEquals("my_action", model.actionName)
         assertEquals("/path/to/file.php", model.fileName)
@@ -15,11 +16,12 @@ class EditorActionInputModelTest : BasePlatformTestCase() {
     }
 
     fun testEditorActionInputModelWithText() {
-        val model = EditorActionInputModel(
-            actionName = "my_action",
-            fileName = "/path/to/file.php",
-            text = "some code here"
-        )
+        val model =
+            EditorActionInputModel(
+                actionName = "my_action",
+                fileName = "/path/to/file.php",
+                text = "some code here",
+            )
 
         assertEquals("my_action", model.actionName)
         assertEquals("/path/to/file.php", model.fileName)
@@ -27,17 +29,19 @@ class EditorActionInputModelTest : BasePlatformTestCase() {
     }
 
     fun testEditorActionInputModelCopy() {
-        val original = EditorActionInputModel(
-            actionName = "action",
-            fileName = "/file.php",
-            text = "text"
-        )
+        val original =
+            EditorActionInputModel(
+                actionName = "action",
+                fileName = "/file.php",
+                text = "text",
+            )
 
-        val copy = EditorActionInputModel(
-            actionName = original.actionName,
-            fileName = original.fileName,
-            text = original.text
-        )
+        val copy =
+            EditorActionInputModel(
+                actionName = original.actionName,
+                fileName = original.fileName,
+                text = original.text,
+            )
 
         assertEquals(original.actionName, copy.actionName)
         assertEquals(original.fileName, copy.fileName)

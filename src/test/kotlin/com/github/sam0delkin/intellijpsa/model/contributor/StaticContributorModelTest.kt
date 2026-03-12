@@ -20,18 +20,20 @@ class StaticContributorModelTest : BasePlatformTestCase() {
     }
 
     fun testStaticContributorModel() {
-        val pattern = PsiElementPatternModel(
-            withText = "'test'",
-            withType = "STRING_LITERAL"
-        )
+        val pattern =
+            PsiElementPatternModel(
+                withText = "'test'",
+                withType = "STRING_LITERAL",
+            )
 
-        val model = StaticContributorModel().apply {
-            name = "my_contributor"
-            pathRegex = "^/src/"
-            scope = StaticContributorScope.Project
-            this.pattern = pattern
-            completionProvider = "provide_completion"
-        }
+        val model =
+            StaticContributorModel().apply {
+                name = "my_contributor"
+                pathRegex = "^/src/"
+                scope = StaticContributorScope.Project
+                this.pattern = pattern
+                completionProvider = "provide_completion"
+            }
 
         assertEquals("my_contributor", model.name)
         assertEquals("^/src/", model.pathRegex)
@@ -42,11 +44,12 @@ class StaticContributorModelTest : BasePlatformTestCase() {
     }
 
     fun testStaticContributorModelNullPathRegex() {
-        val model = StaticContributorModel().apply {
-            name = "global_contributor"
-            scope = StaticContributorScope.Project
-            completionProvider = "global_completion"
-        }
+        val model =
+            StaticContributorModel().apply {
+                name = "global_contributor"
+                scope = StaticContributorScope.Project
+                completionProvider = "global_completion"
+            }
 
         assertNull(model.pathRegex)
     }

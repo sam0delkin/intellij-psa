@@ -12,19 +12,20 @@ class PsiElementModelsTest : BasePlatformTestCase() {
     }
 
     fun testPsiElementModelChildWithModel() {
-        val model = PsiElementModel(
-            id = "123",
-            elementType = "STRING_LITERAL",
-            options = mutableMapOf(),
-            elementName = null,
-            elementFqn = null,
-            elementSignature = null,
-            text = "'test'",
-            parent = null,
-            prev = null,
-            next = null,
-            textRange = null
-        )
+        val model =
+            PsiElementModel(
+                id = "123",
+                elementType = "STRING_LITERAL",
+                options = mutableMapOf(),
+                elementName = null,
+                elementFqn = null,
+                elementSignature = null,
+                text = "'test'",
+                parent = null,
+                prev = null,
+                next = null,
+                textRange = null,
+            )
         val child = PsiElementModelChild(model = model)
 
         assertNotNull(child.model)
@@ -35,32 +36,34 @@ class PsiElementModelsTest : BasePlatformTestCase() {
 
     fun testPsiElementModelChildWithArray() {
         val array = arrayOfNulls<PsiElementModel>(2)
-        array[0] = PsiElementModel(
-            id = "1",
-            elementType = "TYPE_1",
-            options = mutableMapOf(),
-            elementName = null,
-            elementFqn = null,
-            elementSignature = null,
-            text = "text1",
-            parent = null,
-            prev = null,
-            next = null,
-            textRange = null
-        )
-        array[1] = PsiElementModel(
-            id = "2",
-            elementType = "TYPE_2",
-            options = mutableMapOf(),
-            elementName = null,
-            elementFqn = null,
-            elementSignature = null,
-            text = "text2",
-            parent = null,
-            prev = null,
-            next = null,
-            textRange = null
-        )
+        array[0] =
+            PsiElementModel(
+                id = "1",
+                elementType = "TYPE_1",
+                options = mutableMapOf(),
+                elementName = null,
+                elementFqn = null,
+                elementSignature = null,
+                text = "text1",
+                parent = null,
+                prev = null,
+                next = null,
+                textRange = null,
+            )
+        array[1] =
+            PsiElementModel(
+                id = "2",
+                elementType = "TYPE_2",
+                options = mutableMapOf(),
+                elementName = null,
+                elementFqn = null,
+                elementSignature = null,
+                text = "text2",
+                parent = null,
+                prev = null,
+                next = null,
+                textRange = null,
+            )
         val child = PsiElementModelChild(array = array)
 
         assertNotNull(child.array)
@@ -87,27 +90,29 @@ class PsiElementModelsTest : BasePlatformTestCase() {
     }
 
     fun testPsiElementModel() {
-        val options = mutableMapOf<String, PsiElementModelChild>(
-            "option1" to PsiElementModelChild(string = "value1"),
-            "option2" to PsiElementModelChild(string = "value2")
-        )
+        val options =
+            mutableMapOf<String, PsiElementModelChild>(
+                "option1" to PsiElementModelChild(string = "value1"),
+                "option2" to PsiElementModelChild(string = "value2"),
+            )
 
         val textRange = PsiElementModelTextRange(startOffset = 0, endOffset = 10)
 
-        val model = PsiElementModel(
-            id = "hash123",
-            elementType = "STRING_LITERAL",
-            options = options,
-            elementName = null,
-            elementFqn = null,
-            elementSignature = arrayListOf("signature1", "signature2"),
-            text = "'test string'",
-            parent = null,
-            prev = null,
-            next = null,
-            textRange = textRange,
-            filePath = "/path/to/file.php"
-        )
+        val model =
+            PsiElementModel(
+                id = "hash123",
+                elementType = "STRING_LITERAL",
+                options = options,
+                elementName = null,
+                elementFqn = null,
+                elementSignature = arrayListOf("signature1", "signature2"),
+                text = "'test string'",
+                parent = null,
+                prev = null,
+                next = null,
+                textRange = textRange,
+                filePath = "/path/to/file.php",
+            )
 
         assertEquals("hash123", model.id)
         assertEquals("STRING_LITERAL", model.elementType)
@@ -121,33 +126,35 @@ class PsiElementModelsTest : BasePlatformTestCase() {
     }
 
     fun testPsiElementModelWithParent() {
-        val parentModel = PsiElementModel(
-            id = "parent_hash",
-            elementType = "AssignmentExpression",
-            options = mutableMapOf(),
-            elementName = null,
-            elementFqn = null,
-            elementSignature = null,
-            text = "\$var = 'value'",
-            parent = null,
-            prev = null,
-            next = null,
-            textRange = null
-        )
+        val parentModel =
+            PsiElementModel(
+                id = "parent_hash",
+                elementType = "AssignmentExpression",
+                options = mutableMapOf(),
+                elementName = null,
+                elementFqn = null,
+                elementSignature = null,
+                text = "\$var = 'value'",
+                parent = null,
+                prev = null,
+                next = null,
+                textRange = null,
+            )
 
-        val childModel = PsiElementModel(
-            id = "child_hash",
-            elementType = "STRING_LITERAL",
-            options = mutableMapOf(),
-            elementName = null,
-            elementFqn = null,
-            elementSignature = null,
-            text = "'value'",
-            parent = parentModel,
-            prev = null,
-            next = null,
-            textRange = null
-        )
+        val childModel =
+            PsiElementModel(
+                id = "child_hash",
+                elementType = "STRING_LITERAL",
+                options = mutableMapOf(),
+                elementName = null,
+                elementFqn = null,
+                elementSignature = null,
+                text = "'value'",
+                parent = parentModel,
+                prev = null,
+                next = null,
+                textRange = null,
+            )
 
         assertNotNull(childModel.parent)
         assertEquals("parent_hash", childModel.parent?.id)
@@ -155,19 +162,20 @@ class PsiElementModelsTest : BasePlatformTestCase() {
     }
 
     fun testPsiElementModelEmptyOptions() {
-        val model = PsiElementModel(
-            id = "hash",
-            elementType = "TYPE",
-            options = mutableMapOf(),
-            elementName = null,
-            elementFqn = null,
-            elementSignature = null,
-            text = "text",
-            parent = null,
-            prev = null,
-            next = null,
-            textRange = null
-        )
+        val model =
+            PsiElementModel(
+                id = "hash",
+                elementType = "TYPE",
+                options = mutableMapOf(),
+                elementName = null,
+                elementFqn = null,
+                elementSignature = null,
+                text = "text",
+                parent = null,
+                prev = null,
+                next = null,
+                textRange = null,
+            )
 
         assertEquals(0, model.options.size)
     }

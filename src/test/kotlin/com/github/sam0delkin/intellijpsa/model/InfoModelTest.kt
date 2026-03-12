@@ -5,9 +5,10 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class InfoModelTest : BasePlatformTestCase() {
     fun testInfoModelCreation() {
-        val model = InfoModel().apply {
-            supportedLanguages.addAll(listOf("PHP", "JavaScript"))
-        }
+        val model =
+            InfoModel().apply {
+                supportedLanguages.addAll(listOf("PHP", "JavaScript"))
+            }
 
         assertEquals(2, model.supportedLanguages.size)
         assertTrue(model.supportedLanguages.contains("PHP"))
@@ -52,12 +53,13 @@ class InfoModelTest : BasePlatformTestCase() {
     }
 
     fun testStaticCompletionModel() {
-        val model = StaticCompletionModel().apply {
-            name = "my_completion"
-            title = "My Completion"
-            patterns = arrayListOf()
-            matcher = "element_type == 'STRING_LITERAL'"
-        }
+        val model =
+            StaticCompletionModel().apply {
+                name = "my_completion"
+                title = "My Completion"
+                patterns = arrayListOf()
+                matcher = "element_type == 'STRING_LITERAL'"
+            }
 
         assertEquals("my_completion", model.name)
         assertEquals("My Completion", model.title)

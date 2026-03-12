@@ -13,16 +13,18 @@ class TypeProviderModelTest : BasePlatformTestCase() {
     }
 
     fun testTypeProviderModel() {
-        val pattern = PsiElementPatternModel(
-            withText = "'test'",
-            withType = "STRING_LITERAL"
-        )
+        val pattern =
+            PsiElementPatternModel(
+                withText = "'test'",
+                withType = "STRING_LITERAL",
+            )
 
-        val model = TypeProviderModel().apply {
-            language = "PHP"
-            this.pattern = pattern
-            type = "\\MyCustomType"
-        }
+        val model =
+            TypeProviderModel().apply {
+                language = "PHP"
+                this.pattern = pattern
+                type = "\\MyCustomType"
+            }
 
         assertEquals("PHP", model.language)
         assertNotNull(model.pattern)

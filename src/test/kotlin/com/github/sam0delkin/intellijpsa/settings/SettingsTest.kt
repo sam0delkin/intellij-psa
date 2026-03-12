@@ -30,10 +30,11 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSettingsIsLanguageSupported() {
-        val settings = Settings().apply {
-            pluginEnabled = true
-            supportedLanguages = "PHP,JavaScript,TypeScript"
-        }
+        val settings =
+            Settings().apply {
+                pluginEnabled = true
+                supportedLanguages = "PHP,JavaScript,TypeScript"
+            }
 
         assertTrue(settings.isLanguageSupported("PHP"))
         assertTrue(settings.isLanguageSupported("JavaScript"))
@@ -43,60 +44,67 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSettingsIsLanguageSupportedWhenPluginDisabled() {
-        val settings = Settings().apply {
-            pluginEnabled = false
-            supportedLanguages = "PHP,JavaScript"
-        }
+        val settings =
+            Settings().apply {
+                pluginEnabled = false
+                supportedLanguages = "PHP,JavaScript"
+            }
 
         assertFalse(settings.isLanguageSupported("PHP"))
         assertFalse(settings.isLanguageSupported("JavaScript"))
     }
 
     fun testSettingsIsLanguageSupportedWhenEmpty() {
-        val settings = Settings().apply {
-            pluginEnabled = true
-            supportedLanguages = ""
-        }
+        val settings =
+            Settings().apply {
+                pluginEnabled = true
+                supportedLanguages = ""
+            }
 
         assertFalse(settings.isLanguageSupported("PHP"))
     }
 
     fun testSettingsGetScriptDir() {
-        val settings = Settings().apply {
-            scriptPath = "/path/to/script.php"
-        }
+        val settings =
+            Settings().apply {
+                scriptPath = "/path/to/script.php"
+            }
 
         assertEquals("/path/to", settings.getScriptDir())
     }
 
     fun testSettingsGetScriptDirNested() {
-        val settings = Settings().apply {
-            scriptPath = "/home/user/project/.psa/psa.php"
-        }
+        val settings =
+            Settings().apply {
+                scriptPath = "/home/user/project/.psa/psa.php"
+            }
 
         assertEquals("/home/user/project/.psa", settings.getScriptDir())
     }
 
     fun testSettingsGetScriptDirNull() {
-        val settings = Settings().apply {
-            scriptPath = null
-        }
+        val settings =
+            Settings().apply {
+                scriptPath = null
+            }
 
         assertNull(settings.getScriptDir())
     }
 
     fun testSettingsGetScriptDirRootFile() {
-        val settings = Settings().apply {
-            scriptPath = "psa.php"
-        }
+        val settings =
+            Settings().apply {
+                scriptPath = "psa.php"
+            }
 
         assertEquals("", settings.getScriptDir())
     }
 
     fun testSettingsReplacePathMappings() {
-        val settings = Settings().apply {
-            pluginEnabled = true
-        }
+        val settings =
+            Settings().apply {
+                pluginEnabled = true
+            }
 
         val result = settings.replacePathMappings("/remote/path/file.php")
 
@@ -105,12 +113,14 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSettingsReplacePathMappingsWhenPluginDisabled() {
-        val settings = Settings().apply {
-            pluginEnabled = false
-            pathMappings = arrayOf(
-                PathMappingSettings.PathMapping("/remote", "/local")
-            )
-        }
+        val settings =
+            Settings().apply {
+                pluginEnabled = false
+                pathMappings =
+                    arrayOf(
+                        PathMappingSettings.PathMapping("/remote", "/local"),
+                    )
+            }
 
         val result = settings.replacePathMappings("/remote/file.php")
 
@@ -118,10 +128,11 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSettingsReplacePathMappingsEmpty() {
-        val settings = Settings().apply {
-            pluginEnabled = true
-            pathMappings = arrayOf()
-        }
+        val settings =
+            Settings().apply {
+                pluginEnabled = true
+                pathMappings = arrayOf()
+            }
 
         val result = settings.replacePathMappings("/remote/file.php")
 
@@ -129,9 +140,10 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSettingsIsElementTypeMatchingFilter() {
-        val settings = Settings().apply {
-            goToFilter = "STRING_LITERAL,METHOD_REFERENCE,CLASS_REFERENCE"
-        }
+        val settings =
+            Settings().apply {
+                goToFilter = "STRING_LITERAL,METHOD_REFERENCE,CLASS_REFERENCE"
+            }
 
         assertTrue(settings.isElementTypeMatchingFilter("STRING_LITERAL"))
         assertTrue(settings.isElementTypeMatchingFilter("METHOD_REFERENCE"))
@@ -141,32 +153,35 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSettingsIsElementTypeMatchingFilterEmpty() {
-        val settings = Settings().apply {
-            goToFilter = ""
-        }
+        val settings =
+            Settings().apply {
+                goToFilter = ""
+            }
 
         assertTrue(settings.isElementTypeMatchingFilter("STRING_LITERAL"))
         assertTrue(settings.isElementTypeMatchingFilter("ANY_TYPE"))
     }
 
     fun testSettingsIsElementTypeMatchingFilterNull() {
-        val settings = Settings().apply {
-            goToFilter = null
-        }
+        val settings =
+            Settings().apply {
+                goToFilter = null
+            }
 
         assertTrue(settings.isElementTypeMatchingFilter("STRING_LITERAL"))
     }
 
     fun testSettingsStateCopy() {
-        val settings1 = Settings().apply {
-            pluginEnabled = true
-            debug = true
-            showErrors = false
-            scriptPath = "/custom/path/psa.php"
-            supportedLanguages = "PHP"
-            executionTimeout = 10000
-            maxNestingLevel = 50
-        }
+        val settings1 =
+            Settings().apply {
+                pluginEnabled = true
+                debug = true
+                showErrors = false
+                scriptPath = "/custom/path/psa.php"
+                supportedLanguages = "PHP"
+                executionTimeout = 10000
+                maxNestingLevel = 50
+            }
 
         val settings2 = Settings()
         settings2.loadState(settings1)
@@ -181,10 +196,11 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSettingsGetState() {
-        val settings = Settings().apply {
-            pluginEnabled = true
-            debug = true
-        }
+        val settings =
+            Settings().apply {
+                pluginEnabled = true
+                debug = true
+            }
 
         val state = settings.state
 
@@ -192,13 +208,14 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testTemplateFormField() {
-        val field = TemplateFormField().apply {
-            name = "className"
-            title = "Class Name"
-            type = TemplateFormFieldType.Text
-            focused = true
-            options = arrayListOf("Option1", "Option2")
-        }
+        val field =
+            TemplateFormField().apply {
+                name = "className"
+                title = "Class Name"
+                type = TemplateFormFieldType.Text
+                focused = true
+                options = arrayListOf("Option1", "Option2")
+            }
 
         assertEquals("className", field.name)
         assertEquals("Class Name", field.title)
@@ -208,29 +225,32 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testTemplateFormFieldEquals() {
-        val field1 = TemplateFormField().apply {
-            name = "className"
-            title = "Class Name"
-            type = TemplateFormFieldType.Text
-            focused = true
-            options = arrayListOf("Option1", "Option2")
-        }
+        val field1 =
+            TemplateFormField().apply {
+                name = "className"
+                title = "Class Name"
+                type = TemplateFormFieldType.Text
+                focused = true
+                options = arrayListOf("Option1", "Option2")
+            }
 
-        val field2 = TemplateFormField().apply {
-            name = "className"
-            title = "Class Name"
-            type = TemplateFormFieldType.Text
-            focused = true
-            options = arrayListOf("Option1", "Option2")
-        }
+        val field2 =
+            TemplateFormField().apply {
+                name = "className"
+                title = "Class Name"
+                type = TemplateFormFieldType.Text
+                focused = true
+                options = arrayListOf("Option1", "Option2")
+            }
 
-        val field3 = TemplateFormField().apply {
-            name = "className"
-            title = "Class Name"
-            type = TemplateFormFieldType.Text
-            focused = true
-            options = arrayListOf("Option1")
-        }
+        val field3 =
+            TemplateFormField().apply {
+                name = "className"
+                title = "Class Name"
+                type = TemplateFormFieldType.Text
+                focused = true
+                options = arrayListOf("Option1")
+            }
 
         assertEquals(field1, field2)
         assertEquals(field1.hashCode(), field2.hashCode())
@@ -238,12 +258,13 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testTemplateFormFieldToString() {
-        val field = TemplateFormField().apply {
-            name = "testName"
-            title = "Test Title"
-            type = TemplateFormFieldType.Select
-            options = arrayListOf("A", "B")
-        }
+        val field =
+            TemplateFormField().apply {
+                name = "testName"
+                title = "Test Title"
+                type = TemplateFormFieldType.Select
+                options = arrayListOf("A", "B")
+            }
 
         val str = field.toString()
 
@@ -253,18 +274,20 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSingleFileCodeTemplate() {
-        val template = SingleFileCodeTemplate().apply {
-            pathRegex = "^/src/"
-            name = "my_template"
-            title = "My Template"
-            formFields = arrayListOf(
-                TemplateFormField().apply {
-                    name = "className"
-                    title = "Class Name"
-                    type = TemplateFormFieldType.Text
-                }
-            )
-        }
+        val template =
+            SingleFileCodeTemplate().apply {
+                pathRegex = "^/src/"
+                name = "my_template"
+                title = "My Template"
+                formFields =
+                    arrayListOf(
+                        TemplateFormField().apply {
+                            name = "className"
+                            title = "Class Name"
+                            type = TemplateFormFieldType.Text
+                        },
+                    )
+            }
 
         assertEquals("^/src/", template.pathRegex)
         assertEquals("my_template", template.name)
@@ -273,26 +296,29 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testSingleFileCodeTemplateEquals() {
-        val template1 = SingleFileCodeTemplate().apply {
-            pathRegex = "^/src/"
-            name = "template"
-            title = "Template"
-            formFields = arrayListOf()
-        }
+        val template1 =
+            SingleFileCodeTemplate().apply {
+                pathRegex = "^/src/"
+                name = "template"
+                title = "Template"
+                formFields = arrayListOf()
+            }
 
-        val template2 = SingleFileCodeTemplate().apply {
-            pathRegex = "^/src/"
-            name = "template"
-            title = "Template"
-            formFields = arrayListOf()
-        }
+        val template2 =
+            SingleFileCodeTemplate().apply {
+                pathRegex = "^/src/"
+                name = "template"
+                title = "Template"
+                formFields = arrayListOf()
+            }
 
-        val template3 = SingleFileCodeTemplate().apply {
-            pathRegex = "^/app/"
-            name = "template"
-            title = "Template"
-            formFields = arrayListOf()
-        }
+        val template3 =
+            SingleFileCodeTemplate().apply {
+                pathRegex = "^/app/"
+                name = "template"
+                title = "Template"
+                formFields = arrayListOf()
+            }
 
         assertEquals(template1, template2)
         assertEquals(template1.hashCode(), template2.hashCode())
@@ -300,13 +326,14 @@ class SettingsTest : BasePlatformTestCase() {
     }
 
     fun testMultipleFileCodeTemplate() {
-        val template = MultipleFileCodeTemplate().apply {
-            pathRegex = "^/src/"
-            name = "multi_template"
-            title = "Multi File Template"
-            formFields = arrayListOf()
-            fileCount = 3
-        }
+        val template =
+            MultipleFileCodeTemplate().apply {
+                pathRegex = "^/src/"
+                name = "multi_template"
+                title = "Multi File Template"
+                formFields = arrayListOf()
+                fileCount = 3
+            }
 
         assertEquals("^/src/", template.pathRegex)
         assertEquals("multi_template", template.name)

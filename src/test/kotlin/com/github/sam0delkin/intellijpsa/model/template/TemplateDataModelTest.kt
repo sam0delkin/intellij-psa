@@ -5,10 +5,11 @@ import kotlinx.serialization.json.JsonPrimitive
 
 class TemplateDataModelTest : BasePlatformTestCase() {
     fun testFormFieldDataModel() {
-        val field = FormFieldDataModel().apply {
-            value = JsonPrimitive("test_value")
-            options.addAll(listOf("option1", "option2", "option3"))
-        }
+        val field =
+            FormFieldDataModel().apply {
+                value = JsonPrimitive("test_value")
+                options.addAll(listOf("option1", "option2", "option3"))
+            }
 
         assertNotNull(field.value)
         assertEquals("test_value", (field.value as JsonPrimitive).content)

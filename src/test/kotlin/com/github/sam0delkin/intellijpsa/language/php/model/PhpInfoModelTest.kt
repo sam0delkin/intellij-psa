@@ -14,18 +14,20 @@ class PhpInfoModelTest : BasePlatformTestCase() {
     }
 
     fun testPhpInfoModel() {
-        val model = PhpInfoModel().apply {
-            supportedLanguages.addAll(listOf("PHP"))
-        }
+        val model =
+            PhpInfoModel().apply {
+                supportedLanguages.addAll(listOf("PHP"))
+            }
 
         assertEquals(1, model.supportedLanguages.size)
         assertEquals("PHP", model.supportedLanguages[0])
     }
 
     fun testPhpInfoModelInheritsFromInfoModel() {
-        val model = PhpInfoModel().apply {
-            supportedLanguages.addAll(listOf("PHP", "JavaScript"))
-        }
+        val model =
+            PhpInfoModel().apply {
+                supportedLanguages.addAll(listOf("PHP", "JavaScript"))
+            }
 
         assertEquals(2, model.supportedLanguages.size)
         assertTrue(model.supportedLanguages.contains("PHP"))

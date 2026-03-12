@@ -48,11 +48,12 @@ class FileUtilsTest : BasePlatformTestCase() {
     }
 
     fun testWriteToTmpFileWithMultilineContent() {
-        val content = """
+        val content =
+            """
             line 1
             line 2
             line 3
-        """.trimIndent()
+            """.trimIndent()
 
         val filePath = FileUtils.writeToTmpFile("test_multiline", content)
 
@@ -76,7 +77,8 @@ class FileUtilsTest : BasePlatformTestCase() {
     }
 
     fun testWriteToTmpFileWithJsonContent() {
-        val content = """
+        val content =
+            """
             {
                 "key": "value",
                 "array": [1, 2, 3],
@@ -84,7 +86,7 @@ class FileUtilsTest : BasePlatformTestCase() {
                     "inner": "data"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val filePath = FileUtils.writeToTmpFile("test_json", content)
 
@@ -149,14 +151,15 @@ class FileUtilsTest : BasePlatformTestCase() {
     }
 
     fun testWriteToTmpFileWithPhpCode() {
-        val content = """
+        val content =
+            """
             <?php
             class MyClass {
                 public function myMethod(): string {
                     return 'Hello World';
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val filePath = FileUtils.writeToTmpFile("test_php", content)
 

@@ -4,26 +4,29 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PsiElementPatternModelTest : BasePlatformTestCase() {
     fun testPsiElementPatternModelConstructor() {
-        val pattern = PsiElementPatternModel(
-            withText = "'test'",
-            withType = "STRING_LITERAL"
-        )
+        val pattern =
+            PsiElementPatternModel(
+                withText = "'test'",
+                withType = "STRING_LITERAL",
+            )
 
         assertEquals("'test'", pattern.withText)
         assertEquals("STRING_LITERAL", pattern.withType)
     }
 
     fun testPsiElementPatternModelWithParent() {
-        val parentPattern = PsiElementPatternModel(
-            withText = "assignment",
-            withType = "AssignmentExpression"
-        )
+        val parentPattern =
+            PsiElementPatternModel(
+                withText = "assignment",
+                withType = "AssignmentExpression",
+            )
 
-        val pattern = PsiElementPatternModel(
-            withText = "'test'",
-            withType = "STRING_LITERAL",
-            parent = parentPattern
-        )
+        val pattern =
+            PsiElementPatternModel(
+                withText = "'test'",
+                withType = "STRING_LITERAL",
+                parent = parentPattern,
+            )
 
         assertNotNull(pattern.parent)
         assertEquals("assignment", pattern.parent?.withText)
@@ -31,23 +34,26 @@ class PsiElementPatternModelTest : BasePlatformTestCase() {
     }
 
     fun testPsiElementPatternModelWithAnyParent() {
-        val anyParentPattern = PsiElementPatternModel(
-            withType = "Function"
-        )
+        val anyParentPattern =
+            PsiElementPatternModel(
+                withType = "Function",
+            )
 
-        val pattern = PsiElementPatternModel(
-            withText = "'test'",
-            anyParent = anyParentPattern
-        )
+        val pattern =
+            PsiElementPatternModel(
+                withText = "'test'",
+                anyParent = anyParentPattern,
+            )
 
         assertNotNull(pattern.anyParent)
         assertEquals("Function", pattern.anyParent?.withType)
     }
 
     fun testPsiElementPatternModelWithMatcher() {
-        val pattern = PsiElementPatternModel(
-            withMatcher = "element_type == 'STRING_LITERAL' && text.startsWith(\"'\")"
-        )
+        val pattern =
+            PsiElementPatternModel(
+                withMatcher = "element_type == 'STRING_LITERAL' && text.startsWith(\"'\")",
+            )
 
         assertEquals("element_type == 'STRING_LITERAL' && text.startsWith(\"'\")", pattern.withMatcher)
     }
@@ -55,10 +61,11 @@ class PsiElementPatternModelTest : BasePlatformTestCase() {
     fun testPsiElementPatternModelWithOptions() {
         val options = mapOf("option1" to "value1", "option2" to "value2")
 
-        val pattern = PsiElementPatternModel(
-            withText = "test",
-            withOptions = options
-        )
+        val pattern =
+            PsiElementPatternModel(
+                withText = "test",
+                withOptions = options,
+            )
 
         assertNotNull(pattern.withOptions)
         assertEquals(2, pattern.withOptions?.size)
@@ -83,25 +90,35 @@ class PsiElementPatternModelTest : BasePlatformTestCase() {
     }
 
     fun testPsiElementPatternModelComplexHierarchy() {
-        val pattern = PsiElementPatternModel(
-            withText = "'completion'",
-            withType = "STRING_LITERAL",
-            parent = PsiElementPatternModel(
-                withType = "AssignmentExpression",
-                parent = PsiElementPatternModel(
-                    withType = "Statement",
-                    anyParent = PsiElementPatternModel(
-                        withType = "Function"
-                    )
-                )
+        val pattern =
+            PsiElementPatternModel(
+                withText = "'completion'",
+                withType = "STRING_LITERAL",
+                parent =
+                    PsiElementPatternModel(
+                        withType = "AssignmentExpression",
+                        parent =
+                            PsiElementPatternModel(
+                                withType = "Statement",
+                                anyParent =
+                                    PsiElementPatternModel(
+                                        withType = "Function",
+                                    ),
+                            ),
+                    ),
             )
-        )
 
         assertNotNull(pattern.parent)
         assertEquals("AssignmentExpression", pattern.parent?.withType)
         assertNotNull(pattern.parent?.parent)
         assertEquals("Statement", pattern.parent?.parent?.withType)
         assertNotNull(pattern.parent?.parent?.anyParent)
-        assertEquals("Function", pattern.parent?.parent?.anyParent?.withType)
+        assertEquals(
+            "Function",
+            pattern.parent
+                ?.parent
+                ?.anyParent
+                ?.withType,
+        )
     }
 }
