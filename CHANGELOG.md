@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.29] - 2026-03-12
 - Added some initial tests to cover core functionality
 - Added check that PHP enabled for PHP-related features
 - [PHP] Added an extension to see all methods of the class (including trait methods) in structured view
@@ -204,7 +206,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.28...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.29...HEAD
+[0.0.29]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.28...v0.0.29
 [0.0.28]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.25...v0.0.26
