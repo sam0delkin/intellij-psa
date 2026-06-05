@@ -156,71 +156,71 @@ class AnyCompletionContributor {
             val staticCompletionConfigs = psaManager.getStaticCompletionConfigs()
 
             for (config in staticCompletionConfigs) {
-                    if (null === config.patterns) {
-                        continue
-                    }
+                if (null === config.patterns) {
+                    continue
+                }
 
-                    for (pattern in config.patterns!!) {
-                        if (PsiElementModelHelper.matches(model, pattern)) {
-                            json = ExtendedCompletionsModel()
-                            json.extendedCompletions = ArrayList(config.extendedCompletions!!.extendedCompletions!!)
-                            sourceElement.putUserData(ANNOTATOR_COMPLETION_TITLE, config.title)
+                for (pattern in config.patterns!!) {
+                    if (PsiElementModelHelper.matches(model, pattern)) {
+                        json = ExtendedCompletionsModel()
+                        json.extendedCompletions = ArrayList(config.extendedCompletions!!.extendedCompletions!!)
+                        sourceElement.putUserData(ANNOTATOR_COMPLETION_TITLE, config.title)
 
-                            var notificationShown = false
-                            if (config.matcher != null) {
-                                json.extendedCompletions =
-                                    (json.extendedCompletions!!)
-                                        .filter {
-                                            val writer = StringWriter()
-                                            val context = VelocityContext()
-                                            context.put("completion", it)
-                                            context.put("model", model)
+                        var notificationShown = false
+                        if (config.matcher != null) {
+                            json.extendedCompletions =
+                                (json.extendedCompletions!!)
+                                    .filter {
+                                        val writer = StringWriter()
+                                        val context = VelocityContext()
+                                        context.put("completion", it)
+                                        context.put("model", model)
 
-                                            try {
-                                                Velocity.evaluate(context, writer, "", config.matcher)
-                                            } catch (e: Exception) {
-                                                if (!notificationShown) {
-                                                    NotificationGroupManager
-                                                        .getInstance()
-                                                        .getNotificationGroup("PSA Notification")
-                                                        .createNotification(
-                                                            "Error evaluating static completion matcher",
-                                                            e.message!!,
-                                                            NotificationType.ERROR,
-                                                        ).notify(project)
+                                        try {
+                                            Velocity.evaluate(context, writer, "", config.matcher)
+                                        } catch (e: Exception) {
+                                            if (!notificationShown) {
+                                                NotificationGroupManager
+                                                    .getInstance()
+                                                    .getNotificationGroup("PSA Notification")
+                                                    .createNotification(
+                                                        "Error evaluating static completion matcher",
+                                                        e.message!!,
+                                                        NotificationType.ERROR,
+                                                    ).notify(project)
 
-                                                    notificationShown = true
-                                                }
-
-                                                return@filter false
+                                                notificationShown = true
                                             }
 
-                                            val result = writer.buffer.toString()
+                                            return@filter false
+                                        }
 
-                                            result == "true" || result == "1"
-                                        }.toMutableList()
-                            } else {
-                                json.extendedCompletions =
-                                    ArrayList(json.extendedCompletions!!).filter { it.text == sourceElement.text }.toMutableList()
-                                if (offset == RETURN_ALL_STATIC_COMPLETIONS) {
-                                    json = config.extendedCompletions
-                                }
-                            }
+                                        val result = writer.buffer.toString()
 
-                            json!!.extendedCompletions =
-                                json.extendedCompletions!!
-                                    .map {
-                                        it.completionName = config.title!!
-                                        it
+                                        result == "true" || result == "1"
                                     }.toMutableList()
-
-                            break
+                        } else {
+                            json.extendedCompletions =
+                                ArrayList(json.extendedCompletions!!).filter { it.text == sourceElement.text }.toMutableList()
+                            if (offset == RETURN_ALL_STATIC_COMPLETIONS) {
+                                json = config.extendedCompletions
+                            }
                         }
-                    }
 
-                    if (null !== json) {
+                        json!!.extendedCompletions =
+                            json.extendedCompletions!!
+                                .map {
+                                    it.completionName = config.title!!
+                                    it
+                                }.toMutableList()
+
                         break
                     }
+                }
+
+                if (null !== json) {
+                    break
+                }
             }
 
             if (json?.extendedCompletions != null) {

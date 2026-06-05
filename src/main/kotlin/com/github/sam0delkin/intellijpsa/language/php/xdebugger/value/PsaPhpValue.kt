@@ -58,8 +58,10 @@ class PsaPhpValue(
         val settings = project.service<Settings>()
         val phpSettings = project.service<PhpPsaSettings>()
 
-        if (!phpSettings.enabled || phpSettings.toStringValueFormatter == null ||
-            evaluator == null || evaluator !is XdebugPhpEvaluator ||
+        if (!phpSettings.enabled ||
+            phpSettings.toStringValueFormatter == null ||
+            evaluator == null ||
+            evaluator !is XdebugPhpEvaluator ||
             wrapped !is XdebugValue
         ) {
             wrapped.computePresentation(value, place)
