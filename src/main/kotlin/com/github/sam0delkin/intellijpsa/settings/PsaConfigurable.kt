@@ -139,7 +139,7 @@ class PsaConfigurable(
                                         }
                                         updateInfoButtonEnabled()
 
-                                        path!!
+                                        path
                                     }
                                 }
                     }.rowComment(
@@ -266,7 +266,7 @@ class PsaConfigurable(
     override fun createComponent(): JComponent = this.createComponents()
 
     private fun updateInfoButtonEnabled() {
-        this.infoButton.component.setEnabled(this.enabled.component.isSelected && this.scriptPath.component.text !== "")
+        this.infoButton.component.setEnabled(this.enabled.component.isSelected && this.scriptPath.component.text != "")
     }
 
     override fun isModified(): Boolean {
@@ -355,13 +355,12 @@ class PsaConfigurable(
 
         val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
         if (null ===
-            project
-                .service<StatusBarWidgetsManager>()
+            service<StatusBarWidgetsManager>()
                 .findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)
         ) {
-            project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
+            service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
         }
-        project.service<StatusBarWidgetsManager>().updateAllWidgets()
+        service<StatusBarWidgetsManager>().updateAllWidgets()
     }
 
     private val settings: Settings

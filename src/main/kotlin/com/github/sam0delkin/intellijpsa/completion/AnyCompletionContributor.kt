@@ -66,19 +66,17 @@ class AnyCompletionContributor {
 
                         val staticCompletionConfigs = psaManager.getStaticCompletionConfigs()
 
-                        if (null !== staticCompletionConfigs) {
-                            for (i in staticCompletionConfigs) {
-                                if (null == i.patterns) {
-                                    continue
-                                }
+                        for (i in staticCompletionConfigs) {
+                            if (null == i.patterns) {
+                                continue
+                            }
 
-                                for (j in i.patterns!!) {
-                                    if (PsiElementModelHelper.matches(model, j)) {
-                                        if (null === json) {
-                                            json = ExtendedCompletionsModel.createFromModel(i.completions!!, project)
-                                        } else {
-                                            json.completions = json.completions!! + ArrayList(i.completions!!.completions!!)
-                                        }
+                            for (j in i.patterns!!) {
+                                if (PsiElementModelHelper.matches(model, j)) {
+                                    if (null === json) {
+                                        json = ExtendedCompletionsModel.createFromModel(i.completions!!, project)
+                                    } else {
+                                        json.completions = json.completions!! + ArrayList(i.completions!!.completions!!)
                                     }
                                 }
                             }
@@ -157,8 +155,7 @@ class AnyCompletionContributor {
             var json: ExtendedCompletionsModel? = null
             val staticCompletionConfigs = psaManager.getStaticCompletionConfigs()
 
-            if (null !== staticCompletionConfigs) {
-                for (config in staticCompletionConfigs) {
+            for (config in staticCompletionConfigs) {
                     if (null === config.patterns) {
                         continue
                     }
@@ -224,11 +221,10 @@ class AnyCompletionContributor {
                     if (null !== json) {
                         break
                     }
-                }
             }
 
             if (json?.extendedCompletions != null) {
-                for (completionModel in json!!.extendedCompletions!!) {
+                for (completionModel in json.extendedCompletions!!) {
                     try {
                         completionModel.toGoToElement(project)?.let { psiElements.add(it) }
                     } catch (_: UpdateStaticCompletionsException) {

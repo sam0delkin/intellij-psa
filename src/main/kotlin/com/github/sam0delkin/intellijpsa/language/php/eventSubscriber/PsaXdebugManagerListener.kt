@@ -5,14 +5,25 @@ import com.intellij.openapi.project.Project
 import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
+import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.xdebugger.XDebuggerManagerListener
 import com.jetbrains.php.debug.xdebug.debugger.XdebugStackFrame
 
 class PsaXdebugManagerListener(
     private val project: Project,
 ) : XDebuggerManagerListener {
+    fun registerExistingSessions() {
+        val debugManager = XDebuggerManager.getInstance(project)
+        debugManager.debugSessions.forEach { session ->
+            registerSessionListener(session)
+        }
+    }
+
     override fun processStarted(debugProcess: XDebugProcess) {
-        val session = debugProcess.session
+        registerSessionListener(debugProcess.session)
+    }
+
+    private fun registerSessionListener(session: XDebugSession) {
         session.addSessionListener(
             object : XDebugSessionListener {
                 override fun stackFrameChanged() {
@@ -40,6 +51,9 @@ class PsaXdebugManagerListener(
                 }
             },
         )
+        if (null !== session.currentStackFrame) {
+            processStackFrame(session)
+        }
     }
 
     fun processStackFrame(session: XDebugSession) {

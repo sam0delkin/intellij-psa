@@ -6,6 +6,12 @@ import com.intellij.ui.dsl.builder.Panel
 
 interface PsaExtension {
     /**
+     * Called once at project startup. Use persisted settings to restore any state that would
+     * otherwise only be set after the first Info call (e.g. subscribing listeners).
+     */
+    fun initialize(project: Project) {}
+
+    /**
      * Configure settings section. Add any elements to the panel.
      */
     fun configure(

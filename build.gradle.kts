@@ -21,8 +21,8 @@ plugins {
     id("org.jetbrains.qodana") version "0.1.13"
     // Gradle Kover Plugin
     id("org.jetbrains.kotlinx.kover") version "0.6.1"
-    kotlin("jvm") version "1.9.23"
-    kotlin("plugin.serialization") version "1.9.23"
+    kotlin("jvm") version "2.3.10"
+    kotlin("plugin.serialization") version "2.3.10"
     id("io.swagger.core.v3.swagger-gradle-plugin") version "2.2.28"
     id("com.github.gmazzo.buildconfig") version "5.5.1"
 }

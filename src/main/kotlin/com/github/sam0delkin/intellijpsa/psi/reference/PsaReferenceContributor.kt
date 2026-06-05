@@ -55,7 +55,7 @@ class PsaReferenceContributor : PsiReferenceContributor() {
                         return emptyArray()
                     }
 
-                    if (!settings.supportsStaticCompletions || null === psaManager.getStaticCompletionConfigs()) {
+                    if (!settings.supportsStaticCompletions) {
                         return emptyArray()
                     }
 

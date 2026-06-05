@@ -47,6 +47,8 @@ class PhpPsaStackFrame(
                     node.addChildren(newList, b)
                 }
 
+                @Deprecated("Deprecated in Java")
+                @Suppress("DEPRECATION")
                 override fun tooManyChildren(p0: Int) {
                     node.tooManyChildren(p0)
                 }

@@ -21,7 +21,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 @Service(Service.Level.PROJECT)
@@ -64,19 +63,19 @@ class PhpPsaManager(
                     settings.executionTimeout,
                 )
 
-            if (result!!.isCancelled) {
+            if (result.isCancelled) {
                 throw ProcessCanceledException()
             }
 
-            if (0 != result!!.exitCode) {
-                throw Exception(result!!.stdout + "\n" + result!!.stderr)
+            if (0 != result.exitCode) {
+                throw Exception(result.stdout + "\n" + result.stderr)
             }
 
             psaManager.lastResultSucceed = true
             psaManager.lastResultMessage = ""
 
             return runReadAction {
-                val json = Json.decodeFromString<TypeProvidersModel>(result!!.stdout)
+                val json = Json.decodeFromString<TypeProvidersModel>(result.stdout)
 
                 return@runReadAction json
             }

@@ -83,6 +83,14 @@ class EditorActionModel {
     val pathRegex: String? = null
     val source: EditorActionSource = EditorActionSource.Editor
     val target: EditorActionTarget = EditorActionTarget.Editor
+
+    @SerialName("context_action")
+    @JsonProperty("context_action")
+    val contextAction: Boolean = false
+
+    @SerialName("contextual")
+    @JsonProperty("contextual")
+    val contextual: Boolean = false
 }
 
 @Serializable

@@ -1079,7 +1079,8 @@ following structure:
       "source": "string, required. May be either 'editor' or 'clipboard'. The source of data. Either selected text or clipboard",
       "target": "string, required. May be either 'editor' or 'clipboard'. The target of data. Either replace selected text or copy result to clipboard",
       "group_name": "string, optional. Adds a sub-menu in PSA Actions menu",
-      "path_regex": "string, optional. PAth regular expression to filter where this action will be shown"
+      "path_regex": "string, optional. Path regular expression to filter where this action will be shown",
+      "contextual": "boolean, optional. When true, the action is also available via Alt+Enter (intention actions) in addition to the editor popup menu"
     }
   ]
 }

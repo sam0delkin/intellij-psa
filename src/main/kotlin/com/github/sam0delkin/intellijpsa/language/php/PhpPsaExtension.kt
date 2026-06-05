@@ -26,6 +26,20 @@ class PhpPsaExtension :
     private lateinit var debugTypeProvider: Cell<JBCheckBox>
     private var connection: MessageBusConnection? = null
 
+    override fun initialize(project: Project) {
+        val phpSettings = project.service<PhpPsaSettings>()
+
+        if (!phpSettings.enabled || phpSettings.toStringValueFormatter == null) {
+            return
+        }
+
+        connection?.disconnect()
+        connection = project.messageBus.connect()
+        val listener = PsaXdebugManagerListener(project)
+        connection?.subscribe(XDebuggerManager.TOPIC, listener)
+        listener.registerExistingSessions()
+    }
+
     override fun configure(
         panel: Panel,
         project: Project,
@@ -59,8 +73,14 @@ class PhpPsaExtension :
     override fun apply(project: Project) {
         val settings = project.service<PhpPsaSettings>()
 
+        val wasEnabled = settings.enabled
         settings.enabled = enabled.component.isSelected
         settings.debugTypeProvider = debugTypeProvider.component.isSelected
+
+        if (wasEnabled && !settings.enabled) {
+            connection?.disconnect()
+            connection = null
+        }
     }
 
     override fun updateInfo(
@@ -100,10 +120,12 @@ class PhpPsaExtension :
 
             connection?.disconnect()
             connection = project.messageBus.connect()
+            val listener = PsaXdebugManagerListener(project)
             connection?.subscribe(
                 XDebuggerManager.TOPIC,
-                PsaXdebugManagerListener(project),
+                listener,
             )
+            listener.registerExistingSessions()
         } catch (_: Throwable) {
             return
         }

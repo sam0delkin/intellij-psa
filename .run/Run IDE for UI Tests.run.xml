@@ -5,8 +5,8 @@
       <option name="env">
         <map>
           <entry key="ORG_GRADLE_PROJECT_platformType" value="PS" />
-          <entry key="ORG_GRADLE_PROJECT_platformVersion" value="2024.1" />
-          <entry key="ORG_GRADLE_PROJECT_debugPlatformPlugins" value="com.intellij.velocity:241.14494.127, com.intellij.properties:241.14494.33, com.jetbrains.php:241.14494.127" />
+          <entry key="ORG_GRADLE_PROJECT_platformVersion" value="2026.1" />
+          <entry key="ORG_GRADLE_PROJECT_debugPlatformPlugins" value="com.intellij.velocity:261.22158.185, com.intellij.properties:261.22158.185, com.jetbrains.php:261.22158.208" />
         </map>
       </option>
       <option name="executionName" />

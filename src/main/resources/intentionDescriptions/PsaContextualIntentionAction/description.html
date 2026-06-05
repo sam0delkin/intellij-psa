@@ -1,0 +1,37 @@
+<html>
+<body>
+Invokes Project Specific Autocomplete (PSA) contextual actions for the current file.
+<p>
+    Shows a popup with PSA editor actions that have <code>contextual: true</code> in the script response
+    and whose <code>path_regex</code> (if set) matches the current file's directory.
+</p>
+<!-- tooltip end -->
+<p>
+    Actions can be configured in the PSA script by returning them in the <code>editor_actions</code> array
+    with the <code>contextual</code> flag set to <code>true</code>:
+</p>
+<pre><code>
+{
+  "editor_actions": [
+    {
+      "name": "my_action",
+      "title": "My Action",
+      "contextual": true,
+      "source": "editor",
+      "target": "editor"
+    }
+  ]
+}
+</code></pre>
+<p>
+    Actions with a <code>group_name</code> are shown as sub-groups inside the popup.
+    To restrict an action to specific directories, set the <code>path_regex</code> field.
+</p>
+<p>
+    Configure the PSA script path in
+    <a href="settings://com.github.sam0delkin.intellijpsa.settings.PsaConfigurable">
+        Settings | Tools | Project Specific Autocomplete
+    </a>.
+</p>
+</body>
+</html>

@@ -48,7 +48,7 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
 
                 val staticCompletionsConfigs = manager.getStaticCompletionConfigs()
 
-                if (!settings.pluginEnabled || null == staticCompletionsConfigs || !settings.resolveReferences) {
+                if (!settings.pluginEnabled || !settings.resolveReferences) {
                     return fileResult
                 }
 

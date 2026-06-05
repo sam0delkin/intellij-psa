@@ -46,6 +46,11 @@
         <codeInsight.lineMarkerProvider
                 implementationClass="com.github.sam0delkin.intellijpsa.lineMarkerProvider.PsaLineMarkerProvider"
                 language="" />
+        <intentionAction>
+            <language></language>
+            <className>com.github.sam0delkin.intellijpsa.action.psa.PsaContextualIntentionAction</className>
+            <category>PSA</category>
+        </intentionAction>
     </extensions>
     <actions>
         <group

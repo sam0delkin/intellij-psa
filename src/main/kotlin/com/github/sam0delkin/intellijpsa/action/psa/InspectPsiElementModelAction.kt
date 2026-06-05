@@ -97,7 +97,7 @@ class InspectPsiElementModelAction :
                                     context.put("element", element)
 
                                     try {
-                                        Velocity.evaluate(context, writer, "", templateCodeField!!.component.document.text)
+                                        Velocity.evaluate(context, writer, "", templateCodeField.component.document.text)
                                     } catch (e: Exception) {
                                         val tooltip =
                                             com.intellij.ui

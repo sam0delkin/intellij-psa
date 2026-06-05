@@ -25,6 +25,7 @@ class Utils {
             return row.cell(component)
         }
 
+        @Suppress("DEPRECATION_ERROR", "DEPRECATION")
         fun textFieldWithBrowseButton(
             row: Row,
             browseDialogTitle: String?,

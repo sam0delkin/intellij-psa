@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.settings
 
-import com.github.sam0delkin.intellijpsa.model.EditorActionModel
+import com.github.sam0delkin.intellijpsa.model.EditorActionSource
+import com.github.sam0delkin.intellijpsa.model.EditorActionTarget
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -85,6 +86,17 @@ class MultipleFileCodeTemplate : SingleFileCodeTemplate() {
     var fileCount: Int? = null
 }
 
+class PersistedEditorAction {
+    var name: String = ""
+    var title: String = ""
+    var groupName: String? = null
+    var pathRegex: String? = null
+    var source: EditorActionSource = EditorActionSource.Editor
+    var target: EditorActionTarget = EditorActionTarget.Editor
+    var contextAction: Boolean = false
+    var contextual: Boolean = false
+}
+
 @Service(Service.Level.PROJECT)
 @State(
     name = "PSAAutocompleteSettings",
@@ -110,7 +122,7 @@ class Settings : PersistentStateComponent<Settings> {
     var annotateUndefinedElements: Boolean = false
     var targetElementTypes: ArrayList<String>? = null
     var staticCompletionsHash: String? = null
-    var editorActions: ArrayList<EditorActionModel>? = null
+    var editorActions: ArrayList<PersistedEditorAction>? = null
 
     @Override
     override fun getState(): Settings = this

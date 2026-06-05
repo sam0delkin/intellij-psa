@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.activity
 
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.settings.EP_NAME
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.intellij.ide.util.RunOnceUtil
@@ -76,6 +77,10 @@ class PsaStartupActivity :
                 return@invokeLater
             }
 
+            for (extension in EP_NAME.extensionList) {
+                extension.initialize(project)
+            }
+
             ApplicationManager.getApplication().invokeLater {
                 if (null !== timer) {
                     timer?.cancel()
@@ -106,10 +111,10 @@ class PsaStartupActivity :
                     }
                     psaManager.updateStaticCompletions(settings, project, false)
                     val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
-                    if (null === project.service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
-                        project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
+                    if (null === service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
+                        service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
                     }
-                    project.service<StatusBarWidgetsManager>().updateAllWidgets()
+                    service<StatusBarWidgetsManager>().updateAllWidgets()
                 }
             },
             500,

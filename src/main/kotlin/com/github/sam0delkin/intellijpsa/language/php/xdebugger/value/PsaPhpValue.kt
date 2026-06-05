@@ -32,7 +32,6 @@ import com.jetbrains.php.debug.common.PhpValue
 import com.jetbrains.php.debug.xdebug.debugger.XdebugPhpEvaluator
 import com.jetbrains.php.debug.xdebug.debugger.XdebugValue
 import com.jetbrains.php.lang.psi.resolve.types.PhpType
-import com.jetbrains.rd.framework.base.deepClonePolymorphic
 import org.jetbrains.concurrency.Promise
 import java.util.UUID
 import javax.swing.Icon
@@ -59,23 +58,32 @@ class PsaPhpValue(
         val settings = project.service<Settings>()
         val phpSettings = project.service<PhpPsaSettings>()
 
-        if (!phpSettings.enabled || null === phpSettings.toStringValueFormatter) {
+        if (!phpSettings.enabled || phpSettings.toStringValueFormatter == null ||
+            evaluator == null || evaluator !is XdebugPhpEvaluator ||
+            wrapped !is XdebugValue
+        ) {
             wrapped.computePresentation(value, place)
-
             return
         }
 
-        val clonedValue = value.deepClonePolymorphic()
-        val clonedPlace = place.deepClonePolymorphic()
-        wrapped.computePresentation(clonedValue, clonedPlace)
+        if (PhpType.isScalar(wrapped.type, project)) {
+            wrapped.computePresentation(value, place)
+            return
+        }
 
-        if (value is XValueNodeImpl && this.wrapped is XdebugValue) {
-            val type = this.wrapped.type
-            val presentation = value.valuePresentation
-            if (!PhpType.isScalar(type, project) && presentation is PhpCompactValuePresentation) {
-                if (null != evaluator && evaluator is XdebugPhpEvaluator) {
+        wrapped.computePresentation(
+            object : XValueNode by value {
+                override fun setPresentation(
+                    icon: Icon?,
+                    presentation: XValuePresentation,
+                    hasChildren: Boolean,
+                ) {
+                    value.setPresentation(icon, presentation, hasChildren)
+                    if (presentation !is PhpCompactValuePresentation) return
+
+                    val wrappedValue = wrapped
                     val variablePath =
-                        this.wrapped.fullName
+                        wrappedValue.fullName
                             .substring(1)
                             .replace(Regex("\\*[^*]+\\*"), "")
                             .replace(Regex("[\"']"), "")
@@ -143,20 +151,23 @@ class PsaPhpValue(
                                 }
 
                                 value.setPresentation(
-                                    value.icon,
+                                    icon,
                                     PsaPhpValuePresentation(originalResult, presentation.type),
                                     true,
                                 )
 
                                 if (result.indexOf("__PSA__VALUE__UNCHANGED__") == 0) {
-                                    val field =
-                                        ReflectionUtil.findField(
-                                            XValueNodeImpl::class.java,
-                                            null,
-                                            "myChanged",
-                                        )
-                                    field.trySetAccessible()
-                                    field.set(value, false)
+                                    try {
+                                        val field =
+                                            ReflectionUtil.findField(
+                                                XValueNodeImpl::class.java,
+                                                null,
+                                                "myChanged",
+                                            )
+                                        field.trySetAccessible()
+                                        field.set(value, false)
+                                    } catch (_: Throwable) {
+                                    }
                                 }
                             }
 
@@ -173,13 +184,12 @@ class PsaPhpValue(
                             }
                         },
                     )
-
-                    return
                 }
-            }
-        }
 
-        wrapped.computePresentation(value, place)
+                override fun isObsolete(): Boolean = value.isObsolete
+            },
+            place,
+        )
     }
 
     override fun defaultPresentation(

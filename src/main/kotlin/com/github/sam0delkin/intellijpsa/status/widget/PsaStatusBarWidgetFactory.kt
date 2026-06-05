@@ -67,7 +67,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                     timer!!.cancel()
                 }
                 timer = Timer()
-                timer!!.schedule(
+                timer.schedule(
                     object : TimerTask() {
                         override fun run() {
                             statusBar.updateWidget("psa.status_bar")
@@ -177,7 +177,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                 actionGroup.add(
                     object : AnAction("Show Last Error", "", AllIcons.Debugger.Db_exception_breakpoint) {
                         override fun actionPerformed(e: AnActionEvent) {
-                            if ("" !== psaManager.lastResultMessage) {
+                            if ("" != psaManager.lastResultMessage) {
                                 NotificationGroupManager
                                     .getInstance()
                                     .getNotificationGroup("PSA Notification")

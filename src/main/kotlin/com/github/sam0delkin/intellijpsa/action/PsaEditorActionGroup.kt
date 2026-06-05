@@ -7,6 +7,8 @@ import com.github.sam0delkin.intellijpsa.model.EditorActionSource
 import com.github.sam0delkin.intellijpsa.model.EditorActionTarget
 import com.github.sam0delkin.intellijpsa.model.action.EditorActionInputModel
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.settings.PersistedEditorAction
+import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.ide.IdeView
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -61,101 +63,117 @@ class PsaEditorActionGroup :
         if (null !== settings.editorActions && settings.editorActions!!.isNotEmpty()) {
             actions.get(null)!!.add(Separator("PSA Actions"))
 
-            for (action in settings.editorActions!!) {
-                if (null !== action.pathRegex && !directoryPath.matches(Regex(action.pathRegex))) {
-                    continue
-                }
+            addCustomActions(settings.editorActions, directoryPath, psaManager, settings, actions, false)
+        }
 
-                @Suppress("KotlinConstantConditions")
-                if ("" == action.title) {
-                    continue
-                }
+        return this.getActions(actions)
+    }
 
-                val newAction =
-                    object : AnAction(action.title) {
-                        override fun actionPerformed(e: AnActionEvent) {
-                            val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-                            val editor: Editor = FileEditorManager.getInstance(e.project!!).selectedTextEditor ?: return
-                            val file = FileDocumentManager.getInstance().getFile(editor.document)
-                            val selectedText = editor.selectionModel.selectedText
-                            val path = VfsUtil.getRelativePath(file!!, e.project!!.guessProjectDir()!!, '/').toString()
+    fun addCustomActions(
+        editorActions: ArrayList<PersistedEditorAction>?,
+        directoryPath: String,
+        psaManager: PsaManager,
+        settings: Settings,
+        actions: HashMap<String?, ArrayList<AnAction>>,
+        contextActions: Boolean,
+    ) {
+        for (action in editorActions!!) {
+            if (
+                (
+                    null !== action.pathRegex &&
+                        !directoryPath.matches(Regex(action.pathRegex!!))
+                ) ||
+                action.contextAction != contextActions
+            ) {
+                continue
+            }
 
-                            thread {
-                                var result: String? = null
+            if ("" == action.title) {
+                continue
+            }
 
-                                if (action.source == EditorActionSource.Editor) {
-                                    result =
-                                        psaManager.performAction(
-                                            settings,
-                                            e.project!!,
-                                            EditorActionInputModel(
-                                                action.name,
-                                                path,
-                                                selectedText,
-                                            ),
-                                        )
-                                } else if (action.source === EditorActionSource.Clipboard) {
-                                    result =
-                                        psaManager.performAction(
-                                            settings,
-                                            e.project!!,
-                                            EditorActionInputModel(
-                                                action.name,
-                                                path,
-                                                clipboard.getData(DataFlavor.stringFlavor).toString(),
-                                            ),
-                                        )
-                                }
+            val newAction =
+                object : AnAction(action.title) {
+                    override fun actionPerformed(e: AnActionEvent) {
+                        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                        val editor: Editor = FileEditorManager.getInstance(e.project!!).selectedTextEditor ?: return
+                        val file = FileDocumentManager.getInstance().getFile(editor.document)
+                        val selectedText = editor.selectionModel.selectedText
+                        val path = VfsUtil.getRelativePath(file!!, e.project!!.guessProjectDir()!!, '/').toString()
 
-                                if (null === result) {
-                                    return@thread
-                                }
+                        thread {
+                            var result: String? = null
 
-                                if (action.target == EditorActionTarget.Clipboard) {
-                                    clipboard.setContents(StringSelection(result), null)
+                            if (action.source == EditorActionSource.Editor) {
+                                result =
+                                    psaManager.performAction(
+                                        settings,
+                                        e.project!!,
+                                        EditorActionInputModel(
+                                            action.name,
+                                            path,
+                                            selectedText,
+                                        ),
+                                    )
+                            } else if (action.source === EditorActionSource.Clipboard) {
+                                result =
+                                    psaManager.performAction(
+                                        settings,
+                                        e.project!!,
+                                        EditorActionInputModel(
+                                            action.name,
+                                            path,
+                                            clipboard.getData(DataFlavor.stringFlavor).toString(),
+                                        ),
+                                    )
+                            }
 
-                                    NotificationGroupManager
-                                        .getInstance()
-                                        .getNotificationGroup("PSA Notification")
-                                        .createNotification(
-                                            "Action \"${action.title}\" result successfully copied to the clipboard",
-                                            NotificationType.INFORMATION,
-                                        ).notify(e.project)
+                            if (null === result) {
+                                return@thread
+                            }
 
-                                    return@thread
-                                }
+                            if (action.target == EditorActionTarget.Clipboard) {
+                                clipboard.setContents(StringSelection(result), null)
 
-                                if (action.target == EditorActionTarget.Editor) {
-                                    WriteCommandAction.writeCommandAction(e.project).run<Throwable> {
-                                        val document = editor.document
-                                        val startOffset = editor.selectionModel.selectionStart
-                                        val endOffset = editor.selectionModel.selectionEnd
+                                NotificationGroupManager
+                                    .getInstance()
+                                    .getNotificationGroup("PSA Notification")
+                                    .createNotification(
+                                        "Action \"${action.title}\" result successfully copied to the clipboard",
+                                        NotificationType.INFORMATION,
+                                    ).notify(e.project)
 
-                                        document.replaceString(startOffset, endOffset, result)
-                                        editor.caretModel.moveToOffset(startOffset + result.length)
-                                    }
+                                return@thread
+                            }
+
+                            if (action.target == EditorActionTarget.Editor) {
+                                WriteCommandAction.writeCommandAction(e.project).run<Throwable> {
+                                    val document = editor.document
+                                    val startOffset = editor.selectionModel.selectionStart
+                                    val endOffset = editor.selectionModel.selectionEnd
+
+                                    document.replaceString(startOffset, endOffset, result)
+                                    editor.caretModel.moveToOffset(startOffset + result.length)
                                 }
                             }
                         }
                     }
-
-                if (null === action.groupName) {
-                    if (!actions.containsKey(null)) {
-                        actions.set(null, arrayListOf())
-                    }
-
-                    actions.get(null)!!.add(newAction)
-                } else {
-                    if (!actions.containsKey(action.groupName)) {
-                        actions.set(action.groupName, arrayListOf())
-                    }
-
-                    actions.get(action.groupName)!!.add(newAction)
                 }
+
+            if (null === action.groupName) {
+                if (!actions.containsKey(null)) {
+                    actions.set(null, arrayListOf())
+                }
+
+                actions.get(null)!!.add(newAction)
+            } else {
+                if (!actions.containsKey(action.groupName)) {
+                    actions.set(action.groupName, arrayListOf())
+                }
+
+                actions.get(action.groupName)!!.add(newAction)
             }
         }
-
-        return this.getActions(actions)
     }
 
     private fun getActions(actions: HashMap<String?, ArrayList<AnAction>>): Array<AnAction> {

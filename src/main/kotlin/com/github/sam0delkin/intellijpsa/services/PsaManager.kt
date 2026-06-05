@@ -117,12 +117,12 @@ class PsaManager(
             throw Exception("Failed to get info")
         }
 
-        if (0 != result!!.exitCode) {
-            throw Exception(result!!.stdout + "\n" + result!!.stderr)
+        if (0 != result.exitCode) {
+            throw Exception(result.stdout + "\n" + result.stderr)
         }
 
         for (extension in EP_NAME.extensionList) {
-            extension.updateInfo(project, result!!.stdout)
+            extension.updateInfo(project, result.stdout)
         }
 
         val json =
@@ -130,7 +130,7 @@ class PsaManager(
                 ignoreUnknownKeys = true
             }
 
-        return json.decodeFromString<InfoModel>(result!!.stdout)
+        return json.decodeFromString<InfoModel>(result.stdout)
     }
 
     fun getStaticCompletions(
@@ -168,19 +168,19 @@ class PsaManager(
                     settings.executionTimeout,
                 )
 
-            if (result!!.isCancelled) {
+            if (result.isCancelled) {
                 throw ProcessCanceledException()
             }
 
-            if (0 != result!!.exitCode) {
-                throw Exception(result!!.stdout + "\n" + result!!.stderr)
+            if (0 != result.exitCode) {
+                throw Exception(result.stdout + "\n" + result.stderr)
             }
 
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
             return runReadAction {
-                val json = Json.decodeFromString<StaticCompletionsModel>(result!!.stdout)
+                val json = Json.decodeFromString<StaticCompletionsModel>(result.stdout)
 
                 return@runReadAction json
             }
@@ -267,7 +267,19 @@ class PsaManager(
         settings.goToFilter = info.goToElementFilter?.joinToString(",") ?: ""
         settings.supportsBatch = info.supportsBatch ?: false
         settings.supportsStaticCompletions = info.supportsStaticCompletions ?: false
-        settings.editorActions = info.editorActions
+        settings.editorActions =
+            info.editorActions?.mapTo(ArrayList()) { a ->
+                PersistedEditorAction().apply {
+                    name = a.name
+                    title = a.title
+                    groupName = a.groupName
+                    pathRegex = a.pathRegex
+                    source = a.source
+                    target = a.target
+                    contextAction = a.contextAction
+                    contextual = a.contextual
+                }
+            }
 
         settings.singleFileCodeTemplates = ArrayList()
         settings.multipleFileCodeTemplates = ArrayList()
@@ -698,7 +710,7 @@ class PsaManager(
                         result = result.substring(0, 250)
                     }
                     options[optionName] = PsiElementModelChild(null, result)
-                } else if (result is PsiElement && processOptions && processChildOptions) {
+                } else if (result is PsiElement && processChildOptions) {
                     options[optionName] =
                         PsiElementModelChild(
                             this.psiElementToModel(
@@ -714,7 +726,7 @@ class PsaManager(
                             ),
                             null,
                         )
-                } else if (result is Array<*> && result.isArrayOf<PsiElement>() && processOptions && processChildOptions) {
+                } else if (result is Array<*> && result.isArrayOf<PsiElement>() && processChildOptions) {
                     val arr: Array<PsiElementModel?> = arrayOfNulls(result.size)
 
                     for ((index, item) in (result).withIndex()) {
