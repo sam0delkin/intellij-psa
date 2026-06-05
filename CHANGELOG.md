@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.30] - 2026-06-05
 - [Editor Actions] Added optional `contextual` boolean field to editor actions. When set to `true`, the action is available via Alt+Enter (intention actions) in addition to the editor popup menu
 - [PHP] Fixed `to_string_value_formatter` not working immediately after IDE start — XDebug listener is now subscribed from persisted settings at startup, before the first Info call completes
 - [PHP] Fixed `to_string_value_formatter` not working in 2026.X
@@ -210,7 +212,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.29...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.30...HEAD
+[0.0.30]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.29...v0.0.30
 [0.0.29]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.28...v0.0.29
 [0.0.28]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.26...v0.0.27
