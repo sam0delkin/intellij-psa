@@ -9,7 +9,7 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.28
+  version: 0.0.30
 paths:
   /GenerateFileFromTemplate:
     post:
@@ -459,6 +459,10 @@ components:
           type: string
         path_regex:
           type: string
+        context_action:
+          type: boolean
+        contextual:
+          type: boolean
     FileTemplateModel:
       type: object
       properties:
