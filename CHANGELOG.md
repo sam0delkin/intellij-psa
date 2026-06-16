@@ -3,6 +3,7 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- Remove usage of some internal API
 
 ## [0.0.30] - 2026-06-05
 - [Editor Actions] Added optional `contextual` boolean field to editor actions. When set to `true`, the action is available via Alt+Enter (intention actions) in addition to the editor popup menu

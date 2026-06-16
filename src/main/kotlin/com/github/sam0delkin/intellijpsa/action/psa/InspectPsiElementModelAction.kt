@@ -4,7 +4,6 @@ import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.language.velocity.PsaCompletionContributor
 import com.github.sam0delkin.intellijpsa.ui.components.Utils
 import com.intellij.icons.AllIcons
-import com.intellij.ide.plugins.PluginManager
 import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -12,7 +11,6 @@ import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileTypes.FileTypes
@@ -46,13 +44,9 @@ class InspectPsiElementModelAction :
         val element = PsiManager.getInstance(e.project!!).findFile(file!!)!!.findElementAt(offset) ?: return
         PsaCompletionContributor.currentElement = element
 
-        val velocityPlugin = PluginManager.getPlugins().find { it.pluginId == PluginId.getId("com.intellij.velocity") }
-        val velocityPluginEnabled = null != velocityPlugin && velocityPlugin.isEnabled
-        var language: Language = PlainTextLanguage.INSTANCE
-
-        if (velocityPluginEnabled) {
-            language = Language.findLanguageByID("VTL") ?: PlainTextLanguage.INSTANCE
-        }
+        val vtlLanguage = Language.findLanguageByID("VTL")
+        val velocityPluginEnabled = vtlLanguage != null
+        val language: Language = vtlLanguage ?: PlainTextLanguage.INSTANCE
         var templateCodeField: Cell<EditorTextField>?
         var textAreaField: Cell<EditorTextField>? = null
         var actionButton: Cell<ActionButton>? = null
