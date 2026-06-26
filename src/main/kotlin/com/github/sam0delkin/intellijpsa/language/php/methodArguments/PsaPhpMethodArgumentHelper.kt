@@ -79,6 +79,9 @@ object PsaPhpMethodArgumentHelper {
             val callableArray =
                 PsiTreeUtil.getParentOfType(element, ArrayCreationExpression::class.java)
                     ?: return null
+
+            getOuterCallArgs(callableArray, provider) ?: return null
+
             val values = callableArray.arrayValues()
             if (!psiContains(values.getOrNull(1), element)) return null
 
