@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.32] - 2026-06-26
 - [PHP] Fixed `PluginException: Cannot init component state (componentName=PhpPsaSettings)` on startup — type/method-argument providers are now persisted as JSON instead of being run through the platform XML serializer, which could not instantiate the pattern model
 - [PHP] Method argument providers: fixed parameter info (Cmd/Ctrl+P) and Change Signature (reorder/add) not applying to the dynamic arguments array
 - [PHP] Method argument providers: added native argument type checking (reuses PhpStorm's own type checker — "Expected parameter of type …" message, Cast quick fixes, method-signature tooltip preview, and `declare(strict_types=1)` awareness) for the dynamic arguments array. Reported as an error when the target method's file declares `strict_types`, otherwise a warning
@@ -219,7 +221,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.31...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.32...HEAD
+[0.0.32]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.31...v0.0.32
 [0.0.31]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.30...v0.0.31
 [0.0.30]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.29...v0.0.30
 [0.0.29]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.28...v0.0.29
