@@ -104,6 +104,7 @@ class PhpPsaExtension :
 
             phpSettings.supportsTypeProviders = phpInfo.supportsTypeProviders ?: false
             phpSettings.toStringValueFormatter = phpInfo.toStringValueFormatter
+            phpSettings.methodArgumentProviders = phpInfo.methodArgumentProviders
 
             if (phpSettings.supportsTypeProviders) {
                 ApplicationManager.getApplication().invokeLater {

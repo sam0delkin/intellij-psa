@@ -14,6 +14,34 @@
         <lang.structureViewExtension
                 implementation="com.github.sam0delkin.intellijpsa.language.php.structureView.TraitMethodStructureViewExtension"
         />
+        <psi.referenceContributor
+                language="PHP"
+                implementation="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpMethodArgumentReferenceContributor"
+        />
+        <codeInsight.parameterInfo
+                language="PHP"
+                order="first"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpParameterInfoHandler"
+        />
+        <localInspection
+                language="PHP"
+                shortName="PsaPhpMethodArgumentType"
+                displayName="Incompatible argument type in dynamic method call"
+                groupName="PSA"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpMethodArgumentTypeInspection"
+        />
+        <codeInsight.inlayProvider
+                language="PHP"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpMethodArgumentInlayHintsProvider"
+        />
+        <refactoring.changeSignatureUsageProcessor
+                implementation="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpChangeSignatureUsageProcessor"
+        />
+        <referencesSearch
+                implementation="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpDynamicMethodCallSearcher"
+        />
     </extensions>
     <extensions defaultExtensionNs="com.github.sam0delkin.intellijpsa">
         <psaExtension implementation="com.github.sam0delkin.intellijpsa.language.php.PhpPsaExtension"/>

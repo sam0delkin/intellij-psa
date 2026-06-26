@@ -9,7 +9,7 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.31
+  version: 0.0.32
 paths:
   /GenerateFileFromTemplate:
     post:
@@ -528,6 +528,28 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EditorActionModel"
+    MethodArgumentProviderModel:
+      type: object
+      properties:
+        class:
+          type: string
+        method:
+          type: string
+        class_argument_index:
+          type: integer
+          format: int32
+        method_argument_index:
+          type: integer
+          format: int32
+        callable_argument_index:
+          type: integer
+          format: int32
+        arguments_argument_index:
+          type: integer
+          format: int32
+        arguments_offset:
+          type: integer
+          format: int32
     PhpInfoModel:
       type: object
       properties:
@@ -555,6 +577,10 @@ components:
           type: boolean
         to_string_value_formatter:
           type: string
+        method_argument_providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/MethodArgumentProviderModel"
     EditorActionInputModel:
       type: object
       properties:

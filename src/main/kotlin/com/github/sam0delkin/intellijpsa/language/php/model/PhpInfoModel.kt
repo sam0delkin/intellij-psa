@@ -14,4 +14,8 @@ class PhpInfoModel : InfoModel() {
     @SerialName("to_string_value_formatter")
     @JsonProperty("to_string_value_formatter")
     val toStringValueFormatter: String? = null
+
+    @SerialName("method_argument_providers")
+    @JsonProperty("method_argument_providers")
+    val methodArgumentProviders: ArrayList<MethodArgumentProviderModel>? = null
 }

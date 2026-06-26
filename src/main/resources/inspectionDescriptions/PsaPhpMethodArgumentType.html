@@ -1,0 +1,22 @@
+<html lang="en">
+<body>
+Reports arguments inside a dynamic method's arguments array whose type is not accepted by the resolved method
+parameter.
+<p>
+    When a PSA <em>method argument provider</em> maps an arguments array to a real method (for example
+    <code>new ServiceMethodMessage([Manager::class, 'doWork'], [$account, 1])</code>), this inspection checks each
+    value against the corresponding parameter using PhpStorm's own type checker. In files with
+    <code>declare(strict_types=1)</code> scalar coercions that PHP would reject at runtime (such as
+    <code>int</code> &rarr; <code>bool</code>) are reported; otherwise only hard incompatibilities (such as passing a
+    wrong class) are reported. The standard <em>Cast&hellip;</em> quick fixes are offered.
+</p>
+<p>
+    A mismatch is reported as an <strong>error</strong> when the target method's file declares
+    <code>strict_types</code>, and as a <strong>warning</strong> otherwise.
+</p>
+<p>
+    Configure the providers via the <code>method_argument_providers</code> field of your PSA script's
+    <code>Info</code> response. See the PHP extension documentation for details.
+</p>
+</body>
+</html>
