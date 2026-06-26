@@ -28,9 +28,11 @@ class PsaPhpDynamicMethodCallSearcher : QueryExecutorBase<PsiReference, Referenc
         val methodName = method.name ?: return
         val scope = GlobalSearchScope.projectScope(project)
 
-        PsiSearchHelper.getInstance(project)
+        PsiSearchHelper
+            .getInstance(project)
             .processAllFilesWithWordInLiterals(methodName, scope) { file ->
-                PsiTreeUtil.findChildrenOfType(file, StringLiteralExpression::class.java)
+                PsiTreeUtil
+                    .findChildrenOfType(file, StringLiteralExpression::class.java)
                     .filter { it.contents == methodName }
                     .forEach { stringLiteralExpression ->
                         stringLiteralExpression.references.filterIsInstance<PsaPhpMethodReference>().forEach { ref ->

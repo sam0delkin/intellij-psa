@@ -3,7 +3,10 @@ package com.github.sam0delkin.intellijpsa.settings
 import com.github.sam0delkin.intellijpsa.model.ExtendedStaticCompletionModel
 import com.github.sam0delkin.intellijpsa.model.StaticCompletionModel
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.components.*
+import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.intellij.util.xmlb.annotations.Transient

@@ -7,32 +7,34 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.xmlb.XmlSerializer
 
 class PhpPsaSettingsTest : BasePlatformTestCase() {
-
     fun testStateSurvivesXmlSerializerRoundTrip() {
         val settings = PhpPsaSettings()
         settings.enabled = true
         settings.supportsTypeProviders = true
         settings.toStringValueFormatter = "return (string) \$value;"
-        settings.typeProviders = arrayListOf(
-            TypeProviderModel().apply {
-                language = "PHP"
-                type = "\\App\\Foo"
-                pattern = PsiElementPatternModel().apply {
-                    withType = "METHOD_REFERENCE"
-                    withText = "get"
-                    withOptions = mapOf("key" to "value")
-                    anyParent = PsiElementPatternModel().apply { withType = "Statement" }
-                }
-            },
-        )
-        settings.methodArgumentProviders = arrayListOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "ServiceMethodMessage"
-                method = "__construct"
-                callableArgumentIndex = 0
-                argumentsArgumentIndex = 1
-            },
-        )
+        settings.typeProviders =
+            arrayListOf(
+                TypeProviderModel().apply {
+                    language = "PHP"
+                    type = "\\App\\Foo"
+                    pattern =
+                        PsiElementPatternModel().apply {
+                            withType = "METHOD_REFERENCE"
+                            withText = "get"
+                            withOptions = mapOf("key" to "value")
+                            anyParent = PsiElementPatternModel().apply { withType = "Statement" }
+                        }
+                },
+            )
+        settings.methodArgumentProviders =
+            arrayListOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
 
         val element = XmlSerializer.serialize(settings.state)
         val deserialized = XmlSerializer.deserialize(element, PhpPsaSettings::class.java)

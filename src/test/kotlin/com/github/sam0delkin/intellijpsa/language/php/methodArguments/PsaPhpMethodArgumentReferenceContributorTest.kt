@@ -16,7 +16,7 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         project.service<PhpPsaManager>().getSettings().enabled = true
     }
 
-    fun testReferenceCreated_callablePattern() {
+    fun testReferenceCreatedCallablePattern() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -37,7 +37,7 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         assertNotNull("PsaPhpMethodReference should be created for method name string", ref)
     }
 
-    fun testReferenceResolvesToPhpMethod_callablePattern() {
+    fun testReferenceResolvesToPhpMethodCallablePattern() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -63,7 +63,7 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         assertEquals("updateStats", (resolved as Method).name)
     }
 
-    fun testIsReferenceTo_callablePattern_trueForTargetMethod() {
+    fun testIsReferenceToCallablePatternTrueForTargetMethod() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -86,7 +86,7 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         assertTrue("isReferenceTo should be true for the target method", ref.isReferenceTo(method!!))
     }
 
-    fun testIsReferenceTo_callablePattern_falseForOtherMethod() {
+    fun testIsReferenceToCallablePatternFalseForOtherMethod() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -110,7 +110,7 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         assertFalse("isReferenceTo should be false for a different method", ref.isReferenceTo(otherMethod!!))
     }
 
-    fun testReferenceCreated_separateArgsPattern() {
+    fun testReferenceCreatedSeparateArgsPattern() {
         setupSeparateArgsProvider()
         myFixture.configureByText(
             "Call.php",
@@ -194,7 +194,7 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         assertCollectionEmpty("No PsaPhpMethodReference when no providers configured", psaRefs)
     }
 
-    fun testMethodRename_callablePattern_updatesStringLiteral() {
+    fun testMethodRenameCallablePatternUpdatesStringLiteral() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -223,7 +223,7 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         )
     }
 
-    fun testMethodRename_separateArgsPattern_updatesStringLiteral() {
+    fun testMethodRenameSeparateArgsPatternUpdatesStringLiteral() {
         setupSeparateArgsProvider()
         myFixture.configureByText(
             "Call.php",

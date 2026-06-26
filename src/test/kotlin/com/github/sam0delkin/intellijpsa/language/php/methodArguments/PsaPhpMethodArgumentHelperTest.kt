@@ -7,8 +7,7 @@ import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
 class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
-
-    fun testFindProviderForMethodNameElement_callablePattern_matchesMethodString() {
+    fun testFindProviderForMethodNameElementCallablePatternMatchesMethodString() {
         myFixture.configureByText(
             "Dispatcher.php",
             """
@@ -21,14 +20,15 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val providers = listOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "ServiceMethodMessage"
-                method = "__construct"
-                callableArgumentIndex = 0
-                argumentsArgumentIndex = 1
-            },
-        )
+        val providers =
+            listOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
 
         val element = myFixture.findElementByText("'updateStats'", StringLiteralExpression::class.java)
         assertNotNull("'updateStats' element not found", element)
@@ -38,7 +38,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertEquals("updateStats", match!!.method.name)
     }
 
-    fun testFindProviderForMethodNameElement_callablePattern_classNameStringNotMatched() {
+    fun testFindProviderForMethodNameElementCallablePatternClassNameStringNotMatched() {
         myFixture.configureByText(
             "Dispatcher.php",
             """
@@ -51,14 +51,15 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val providers = listOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "ServiceMethodMessage"
-                method = "__construct"
-                callableArgumentIndex = 0
-                argumentsArgumentIndex = 1
-            },
-        )
+        val providers =
+            listOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
 
         val classEl = myFixture.findElementByText("AccountStatsManager", com.intellij.psi.PsiElement::class.java)
         assertNotNull(classEl)
@@ -66,7 +67,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertNull("Class name element should not match as method name", match)
     }
 
-    fun testFindProviderForArgumentsArray_callablePattern_matchesArgumentsArray() {
+    fun testFindProviderForArgumentsArrayCallablePatternMatchesArgumentsArray() {
         myFixture.configureByText(
             "Dispatcher.php",
             """
@@ -79,14 +80,15 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val providers = listOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "ServiceMethodMessage"
-                method = "__construct"
-                callableArgumentIndex = 0
-                argumentsArgumentIndex = 1
-            },
-        )
+        val providers =
+            listOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
 
         val arrays = PsiTreeUtil.findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java).toList()
         val argsArray = arrays.firstOrNull { it.text.contains("\$account") }
@@ -97,7 +99,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertEquals("updateStats", match!!.method.name)
     }
 
-    fun testFindProviderForArgumentsArray_callablePattern_callableArrayNotMatched() {
+    fun testFindProviderForArgumentsArrayCallablePatternCallableArrayNotMatched() {
         myFixture.configureByText(
             "Dispatcher.php",
             """
@@ -110,14 +112,15 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val providers = listOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "ServiceMethodMessage"
-                method = "__construct"
-                callableArgumentIndex = 0
-                argumentsArgumentIndex = 1
-            },
-        )
+        val providers =
+            listOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
 
         val arrays = PsiTreeUtil.findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java).toList()
         val callableArray = arrays.firstOrNull { it.text.contains("AccountStatsManager") }
@@ -127,7 +130,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertNull("Callable array should not match as arguments array", match)
     }
 
-    fun testFindProviderForMethodNameElement_separateArgs_matchesMethodString() {
+    fun testFindProviderForMethodNameElementSeparateArgsMatchesMethodString() {
         myFixture.configureByText(
             "Queue.php",
             """
@@ -143,15 +146,16 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val providers = listOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "QueueManager"
-                method = "executeServiceMethod"
-                classArgumentIndex = 0
-                methodArgumentIndex = 1
-                argumentsArgumentIndex = 2
-            },
-        )
+        val providers =
+            listOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "QueueManager"
+                    method = "executeServiceMethod"
+                    classArgumentIndex = 0
+                    methodArgumentIndex = 1
+                    argumentsArgumentIndex = 2
+                },
+            )
 
         val element = myFixture.findElementByText("'doWork'", StringLiteralExpression::class.java)
         assertNotNull("'doWork' element not found", element)
@@ -161,7 +165,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertEquals("doWork", match!!.method.name)
     }
 
-    fun testFindProviderForArgumentsArray_separateArgs_matchesArgumentsArray() {
+    fun testFindProviderForArgumentsArraySeparateArgsMatchesArgumentsArray() {
         myFixture.configureByText(
             "Queue.php",
             """
@@ -177,15 +181,16 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val providers = listOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "QueueManager"
-                method = "executeServiceMethod"
-                classArgumentIndex = 0
-                methodArgumentIndex = 1
-                argumentsArgumentIndex = 2
-            },
-        )
+        val providers =
+            listOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "QueueManager"
+                    method = "executeServiceMethod"
+                    classArgumentIndex = 0
+                    methodArgumentIndex = 1
+                    argumentsArgumentIndex = 2
+                },
+            )
 
         val arrays = PsiTreeUtil.findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java).toList()
         val argsArray = arrays.firstOrNull { it.text.contains("1") && it.text.contains("2") }
@@ -196,7 +201,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertEquals("doWork", match!!.method.name)
     }
 
-    fun testFindProviderForMethodNameElement_noProviders_returnsNull() {
+    fun testFindProviderForMethodNameElementNoProvidersReturnsNull() {
         myFixture.configureByText(
             "test.php",
             "<?php class Foo { public function bar() {} } new Foo(['Bar', 'baz'], []);",
@@ -208,7 +213,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertNull(match)
     }
 
-    fun testFindProviderForMethodNameElement_wrongOuterMethod_returnsNull() {
+    fun testFindProviderForMethodNameElementWrongOuterMethodReturnsNull() {
         myFixture.configureByText(
             "test.php",
             """
@@ -219,14 +224,15 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val providers = listOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "ServiceMethodMessage"
-                method = "__construct"
-                callableArgumentIndex = 0
-                argumentsArgumentIndex = 1
-            },
-        )
+        val providers =
+            listOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
 
         val element = myFixture.findElementByText("'bar'", StringLiteralExpression::class.java)
         assertNotNull(element)
@@ -234,7 +240,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertNull("Should not match — outer call is not 'new ServiceMethodMessage'", match)
     }
 
-    fun testMapArgumentsToParameters_noOffset_mapsByPosition() {
+    fun testMapArgumentsToParametersNoOffsetMapsByPosition() {
         myFixture.configureByText(
             "Call.php",
             """
@@ -260,7 +266,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertEquals(1, mappings[1].parameterIndex)
     }
 
-    fun testMapArgumentsToParameters_withOffset_skipsLeadingParameters() {
+    fun testMapArgumentsToParametersWithOffsetSkipsLeadingParameters() {
         myFixture.configureByText(
             "Call.php",
             """
@@ -286,7 +292,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertEquals(2, mappings[1].parameterIndex)
     }
 
-    fun testMapArgumentsToParameters_variadic_repeatsLastParameter() {
+    fun testMapArgumentsToParametersVariadicRepeatsLastParameter() {
         myFixture.configureByText(
             "Call.php",
             """
@@ -310,7 +316,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         assertTrue("Trailing values map to the variadic parameter", mappings[3].parameter.isVariadic)
     }
 
-    fun testMapArgumentsToParameters_extraArguments_areSkipped() {
+    fun testMapArgumentsToParametersExtraArgumentsAreSkipped() {
         myFixture.configureByText(
             "Call.php",
             """

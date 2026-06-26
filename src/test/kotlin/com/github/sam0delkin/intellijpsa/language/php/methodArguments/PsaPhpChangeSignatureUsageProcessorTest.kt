@@ -24,7 +24,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         project.service<PhpPsaManager>().getSettings().enabled = true
     }
 
-    fun testFindUsages_callablePattern_findsArgumentsArray() {
+    fun testFindUsagesCallablePatternFindsArgumentsArray() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -48,7 +48,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         assertInstanceOf(usages.first(), PsaPhpDynamicCallUsageInfo::class.java)
     }
 
-    fun testFindUsages_separateArgsPattern_findsArgumentsArray() {
+    fun testFindUsagesSeparateArgsPatternFindsArgumentsArray() {
         setupSeparateArgsProvider()
         myFixture.configureByText(
             "Call.php",
@@ -76,7 +76,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         assertTrue("Usage element should be an array", usage.array.text.contains("1"))
     }
 
-    fun testFindUsages_pluginDisabled_returnsEmpty() {
+    fun testFindUsagesPluginDisabledReturnsEmpty() {
         project.service<Settings>().pluginEnabled = false
         setupCallableProvider()
 
@@ -99,7 +99,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         assertCollectionEmpty("Should find no usages when plugin is disabled", usages.toList())
     }
 
-    fun testProcessUsage_addParameterAtEnd_callablePattern() {
+    fun testProcessUsageAddParameterAtEndCallablePattern() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -147,7 +147,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         )
     }
 
-    fun testProcessUsage_addParameterAtEnd_separateArgsPattern() {
+    fun testProcessUsageAddParameterAtEndSeparateArgsPattern() {
         setupSeparateArgsProvider()
         myFixture.configureByText(
             "Call.php",
@@ -196,7 +196,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         )
     }
 
-    fun testProcessUsage_reorderParameters_callablePattern() {
+    fun testProcessUsageReorderParametersCallablePattern() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -236,7 +236,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         )
     }
 
-    fun testProcessUsage_removeParameter_callablePattern() {
+    fun testProcessUsageRemoveParameterCallablePattern() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -276,7 +276,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         )
     }
 
-    fun testProcessUsage_reorderWithOffset_keepsLeadingArrayPositions() {
+    fun testProcessUsageReorderWithOffsetKeepsLeadingArrayPositions() {
         project.service<PhpPsaManager>().getSettings().methodArgumentProviders =
             arrayListOf(
                 MethodArgumentProviderModel().apply {
@@ -329,7 +329,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         )
     }
 
-    fun testProcessUsage_beforeMethodChange_doesNothing() {
+    fun testProcessUsageBeforeMethodChangeDoesNothing() {
         setupCallableProvider()
         myFixture.configureByText(
             "Call.php",
@@ -366,7 +366,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         assertEquals("File should be unchanged when beforeMethodChange=true", originalText, myFixture.file.text)
     }
 
-    fun testProcessUsage_nonDynamicUsage_returnsFalse() {
+    fun testProcessUsageNonDynamicUsageReturnsFalse() {
         setupCallableProvider()
         myFixture.configureByText("test.php", "<?php class A { public function b() {} }")
         val method = myFixture.findElementByText("b", Method::class.java)!!
@@ -378,7 +378,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         assertFalse("processUsage should return false for non-dynamic usages", result)
     }
 
-    fun testUpdateInfo_storesMethodArgumentProviders() {
+    fun testUpdateInfoStoresMethodArgumentProviders() {
         val phpSettings = project.service<PhpPsaManager>().getSettings()
         phpSettings.enabled = true
 

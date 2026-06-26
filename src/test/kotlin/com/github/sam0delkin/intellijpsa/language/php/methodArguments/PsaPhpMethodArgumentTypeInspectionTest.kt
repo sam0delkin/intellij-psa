@@ -9,7 +9,6 @@ import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PsaPhpMethodArgumentTypeInspectionTest : BasePlatformTestCase() {
-
     override fun setUp() {
         super.setUp()
         project.service<Settings>().pluginEnabled = true
@@ -157,13 +156,14 @@ class PsaPhpMethodArgumentTypeInspectionTest : BasePlatformTestCase() {
     private fun hasParameterTypeWarning(): Boolean = parameterTypeHighlights().isNotEmpty()
 
     private fun setupCallableProvider() {
-        project.service<PhpPsaManager>().getSettings().methodArgumentProviders = arrayListOf(
-            MethodArgumentProviderModel().apply {
-                `class` = "ServiceMethodMessage"
-                method = "__construct"
-                callableArgumentIndex = 0
-                argumentsArgumentIndex = 1
-            },
-        )
+        project.service<PhpPsaManager>().getSettings().methodArgumentProviders =
+            arrayListOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
     }
 }

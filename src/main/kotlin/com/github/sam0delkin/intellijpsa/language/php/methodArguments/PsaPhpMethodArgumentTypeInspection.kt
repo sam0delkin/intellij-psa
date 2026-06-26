@@ -12,7 +12,6 @@ import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.PhpBundle
-import com.jetbrains.php.PhpIndex
 import com.jetbrains.php.codeInsight.PhpCodeInsightUtil
 import com.jetbrains.php.lang.documentation.PhpDocumentationProvider
 import com.jetbrains.php.lang.inspections.type.PhpParamsInspection
