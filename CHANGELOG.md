@@ -3,6 +3,8 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+
+## [0.0.33] - 2026-06-29
 - [GoTo] The PSA script-based GoTo no longer runs when a reference at the caret resolves or another GoTo handler already provides a target, avoiding a synchronous script call when navigation is already possible
 - [JavaScript] Added an optional JavaScript extension (active when the bundled JavaScript plugin is present). Method argument providers resolve a jQuery-plugin dispatch string (e.g. `$el.somePlugin('somePluginMethod', …)`) to the target prototype method, enabling GoTo, Find Usages and Rename. Method-name completion (Ctrl+Space) lists the class's prototype methods, parameter info (Cmd/Ctrl+P) shows the resolved method's parameters for the dispatched arguments, and parameter-name inlay hints are shown on those arguments
 
@@ -223,7 +225,8 @@ field
 ## [0.0.1] - 2024-06-09
 Initial Release
 
-[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.32...HEAD
+[Unreleased]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.33...HEAD
+[0.0.33]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.32...v0.0.33
 [0.0.32]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.31...v0.0.32
 [0.0.31]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.30...v0.0.31
 [0.0.30]: https://github.com/sam0delkin/intellij-psa/compare/v0.0.29...v0.0.30
