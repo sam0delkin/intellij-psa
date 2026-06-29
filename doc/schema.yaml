@@ -9,7 +9,7 @@ info:
   license:
     name: MIT
     url: https://github.com/sam0delkin/intellij-psa?tab=MIT-1-ov-file#readme
-  version: 0.0.32
+  version: 0.0.33
 paths:
   /GenerateFileFromTemplate:
     post:
@@ -198,9 +198,10 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
+                allOf:
                 - $ref: "#/components/schemas/InfoModel"
                 - $ref: "#/components/schemas/PhpInfoModel"
+                - $ref: "#/components/schemas/JsInfoModel"
   /PerformEditorAction:
     post:
       tags:
@@ -581,6 +582,46 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MethodArgumentProviderModel"
+    JsInfoModel:
+      type: object
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileTemplateModel"
+        supported_languages:
+          type: array
+          items:
+            type: string
+        goto_element_filter:
+          type: array
+          items:
+            type: string
+        supports_batch:
+          type: boolean
+        supports_static_completions:
+          type: boolean
+        editor_actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/EditorActionModel"
+        js_method_argument_providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/JsMethodArgumentProviderModel"
+    JsMethodArgumentProviderModel:
+      type: object
+      properties:
+        reference_name:
+          type: string
+        class:
+          type: string
+        method_argument_index:
+          type: integer
+          format: int32
+        arguments_offset:
+          type: integer
+          format: int32
     EditorActionInputModel:
       type: object
       properties:

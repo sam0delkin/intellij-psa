@@ -2,6 +2,7 @@
 
 package com.github.sam0delkin.intellijpsa.doc
 
+import com.github.sam0delkin.intellijpsa.language.javascript.model.JsInfoModel
 import com.github.sam0delkin.intellijpsa.language.php.model.PhpInfoModel
 import com.github.sam0delkin.intellijpsa.model.InfoModel
 import com.github.sam0delkin.intellijpsa.model.StaticCompletionsModel
@@ -50,7 +51,12 @@ class Callbacks {
             ApiResponse(
                 responseCode = "200",
                 description = "Info Model",
-                content = [Content(mediaType = "application/json", schema = Schema(oneOf = [InfoModel::class, PhpInfoModel::class]))],
+                content = [
+                    Content(
+                        mediaType = "application/json",
+                        schema = Schema(allOf = [InfoModel::class, PhpInfoModel::class, JsInfoModel::class]),
+                    ),
+                ],
             ),
         ],
     )
@@ -87,6 +93,7 @@ class Callbacks {
     )
     @POST
     @Path("GetCompletions")
+    @Suppress("UNUSED_PARAMETER")
     fun getCompletions(
         @Parameter(
             name = "PSA_TYPE",
@@ -146,6 +153,7 @@ class Callbacks {
     )
     @POST
     @Path("GenerateFileFromTemplate")
+    @Suppress("UNUSED_PARAMETER")
     fun generateFileFromTemplate(
         @Parameter(
             description = "PSA_TYPE",
@@ -183,6 +191,7 @@ class Callbacks {
     )
     @POST
     @Path("PerformEditorAction")
+    @Suppress("UNUSED_PARAMETER")
     fun performEditorAction(
         @Parameter(
             description = "PSA_TYPE",

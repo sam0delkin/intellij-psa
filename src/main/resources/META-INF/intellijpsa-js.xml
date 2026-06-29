@@ -1,0 +1,25 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <psi.referenceContributor
+                language="JavaScript"
+                implementation="com.github.sam0delkin.intellijpsa.language.javascript.methodArguments.JsMethodArgumentReferenceContributor"
+        />
+        <completion.contributor
+                language="JavaScript"
+                order="first"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.javascript.methodArguments.JsMethodNameCompletionContributor"
+        />
+        <codeInsight.parameterInfo
+                language="JavaScript"
+                order="first"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.javascript.methodArguments.JsParameterInfoHandler"
+        />
+        <codeInsight.inlayProvider
+                language="JavaScript"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.javascript.methodArguments.JsMethodArgumentInlayHintsProvider"
+        />
+    </extensions>
+    <extensions defaultExtensionNs="com.github.sam0delkin.intellijpsa">
+        <psaExtension implementation="com.github.sam0delkin.intellijpsa.language.javascript.JsPsaExtension"/>
+    </extensions>
+</idea-plugin>

@@ -11,8 +11,12 @@
     <depends
             optional="true"
             config-file="intellijpsa-php.xml">com.jetbrains.php</depends>
+    <depends
+            optional="true"
+            config-file="intellijpsa-js.xml">JavaScript</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <!--suppress PluginXmlI18n -->
         <projectConfigurable
                 parentId="tools"
                 instance="com.github.sam0delkin.intellijpsa.settings.PsaConfigurable"
@@ -28,6 +32,7 @@
         <gotoDeclarationHandler
                 implementation="com.github.sam0delkin.intellijpsa.completion.AnyCompletionContributor$GotoDeclaration"/>
 
+        <!--suppress PluginXmlI18n -->
         <notificationGroup id="PSA Notification"
                            displayType="BALLOON"/>
 
@@ -47,8 +52,9 @@
                 implementationClass="com.github.sam0delkin.intellijpsa.lineMarkerProvider.PsaLineMarkerProvider"
                 language="" />
         <intentionAction>
-            <language></language>
+            <language/>
             <className>com.github.sam0delkin.intellijpsa.action.psa.PsaContextualIntentionAction</className>
+            <!--suppress PluginXmlI18n -->
             <category>PSA</category>
         </intentionAction>
     </extensions>

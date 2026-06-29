@@ -23,6 +23,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiPolyVariantReference
+import com.intellij.psi.PsiReference
 import com.intellij.psi.util.elementType
 import com.intellij.util.ProcessingContext
 import com.jetbrains.rd.util.string.printToString
@@ -31,6 +33,7 @@ import org.apache.velocity.app.Velocity
 import java.io.StringWriter
 
 const val RETURN_ALL_STATIC_COMPLETIONS = -2
+private val REENTRANCY = ThreadLocal.withInitial { false }
 
 class AnyCompletionContributor {
     class Completion : CompletionContributor() {
@@ -124,6 +127,10 @@ class AnyCompletionContributor {
             editor: Editor?,
         ): Array<PsiElement>? {
             if (sourceElement === null) {
+                return null
+            }
+
+            if (REENTRANCY.get()) {
                 return null
             }
 
@@ -228,9 +235,6 @@ class AnyCompletionContributor {
                     try {
                         completionModel.toGoToElement(project)?.let { psiElements.add(it) }
                     } catch (_: UpdateStaticCompletionsException) {
-//                        psaManager.updateStaticCompletions(settings, project)
-                        json = null
-
                         break
                     }
                 }
@@ -239,6 +243,10 @@ class AnyCompletionContributor {
             }
 
             if (null === json && offset >= 0) {
+                if (hasOtherGotoTarget(sourceElement, offset, editor)) {
+                    return null
+                }
+
                 json =
                     psaManager
                         .getCompletions(
@@ -275,6 +283,45 @@ class AnyCompletionContributor {
         }
 
         override fun getActionText(context: DataContext): String = "PSA"
+
+        private fun hasOtherGotoTarget(
+            sourceElement: PsiElement,
+            offset: Int,
+            editor: Editor?,
+        ): Boolean {
+            val reference = sourceElement.containingFile?.findReferenceAt(offset)
+            if (referenceResolves(reference)) {
+                return true
+            }
+
+            editor ?: return false
+
+            REENTRANCY.set(true)
+            try {
+                for (handler in GotoDeclarationHandler.EP_NAME.extensionList) {
+                    if (handler is GotoDeclaration) {
+                        continue
+                    }
+
+                    val targets = runCatching { handler.getGotoDeclarationTargets(sourceElement, offset, editor) }.getOrNull()
+                    if (!targets.isNullOrEmpty()) {
+                        return true
+                    }
+                }
+            } finally {
+                REENTRANCY.set(false)
+            }
+
+            return false
+        }
+
+        private fun referenceResolves(reference: PsiReference?): Boolean {
+            reference ?: return false
+            return when (reference) {
+                is PsiPolyVariantReference -> reference.multiResolve(false).any { it.isValidResult && it.element != null }
+                else -> reference.resolve() != null
+            }
+        }
     }
 }
 
