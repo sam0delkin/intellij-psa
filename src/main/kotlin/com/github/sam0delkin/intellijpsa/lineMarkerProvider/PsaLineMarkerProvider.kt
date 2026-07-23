@@ -56,14 +56,15 @@ class PsaLineMarkerProvider : LineMarkerProvider {
         val index = FileBasedIndex.getInstance()
         val goToDeclarationHandler = firstElement.project.service<AnyCompletionContributor.GotoDeclaration>()
         val staticCompletionConfigs = psaManager.getStaticCompletionConfigs()
+        val liveLookupEnabled = settings.isServerModeActive()
+        val staticLookupEnabled =
+            settings.supportsStaticCompletions && null != settings.targetElementTypes && staticCompletionConfigs.isNotEmpty()
 
         if (
             !settings.pluginEnabled ||
             !settings.resolveReferences ||
-            null == settings.targetElementTypes ||
-            !settings.supportsStaticCompletions ||
             !settings.annotateUndefinedElements ||
-            staticCompletionConfigs.isNullOrEmpty()
+            (!staticLookupEnabled && !liveLookupEnabled)
         ) {
             return
         }
@@ -73,7 +74,10 @@ class PsaLineMarkerProvider : LineMarkerProvider {
         elements.map { element ->
             var processed = false
             val project = element.project
-            if (!settings.targetElementTypes!!.contains(element.elementType.printToString())) {
+            val elementTypeString = element.elementType.printToString()
+            val staticTypeMatch = null != settings.targetElementTypes && settings.targetElementTypes!!.contains(elementTypeString)
+            val liveTypeMatch = liveLookupEnabled && settings.isElementTypeMatchingFilter(elementTypeString)
+            if (!staticTypeMatch && !liveTypeMatch) {
                 return@map
             }
 
@@ -103,24 +107,43 @@ class PsaLineMarkerProvider : LineMarkerProvider {
             if (!processed) {
                 val references = ReferenceProvidersRegistry.getReferencesFromProviders(element, PsiReferenceService.Hints.NO_HINTS)
                 if (references.isNotEmpty()) {
-                    val el = NavigationGutterIconBuilder.create(Icons.PluginIcon)
-                    val resolvedReferences = references.map { it.resolve() }
                     val firstReference = references.first()
                     var referenceTitle: String? = null
                     var staticCompletion: ExtendedStaticCompletionModel? = null
 
                     if (firstReference is PsaReference && null != firstReference.staticCompletionName) {
                         staticCompletion =
-                            staticCompletionConfigs.first {
+                            staticCompletionConfigs.firstOrNull {
                                 it.name == firstReference.staticCompletionName
                             }
-                        referenceTitle = staticCompletion.title
+                        referenceTitle = staticCompletion?.title
                     }
 
                     if (null == staticCompletion) {
+                        if (!liveLookupEnabled) {
+                            return@map
+                        }
+
+                        // Only trust references PSA's own live lookup actually produced - `references` above
+                        // aggregates every PsiReferenceContributor registered for this element, not just PSA's.
+                        val livePsaReferences =
+                            references.filterIsInstance<PsaReference>().filter { null == it.staticCompletionName }
+
+                        if (livePsaReferences.isEmpty()) {
+                            return@map
+                        }
+
+                        val liveResolvedReferences = livePsaReferences.map { it.resolve() }
+                        val liveEl = NavigationGutterIconBuilder.create(Icons.PluginIcon)
+                        liveEl.setTargets(liveResolvedReferences)
+                        @Suppress("DialogTitleCapitalization")
+                        liveEl.setTooltipText("PSA Reference")
+                        result.add(liveEl.createLineMarkerInfo(element))
                         return@map
                     }
 
+                    val el = NavigationGutterIconBuilder.create(Icons.PluginIcon)
+                    val resolvedReferences = references.map { it.resolve() }
                     el.setTargets(resolvedReferences)
                     if (null != referenceTitle) {
                         el.setTooltipText("PSA Reference \"$referenceTitle\" (Shift + Click for more actions)")

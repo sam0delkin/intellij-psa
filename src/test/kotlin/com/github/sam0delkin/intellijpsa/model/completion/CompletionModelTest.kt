@@ -1,8 +1,61 @@
 package com.github.sam0delkin.intellijpsa.model.completion
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.serialization.json.Json
 
 class CompletionModelTest : BasePlatformTestCase() {
+    fun testCompletionModelSerialization() {
+        val model =
+            CompletionModel().apply {
+                text = "My Completion"
+                bold = true
+                type = "MyType"
+                priority = 123.0
+                link = "/path/to/file.php:10:20"
+            }
+
+        val encoded = Json.encodeToString(CompletionModel.serializer(), model)
+        val decoded = Json.decodeFromString(CompletionModel.serializer(), encoded)
+
+        assertEquals(model.text, decoded.text)
+        assertEquals(model.link, decoded.link)
+    }
+
+    fun testNotificationModelSerialization() {
+        val notification =
+            NotificationModel().apply {
+                type = "info"
+                text = "Hello from PSA"
+            }
+
+        val encoded = Json.encodeToString(NotificationModel.serializer(), notification)
+        val decoded = Json.decodeFromString(NotificationModel.serializer(), encoded)
+
+        assertEquals(notification.type, decoded.type)
+        assertEquals(notification.text, decoded.text)
+    }
+
+    fun testCompletionsModelSerialization() {
+        val model =
+            CompletionsModel().apply {
+                completions = listOf(CompletionModel().apply { text = "A" })
+                notifications =
+                    listOf(
+                        NotificationModel().apply {
+                            type = "info"
+                            text = "hi"
+                        },
+                    )
+            }
+
+        val encoded = Json.encodeToString(CompletionsModel.serializer(), model)
+        val decoded = Json.decodeFromString(CompletionsModel.serializer(), encoded)
+
+        assertEquals(1, decoded.completions?.size)
+        assertEquals(1, decoded.notifications?.size)
+        assertEquals("A", decoded.completions?.get(0)?.text)
+    }
+
     fun testCompletionModelCreation() {
         val model =
             CompletionModel().apply {

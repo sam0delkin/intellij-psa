@@ -55,7 +55,9 @@ class PsaReferenceContributor : PsiReferenceContributor() {
                         return emptyArray()
                     }
 
-                    if (!settings.supportsStaticCompletions) {
+                    val liveLookupEnabled = settings.isServerModeActive()
+
+                    if (!settings.supportsStaticCompletions && !liveLookupEnabled) {
                         return emptyArray()
                     }
 
@@ -84,54 +86,67 @@ class PsaReferenceContributor : PsiReferenceContributor() {
                     val index = FileBasedIndex.getInstance()
                     val goToDeclarationHandler = project.service<AnyCompletionContributor.GotoDeclaration>()
 
-                    try {
-                        val elementUrl = element.containingFile.virtualFile.url + ":" + element.textOffset
-                        val indexKeys =
-                            index.getValues(
-                                INDEX_ID,
-                                elementUrl,
-                                GlobalSearchScope.projectScope(project),
-                            )
+                    if (settings.supportsStaticCompletions) {
+                        try {
+                            val virtualFile = element.containingFile.virtualFile ?: return emptyArray()
+                            val elementUrl = virtualFile.url + ":" + element.textOffset
+                            val indexKeys =
+                                index.getValues(
+                                    INDEX_ID,
+                                    elementUrl,
+                                    GlobalSearchScope.projectScope(project),
+                                )
 
-                        for (key in indexKeys) {
-                            for (entry in key.entries) {
-                                for (keyEl in entry.value) {
-                                    val targetEl =
-                                        PsiUtils.processLink("file://$keyEl", null, project, false)
-                                            ?: continue
+                            for (key in indexKeys) {
+                                for (entry in key.entries) {
+                                    for (keyEl in entry.value) {
+                                        val targetEl =
+                                            PsiUtils.processLink("file://$keyEl", null, project, false)
+                                                ?: continue
 
-                                    val targets =
-                                        goToDeclarationHandler.getGotoDeclarationTargets(
-                                            targetEl.getOriginalPsiElement(),
-                                            -1,
-                                            null,
-                                        )
+                                        val targets =
+                                            goToDeclarationHandler.getGotoDeclarationTargets(
+                                                targetEl.getOriginalPsiElement(),
+                                                -1,
+                                                null,
+                                            )
 
-                                    if (null == targets) {
-                                        continue
-                                    }
-
-                                    val filteredTargets =
-                                        targets.filter {
-                                            if (it is PsaElement) {
-                                                return@filter element == it.getOriginalPsiElement()
-                                            }
-
-                                            return@filter it == element
+                                        if (null == targets) {
+                                            continue
                                         }
 
-                                    if (
-                                        filteredTargets.isNotEmpty() &&
-                                        !elements.contains(keyEl)
-                                    ) {
-                                        elements.add(keyEl)
-                                        list.add(PsaReference(element, targetEl, entry.key))
+                                        val filteredTargets =
+                                            targets.filter {
+                                                if (it is PsaElement) {
+                                                    return@filter element == it.getOriginalPsiElement()
+                                                }
+
+                                                return@filter it == element
+                                            }
+
+                                        if (
+                                            filteredTargets.isNotEmpty() &&
+                                            !elements.contains(keyEl)
+                                        ) {
+                                            elements.add(keyEl)
+                                            list.add(PsaReference(element, targetEl, entry.key))
+                                        }
                                     }
                                 }
                             }
+                        } catch (_: IllegalArgumentException) {
+                            return emptyArray()
                         }
-                    } catch (_: IllegalArgumentException) {
-                        return emptyArray()
+                    }
+
+                    if (liveLookupEnabled) {
+                        val liveTargets = goToDeclarationHandler.resolveLiveGoToTargets(element)
+
+                        liveTargets?.forEach { target ->
+                            if (list.none { it.resolve() == target }) {
+                                list.add(PsaReference(element, target))
+                            }
+                        }
                     }
 
                     return list.toTypedArray()

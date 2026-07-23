@@ -55,6 +55,7 @@ class JsPsaExtension : PsaExtension {
             }
 
             settings.methodArgumentProviders = jsInfo.methodArgumentProviders
+            settings.methodArgumentProvidersInspectionsEnabled = jsInfo.methodArgumentInspections ?: false
         } catch (_: Throwable) {
             return
         }
@@ -64,5 +65,23 @@ class JsPsaExtension : PsaExtension {
         project: Project,
         actionGroup: ActionGroup,
     ) {
+    }
+
+    override fun getDiagnostics(project: Project): String? {
+        val settings = project.service<JsPsaSettings>()
+        if (!settings.enabled) {
+            return "JavaScript: disabled"
+        }
+
+        val providers = settings.methodArgumentProviders.orEmpty()
+        val builder = StringBuilder("JavaScript: enabled\n")
+        builder.append("  Method argument inspections: ${settings.methodArgumentProvidersInspectionsEnabled}\n")
+        builder.append("  Method argument providers: ${providers.size}\n")
+        providers.forEach {
+            builder.append(
+                "    - ${it.referenceName}('<method>', …) -> ${it.`class`} (argIndex=${it.methodArgumentIndex}, offset=${it.argumentsOffset})\n",
+            )
+        }
+        return builder.toString().trimEnd()
     }
 }

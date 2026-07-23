@@ -222,6 +222,22 @@ object PsaPhpMethodArgumentHelper {
         return null
     }
 
+    fun findArgumentForParameter(
+        methodNameElement: PsiElement,
+        provider: MethodArgumentProviderModel,
+        parameterIndex: Int,
+    ): PsiElement? {
+        val args = getOuterCallArgs(methodNameElement, provider) ?: return null
+        val argsElement = args.getOrNull(provider.argumentsArgumentIndex) ?: return null
+        val argsArray =
+            argsElement as? ArrayCreationExpression
+                ?: PsiTreeUtil.findChildOfType(argsElement, ArrayCreationExpression::class.java)
+                ?: return null
+        val arrayIndex = parameterIndex - provider.argumentsOffset
+        if (arrayIndex < 0) return null
+        return argsArray.arrayValues().getOrNull(arrayIndex)
+    }
+
     fun extractStringContents(element: PsiElement?): String? {
         if (element is StringLiteralExpression) return element.contents
         val constantReference =

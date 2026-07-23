@@ -42,10 +42,6 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
                 val settings = manager.getSettings()
                 val fileResult = mutableMapOf<String, Map<String, List<String>>>()
                 val currentResult = mutableMapOf<String, MutableMap<String, MutableList<String>>>()
-                if (null == settings.targetElementTypes) {
-                    settings.targetElementTypes = arrayListOf()
-                }
-
                 val staticCompletionsConfigs = manager.getStaticCompletionConfigs()
 
                 if (!settings.pluginEnabled || !settings.resolveReferences) {
@@ -124,7 +120,10 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
                                     context.put(
                                         "model",
                                         object {
+                                            @Suppress("unused")
                                             val type = element.tokenType.printToString()
+
+                                            @Suppress("unused")
                                             val text = element.text
                                         },
                                     )
@@ -156,6 +155,9 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
 
                                     if (null != psiElement) {
                                         val elementType = psiElement.elementType.printToString()
+                                        if (null == settings.targetElementTypes) {
+                                            settings.targetElementTypes = arrayListOf()
+                                        }
                                         if (!settings.targetElementTypes!!.contains(elementType)) {
                                             settings.targetElementTypes!!.add(elementType)
                                         }
@@ -174,10 +176,7 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
                                         }
 
                                         if (!currentResult[elementUrl]!!.containsKey(staticCompletion.name)) {
-                                            currentResult[elementUrl]!!.put(
-                                                staticCompletion.name,
-                                                mutableListOf(),
-                                            )
+                                            currentResult[elementUrl]!![staticCompletion.name] = mutableListOf()
                                         }
 
                                         currentResult[elementUrl]!![staticCompletion.name]!!.add(key)

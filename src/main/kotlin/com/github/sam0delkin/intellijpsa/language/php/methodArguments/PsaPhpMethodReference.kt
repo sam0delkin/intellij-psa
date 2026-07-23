@@ -14,7 +14,7 @@ class PsaPhpMethodReference(
 ) : PsiReferenceBase<PsiElement>(element) {
     override fun resolve(): PsiElement = method
 
-    override fun isReferenceTo(element: PsiElement): Boolean = element == method
+    override fun isReferenceTo(element: PsiElement): Boolean = element.manager.areElementsEquivalent(element, method)
 
     override fun handleElementRename(newElementName: String): PsiElement {
         val manipulator = ElementManipulators.getManipulator(this.element) ?: return this.element
@@ -25,7 +25,8 @@ class PsaPhpMethodReference(
         val el = element
         if (el is StringLiteralExpression) {
             val valueRange = el.valueRange
-            if (valueRange != null) return valueRange
+
+            return valueRange
         }
         if (el is ConstantReference) {
             return TextRange(0, element.textLength)

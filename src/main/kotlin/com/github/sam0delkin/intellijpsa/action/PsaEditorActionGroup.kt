@@ -24,10 +24,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiDirectory
-import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import kotlin.concurrent.thread
@@ -95,7 +95,7 @@ class PsaEditorActionGroup :
             val newAction =
                 object : AnAction(action.title) {
                     override fun actionPerformed(e: AnActionEvent) {
-                        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                        val clipboard = CopyPasteManager.getInstance()
                         val editor: Editor = FileEditorManager.getInstance(e.project!!).selectedTextEditor ?: return
                         val file = FileDocumentManager.getInstance().getFile(editor.document)
                         val selectedText = editor.selectionModel.selectedText
@@ -123,7 +123,7 @@ class PsaEditorActionGroup :
                                         EditorActionInputModel(
                                             action.name,
                                             path,
-                                            clipboard.getData(DataFlavor.stringFlavor).toString(),
+                                            clipboard.getContents(DataFlavor.stringFlavor) as? String ?: "",
                                         ),
                                     )
                             }
@@ -133,7 +133,7 @@ class PsaEditorActionGroup :
                             }
 
                             if (action.target == EditorActionTarget.Clipboard) {
-                                clipboard.setContents(StringSelection(result), null)
+                                clipboard.setContents(StringSelection(result))
 
                                 NotificationGroupManager
                                     .getInstance()

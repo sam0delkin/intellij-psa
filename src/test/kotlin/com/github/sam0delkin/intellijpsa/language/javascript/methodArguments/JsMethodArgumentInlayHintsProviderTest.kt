@@ -3,6 +3,7 @@ package com.github.sam0delkin.intellijpsa.language.javascript.methodArguments
 import com.github.sam0delkin.intellijpsa.language.javascript.model.JsMethodArgumentProviderModel
 import com.github.sam0delkin.intellijpsa.language.javascript.settings.JsPsaSettings
 import com.github.sam0delkin.intellijpsa.settings.Settings
+import com.intellij.codeInsight.hints.ChangeListener
 import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.openapi.components.service
 import com.intellij.psi.util.PsiTreeUtil
@@ -23,6 +24,21 @@ class JsMethodArgumentInlayHintsProviderTest : BasePlatformTestCase() {
                     argumentsOffset = 1
                 },
             )
+    }
+
+    @Suppress("UnstableApiUsage")
+    fun testCreateConfigurableReturnsEmptyComponent() {
+        val provider = JsMethodArgumentInlayHintsProvider()
+        val configurable = provider.createConfigurable(provider.createSettings())
+
+        val component =
+            configurable.createComponent(
+                object : ChangeListener {
+                    override fun settingsChanged() {}
+                },
+            )
+
+        assertNotNull(component)
     }
 
     fun testMapsDispatchedArgumentsToParameters() {

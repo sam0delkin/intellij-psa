@@ -18,6 +18,15 @@
                 language="JavaScript"
                 implementationClass="com.github.sam0delkin.intellijpsa.language.javascript.methodArguments.JsMethodArgumentInlayHintsProvider"
         />
+        <localInspection
+                language="JavaScript"
+                shortName="JsMethodArgumentMethodName"
+                displayName="Unknown dynamic method name"
+                groupName="PSA"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="com.github.sam0delkin.intellijpsa.language.javascript.methodArguments.JsMethodArgumentInspection"
+        />
     </extensions>
     <extensions defaultExtensionNs="com.github.sam0delkin.intellijpsa">
         <psaExtension implementation="com.github.sam0delkin.intellijpsa.language.javascript.JsPsaExtension"/>

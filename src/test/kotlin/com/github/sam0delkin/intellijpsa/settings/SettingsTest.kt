@@ -1,5 +1,7 @@
 package com.github.sam0delkin.intellijpsa.settings
 
+import com.github.sam0delkin.intellijpsa.model.EditorActionSource
+import com.github.sam0delkin.intellijpsa.model.EditorActionTarget
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.PathMappingSettings
 
@@ -11,6 +13,7 @@ class SettingsTest : BasePlatformTestCase() {
         assertFalse(settings.debug)
         assertTrue(settings.showErrors)
         assertEquals(".psa/psa.php", settings.scriptPath)
+        assertEquals(ExecutionMode.Script, settings.executionMode)
         assertEquals(0, settings.pathMappings?.size)
         assertEquals("", settings.goToFilter)
         assertFalse(settings.supportsBatch)
@@ -171,6 +174,36 @@ class SettingsTest : BasePlatformTestCase() {
         assertTrue(settings.isElementTypeMatchingFilter("STRING_LITERAL"))
     }
 
+    fun testSettingsIsServerModeActive() {
+        val settings =
+            Settings().apply {
+                executionMode = ExecutionMode.Server
+                debug = false
+            }
+
+        assertTrue(settings.isServerModeActive())
+    }
+
+    fun testSettingsIsServerModeActiveFalseInScriptMode() {
+        val settings =
+            Settings().apply {
+                executionMode = ExecutionMode.Script
+                debug = false
+            }
+
+        assertFalse(settings.isServerModeActive())
+    }
+
+    fun testSettingsIsServerModeActiveFalseWhenDebugEnabled() {
+        val settings =
+            Settings().apply {
+                executionMode = ExecutionMode.Server
+                debug = true
+            }
+
+        assertFalse(settings.isServerModeActive())
+    }
+
     fun testSettingsStateCopy() {
         val settings1 =
             Settings().apply {
@@ -181,6 +214,7 @@ class SettingsTest : BasePlatformTestCase() {
                 supportedLanguages = "PHP"
                 executionTimeout = 10000
                 maxNestingLevel = 50
+                executionMode = ExecutionMode.Server
             }
 
         val settings2 = Settings()
@@ -193,6 +227,7 @@ class SettingsTest : BasePlatformTestCase() {
         assertEquals(settings1.supportedLanguages, settings2.supportedLanguages)
         assertEquals(settings1.executionTimeout, settings2.executionTimeout)
         assertEquals(settings1.maxNestingLevel, settings2.maxNestingLevel)
+        assertEquals(settings1.executionMode, settings2.executionMode)
     }
 
     fun testSettingsGetState() {
@@ -293,6 +328,32 @@ class SettingsTest : BasePlatformTestCase() {
         assertEquals("my_template", template.name)
         assertEquals("My Template", template.title)
         assertEquals(1, template.formFields?.size)
+
+        val str = template.toString()
+        assertTrue(str.contains("my_template"))
+    }
+
+    fun testPersistedEditorAction() {
+        val action =
+            PersistedEditorAction().apply {
+                name = "my_action"
+                title = "My Action"
+                groupName = "My Group"
+                pathRegex = "^/src/"
+                source = EditorActionSource.Editor
+                target = EditorActionTarget.Clipboard
+                contextAction = true
+                contextual = true
+            }
+
+        assertEquals("my_action", action.name)
+        assertEquals("My Action", action.title)
+        assertEquals("My Group", action.groupName)
+        assertEquals("^/src/", action.pathRegex)
+        assertEquals(EditorActionSource.Editor, action.source)
+        assertEquals(EditorActionTarget.Clipboard, action.target)
+        assertTrue(action.contextAction)
+        assertTrue(action.contextual)
     }
 
     fun testSingleFileCodeTemplateEquals() {

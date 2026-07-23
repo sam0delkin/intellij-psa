@@ -2,15 +2,19 @@ package com.github.sam0delkin.intellijpsa.status.widget
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerState
 import com.github.sam0delkin.intellijpsa.settings.EP_NAME
 import com.github.sam0delkin.intellijpsa.settings.PsaConfigurable
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
@@ -22,12 +26,23 @@ import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Consumer
 import java.awt.event.MouseEvent
 import java.util.Timer
 import java.util.TimerTask
 import javax.swing.Icon
+
+private fun serverStateLabel(state: ServerState): String =
+    when (state) {
+        ServerState.STOPPED -> "Stopped"
+        ServerState.STARTING -> "Starting"
+        ServerState.RUNNING -> "Running"
+        ServerState.RETRYING -> "Retrying"
+        ServerState.RESTARTING -> "Restarting"
+        ServerState.FAILED -> "Failed"
+    }
 
 class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
     companion object {
@@ -51,6 +66,8 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
     override fun createWidget(project: Project): StatusBarWidget {
         val psaManager = project.service<PsaManager>()
         val settings = psaManager.getSettings()
+        val serverManager = project.service<ServerManager>()
+        val restartingIcon = AnimatedIcon.Default()
         var timer: Timer? = null
 
         return object : StatusBarWidget, StatusBarWidget.IconPresentation {
@@ -92,6 +109,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                         object : AnAction("Disable Debug", "", AllIcons.Actions.RestartDebugger) {
                             override fun actionPerformed(e: AnActionEvent) {
                                 settings.debug = false
+                                serverManager.restart(settings)
                             }
                         },
                     )
@@ -100,6 +118,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                         object : AnAction("Enable Debug", "", AllIcons.Actions.StartDebugger) {
                             override fun actionPerformed(e: AnActionEvent) {
                                 settings.debug = true
+                                serverManager.restart(settings)
                             }
                         },
                     )
@@ -119,6 +138,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                 }
                 actionGroup.add(
                     object : AnAction("Update Info", "", AllIcons.General.BalloonInformation) {
+                        @Suppress("IncorrectServiceRetrieving")
                         override fun actionPerformed(e: AnActionEvent) {
                             if (null !== settings.scriptPath) {
                                 val thread =
@@ -167,7 +187,7 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                                                     NotificationType.ERROR,
                                                 ).notify(project)
                                         }
-                                        service<StatusBarWidgetsManager>().updateAllWidgets()
+                                        project.service<StatusBarWidgetsManager>().updateAllWidgets()
                                     }
                                 thread.start()
                             }
@@ -188,6 +208,51 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
                     },
                 )
 
+                if (settings.isServerModeActive()) {
+                    actionGroup.add(Separator.getInstance())
+                    actionGroup.add(
+                        object : AnAction(
+                            "Server: ${serverStateLabel(serverManager.status())}",
+                            "",
+                            null,
+                        ) {
+                            override fun actionPerformed(e: AnActionEvent) {}
+
+                            override fun update(e: AnActionEvent) {
+                                e.presentation.isEnabled = false
+                            }
+
+                            override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+                        },
+                    )
+                    actionGroup.add(
+                        object : AnAction("Start Server", "", AllIcons.Actions.Execute) {
+                            override fun update(e: AnActionEvent) {
+                                e.presentation.isEnabledAndVisible = serverManager.status() != ServerState.RUNNING
+                            }
+
+                            override fun actionPerformed(e: AnActionEvent) {
+                                serverManager.start(settings)
+                            }
+
+                            override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+                        },
+                    )
+                    actionGroup.add(
+                        object : AnAction("Restart Server", "", AllIcons.Actions.Restart) {
+                            override fun update(e: AnActionEvent) {
+                                e.presentation.isEnabled = serverManager.status() != ServerState.RESTARTING
+                            }
+
+                            override fun actionPerformed(e: AnActionEvent) {
+                                serverManager.restart(settings)
+                            }
+
+                            override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+                        },
+                    )
+                }
+
                 for (extension in EP_NAME.extensionList) {
                     extension.modifyStatusBar(project, actionGroup)
                 }
@@ -202,6 +267,10 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
             }
 
             override fun getTooltipText(): String {
+                if (settings.isServerModeActive()) {
+                    return "PSA: Server ${serverStateLabel(serverManager.status())}"
+                }
+
                 if (psaManager.lastResultSucceed) {
                     return "PSA: Working"
                 }
@@ -216,6 +285,19 @@ class PsaStatusBarWidgetFactory : StatusBarWidgetFactory {
             }
 
             override fun getIcon(): Icon {
+                if (settings.isServerModeActive()) {
+                    return when (serverManager.status()) {
+                        ServerState.RUNNING -> Icons.PluginActiveIcon
+
+                        ServerState.STARTING,
+                        ServerState.RESTARTING,
+                        ServerState.RETRYING,
+                        -> restartingIcon
+
+                        ServerState.STOPPED, ServerState.FAILED -> Icons.PluginErrorIcon
+                    }
+                }
+
                 if (psaManager.lastResultSucceed) {
                     return Icons.PluginActiveIcon
                 }

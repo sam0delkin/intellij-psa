@@ -3,6 +3,21 @@
 # intellij-psa Changelog
 
 ## [Unreleased]
+- [CI] Added a Codecov coverage badge to README.md, backed by the `koverXmlReport` already uploaded to Codecov on every build
+- Added an opt-in "Server" execution mode that keeps a single persistent process alive across requests (NDJSON over stdin/stdout) instead of spawning a fresh process per request
+- [Indexing] Fixed `PsaStaticReferenceIndex` clearing `targetElementTypes` on every index pass even when the plugin was disabled, which could disable GoTo/reference resolution and line markers project-wide
+- [UI] PSA GoTo hover tooltips now use the language's own native documentation-provider styling; the type label changed from "Psa Element" to "PSA"
+- [Performance] Reduced redundant `CachedValue` wrapping and repeated interface-hierarchy computation in `psiElementToModel`
+- [PHP] Find Usages on a method parameter now includes the positionally-matching argument from dynamic method calls
+- [PHP] Fixed Find Usages on a PHP method missing dynamic dispatch call sites when the class definition is in a different file from the call site
+- [Settings] Added a "Diagnostics" panel showing the last `Info` snapshot, to make misconfiguration easy to spot
+- [JavaScript] Added an optional inspection flagging a dispatch string naming a method that doesn't exist on the configured class
+- [JavaScript] Cached class/method resolution per project to avoid repeated `ReferencesSearch` calls
+- [PHP] Fixed a classloader leak forcing a full IDE restart on update, caused by an undisposed XDebug message-bus connection in `PhpPsaExtension`
+- [JavaScript] Fixed a second classloader leak with the same symptom, caused by a plugin-defined type cached in `JsMethodArgumentHelper`'s per-project cache
+- Cleaned up various IDE code-analysis warnings (deprecations, unstable API usage, redundant code) across the codebase; no behavior changes
+- Fixed a `NullPointerException` in reference resolution when the element being resolved lives in a non-physical PSI copy with no backing virtual file (e.g. the internal copy the completion machinery reparses against)
+- [Editor Actions] Editor actions and PSA-actions clipboard source/target now go through the platform's `CopyPasteManager` instead of `Toolkit.getDefaultToolkit().systemClipboard` directly, avoiding a `HeadlessException` in environments without a display
 
 ## [0.0.33] - 2026-06-29
 - [GoTo] The PSA script-based GoTo no longer runs when a reference at the caret resolves or another GoTo handler already provides a target, avoiding a synchronous script call when navigation is already possible

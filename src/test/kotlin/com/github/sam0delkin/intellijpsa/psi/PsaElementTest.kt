@@ -108,6 +108,45 @@ class PsaElementTest : BasePlatformTestCase() {
         assertEquals(element.node, node)
     }
 
+    fun testPsaElementNameFallsBackToNormalizedTextWithoutNamedAncestor() {
+        myFixture.configureByText("test.php", "<?php 'test_string';")
+        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+
+        val psaElement = PsaElement(element, "'test_string'")
+
+        assertEquals("test_string", psaElement.name)
+    }
+
+    fun testGetDeclarationParentFindsEnclosingNamedMethod() {
+        myFixture.configureByText(
+            "test.php",
+            """
+            <?php
+            class MyClass {
+                public function myMethod() {
+                    'test_string';
+                }
+            }
+            """.trimIndent(),
+        )
+        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+
+        val psaElement = PsaElement(element, "'test_string'")
+        val declarationParent = psaElement.getDeclarationParent()
+
+        assertNotNull(declarationParent)
+        assertEquals("myMethod", (declarationParent as? com.intellij.psi.PsiNamedElement)?.name)
+    }
+
+    fun testGetDeclarationParentReturnsNullWithoutNamedAncestor() {
+        myFixture.configureByText("test.php", "<?php 'test_string';")
+        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+
+        val psaElement = PsaElement(element, "'test_string'")
+
+        assertNull(psaElement.getDeclarationParent())
+    }
+
     fun testPsaElementGetOriginalElement() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
         val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)

@@ -6,7 +6,6 @@ import com.github.sam0delkin.intellijpsa.language.php.model.PhpInfoModel
 import com.github.sam0delkin.intellijpsa.language.php.services.PhpPsaManager
 import com.github.sam0delkin.intellijpsa.language.php.settings.PhpPsaSettings
 import com.github.sam0delkin.intellijpsa.settings.Settings
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
@@ -19,12 +18,12 @@ import com.intellij.util.messages.MessageBusConnection
 import com.intellij.xdebugger.XDebuggerManager
 import kotlinx.serialization.json.Json
 
-class PhpPsaExtension :
-    PsaExtension,
-    Disposable {
+class PhpPsaExtension : PsaExtension {
     private lateinit var enabled: Cell<JBCheckBox>
     private lateinit var debugTypeProvider: Cell<JBCheckBox>
-    private var connection: MessageBusConnection? = null
+
+    // internal (not private) so tests can assert it gets disconnected when PhpPsaManager is disposed.
+    internal var connection: MessageBusConnection? = null
 
     override fun initialize(project: Project) {
         val phpSettings = project.service<PhpPsaSettings>()
@@ -34,7 +33,11 @@ class PhpPsaExtension :
         }
 
         connection?.disconnect()
-        connection = project.messageBus.connect()
+        // PhpPsaExtension is a plain `psaExtension` EP instance - nothing ever calls dispose() on
+        // it, so the connection must be tied to a Disposable the platform actually disposes (the
+        // PhpPsaManager light service), or it outlives project close / plugin unload and pins the
+        // plugin's classloader.
+        connection = project.messageBus.connect(project.service<PhpPsaManager>())
         val listener = PsaXdebugManagerListener(project)
         connection?.subscribe(XDebuggerManager.TOPIC, listener)
         listener.registerExistingSessions()
@@ -120,7 +123,7 @@ class PhpPsaExtension :
             }
 
             connection?.disconnect()
-            connection = project.messageBus.connect()
+            connection = project.messageBus.connect(psaManager)
             val listener = PsaXdebugManagerListener(project)
             connection?.subscribe(
                 XDebuggerManager.TOPIC,
@@ -138,7 +141,17 @@ class PhpPsaExtension :
     ) {
     }
 
-    override fun dispose() {
-        this.connection?.disconnect()
+    override fun getDiagnostics(project: Project): String {
+        val phpSettings = project.service<PhpPsaManager>().getSettings()
+        if (!phpSettings.enabled) {
+            return "PHP: disabled"
+        }
+
+        val builder = StringBuilder("PHP: enabled\n")
+        builder.append("  Supports type providers: ${phpSettings.supportsTypeProviders}\n")
+        builder.append("  Type providers: ${phpSettings.typeProviders?.size ?: 0}\n")
+        builder.append("  Method argument providers: ${phpSettings.methodArgumentProviders?.size ?: 0}\n")
+        builder.append("  toString value formatter: ${if (phpSettings.toStringValueFormatter.isNullOrBlank()) "no" else "yes"}")
+        return builder.toString()
     }
 }

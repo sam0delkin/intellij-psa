@@ -17,19 +17,21 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiFile
-import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import kotlin.collections.isNotEmpty
 import kotlin.concurrent.thread
 
 class PsaContextualIntentionAction : IntentionAction {
-    override fun getText() = "PSA Actions"
+    override fun getText() =
+        @Suppress("DialogTitleCapitalization")
+        "PSA Actions"
 
     override fun getFamilyName() = "PSA"
 
@@ -120,7 +122,7 @@ class PsaContextualIntentionAction : IntentionAction {
     ): AnAction =
         object : AnAction(action.title) {
             override fun actionPerformed(e: AnActionEvent) {
-                val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                val clipboard = CopyPasteManager.getInstance()
                 val selectedText = editor.selectionModel.selectedText
 
                 thread {
@@ -141,7 +143,7 @@ class PsaContextualIntentionAction : IntentionAction {
                                 EditorActionInputModel(
                                     action.name,
                                     filePath,
-                                    clipboard.getData(DataFlavor.stringFlavor).toString(),
+                                    clipboard.getContents(DataFlavor.stringFlavor) as? String ?: "",
                                 ),
                             )
                     }
@@ -149,7 +151,7 @@ class PsaContextualIntentionAction : IntentionAction {
                     if (result == null) return@thread
 
                     if (action.target == EditorActionTarget.Clipboard) {
-                        clipboard.setContents(StringSelection(result), null)
+                        clipboard.setContents(StringSelection(result))
                         NotificationGroupManager
                             .getInstance()
                             .getNotificationGroup("PSA Notification")

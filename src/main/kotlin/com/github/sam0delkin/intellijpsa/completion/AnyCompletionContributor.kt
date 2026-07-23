@@ -8,15 +8,21 @@ import com.github.sam0delkin.intellijpsa.model.completion.CompletionsModel
 import com.github.sam0delkin.intellijpsa.model.psi.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.psi.helper.PsiElementModelHelper
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerState
+import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.completion.CompletionType
+import com.intellij.codeInsight.hint.HintManager
+import com.intellij.codeInsight.hint.HintUtil
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -34,6 +40,48 @@ import java.io.StringWriter
 
 const val RETURN_ALL_STATIC_COMPLETIONS = -2
 private val REENTRANCY = ThreadLocal.withInitial { false }
+
+private fun serverUnavailableHintText(state: ServerState): String =
+    when (state) {
+        ServerState.STARTING -> "PSA Server is starting"
+        ServerState.RESTARTING -> "PSA Server is restarting"
+        ServerState.RETRYING -> "PSA Server is retrying after a crash"
+        ServerState.FAILED -> "PSA Server failed to start"
+        ServerState.STOPPED -> "PSA Server is not running"
+        ServerState.RUNNING -> ""
+    }
+
+private fun serverUnavailableState(
+    project: Project,
+    settings: Settings,
+): ServerState? {
+    if (!settings.isServerModeActive()) {
+        return null
+    }
+
+    val state = project.service<ServerManager>().status()
+
+    return if (state == ServerState.RUNNING) null else state
+}
+
+private fun serverUnavailable(
+    project: Project,
+    settings: Settings,
+    editor: Editor?,
+): Boolean {
+    val state = serverUnavailableState(project, settings) ?: return false
+
+    if (editor != null && project.service<ServerManager>().consumeRestartWarning()) {
+        ApplicationManager.getApplication().invokeLater({
+            HintManager.getInstance().showInformationHint(
+                editor,
+                HintUtil.createWarningLabel(serverUnavailableHintText(state)),
+            )
+        }, { editor.isDisposed || project.isDisposed })
+    }
+
+    return true
+}
 
 class AnyCompletionContributor {
     class Completion : CompletionContributor() {
@@ -86,6 +134,10 @@ class AnyCompletionContributor {
                         }
 
                         if (null === json) {
+                            if (serverUnavailableState(project, settings) != null) {
+                                return
+                            }
+
                             json =
                                 psaManager
                                     .getCompletions(
@@ -116,6 +168,21 @@ class AnyCompletionContributor {
                     }
                 },
             )
+        }
+
+        override fun handleEmptyLookup(
+            parameters: CompletionParameters,
+            editor: Editor?,
+        ): String? {
+            if (null === parameters.originalPosition) {
+                return null
+            }
+
+            val project = parameters.position.project
+            val settings = project.service<PsaManager>().getSettings()
+            val state = serverUnavailableState(project, settings) ?: return null
+
+            return serverUnavailableHintText(state)
         }
     }
 
@@ -247,6 +314,10 @@ class AnyCompletionContributor {
                     return null
                 }
 
+                if (serverUnavailable(project, settings, editor)) {
+                    return null
+                }
+
                 json =
                     psaManager
                         .getCompletions(
@@ -274,6 +345,65 @@ class AnyCompletionContributor {
                     } catch (_: UpdateStaticCompletionsException) {
                         return psiElements.toTypedArray()
                     }
+                }
+            }
+
+            processNotifications(json, project)
+
+            return psiElements.toTypedArray()
+        }
+
+        fun resolveLiveGoToTargets(sourceElement: PsiElement): Array<PsiElement>? {
+            if (REENTRANCY.get()) {
+                return null
+            }
+
+            val project = sourceElement.project
+            val psaManager = project.service<PsaManager>()
+            val settings = psaManager.getSettings()
+
+            if (!settings.pluginEnabled) {
+                return null
+            }
+
+            if (!settings.isServerModeActive()) {
+                return null
+            }
+
+            val language = sourceElement.containingFile.language
+            var languageString = language.id
+            if (language.baseLanguage !== null && !settings.isLanguageSupported(languageString)) {
+                languageString = language.baseLanguage!!.id
+            }
+
+            if (!settings.isLanguageSupported(languageString)) {
+                return null
+            }
+
+            if (!settings.isElementTypeMatchingFilter(sourceElement.elementType.printToString())) {
+                return null
+            }
+
+            if (serverUnavailable(project, settings, null)) {
+                return null
+            }
+
+            val model = psaManager.psiElementToModel(sourceElement)
+            val json =
+                psaManager.getCompletions(
+                    settings,
+                    arrayOf(IndexedPsiElementModel(model, sourceElement.textRange.printToString())),
+                    RequestType.GoTo,
+                    languageString,
+                    sourceElement.textOffset,
+                ) ?: return null
+
+            val psiElements = ArrayList<PsiElement>()
+            json.extendedCompletions?.forEach { completionModel ->
+                try {
+                    completionModel.toGoToElement(project)?.let { psiElements.add(it) }
+                } catch (_: UpdateStaticCompletionsException) {
+                    return psiElements.toTypedArray()
                 }
             }
 

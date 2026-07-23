@@ -37,7 +37,11 @@ jobs:
       changelog: ${{ steps.properties.outputs.changelog }}
     steps:
       # Free GitHub Actions Environment Disk Space
+      # Skipped under `act` (local runs): it targets paths specific to GitHub's hosted runner image
+      # and fails inside act's minimal container - `env.ACT` is only ever set by act itself, never
+      # by real GitHub Actions, so this has no effect on actual CI.
       - name: Maximize build space
+        if: ${{ !env.ACT }}
         uses: AdityaGarg8/remove-unwanted-software@v3
         with:
           remove-android: 'true'
@@ -57,6 +61,15 @@ jobs:
           echo "Free space:"
           df -h
 
+      # Setup Java 11 environment for the next steps. Runs before Ktlint (which needs a `java` on
+      # PATH to execute its own binary) rather than relying on whatever JDK a runner image happens
+      # to have preinstalled.
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 11
+
       # Run Ktlint
       - run: |
           curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.3.1/ktlint && chmod a+x ktlint && sudo mv ktlint /usr/local/bin/
@@ -67,12 +80,39 @@ jobs:
       - name: Gradle Wrapper Validation
         uses: gradle/wrapper-validation-action@v1.0.5
 
-      # Setup Java 11 environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@v3
+      # Several things were tried and abandoned here - see git history if reviving this area:
+      # `extensions: json` doesn't restrict the install to just that extension (setup-php's
+      # `extensions` input adds to/ensures the base install's default set, not replaces it);
+      # explicitly disabling each noisy extension by name with a `-` prefix worked under `act`'s
+      # container but NOT on the real GitHub-hosted runner, and the exact broken set wasn't even
+      # stable across separate real-runner runs (each fix round revealed one more); and
+      # `ini-values: display_errors=Off, display_startup_errors=Off` had no effect at all -
+      # "PHP Startup: Unable to load dynamic library" is printed unconditionally by the C-level
+      # module loader when dlopen() fails, before display_errors/display_startup_errors are even
+      # consulted, so no error-display setting can suppress it, and no static list of names is
+      # reliable long-term as the runner image's default PHP extension set drifts.
+      # Instead, self-discover: ask PHP itself which extensions it just failed to dlopen (that
+      # warning fires during module init on every invocation, so `php -v` alone surfaces all of
+      # them), then strip exactly those `extension=` directives from every .ini file PHP reads,
+      # whichever mechanism put them there. Runs to a fixed point in case removing one directive's
+      # warnings exposes another (observed once between runs, not within a single php invocation).
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          distribution: zulu
-          java-version: 11
+          php-version: '7.0'
+
+      - name: Disable PHP extensions with missing shared-library dependencies
+        run: |
+          for i in 1 2 3; do
+            broken="$(php -v 2>&1 >/dev/null | grep -oP "Unable to load dynamic library '\K[^']+" | xargs -r -n1 basename | sed 's/\.so$//' | sort -u)"
+            if [ -z "$broken" ]; then
+              break
+            fi
+            echo "Disabling PHP extensions with missing shared-library dependencies: $broken"
+            pattern="$(echo "$broken" | tr '\n' '|' | sed 's/|$//')"
+            sudo find /etc/php -name '*.ini' -exec sed -i -E "/^extension[[:space:]]*=[[:space:]]*(${pattern})(\.so)?[[:space:]]*$/Id" {} +
+          done
+          php -v
 
       # Set environment variables
       - name: Export Properties
@@ -109,8 +149,9 @@ jobs:
 
       # Upload Kover report to CodeCov
       - name: Upload Code Coverage Report
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/build/reports/kover/xml/report.xml
 
 #      # Cache Plugin Verifier IDEs

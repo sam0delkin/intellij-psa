@@ -9,9 +9,20 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
+import java.io.File
 
 class ExecutionUtils {
     companion object {
+        fun setWorkDirectoryIfExists(
+            commandLine: GeneralCommandLine,
+            project: Project,
+        ) {
+            val projectDir = project.guessProjectDir()?.path
+            if (projectDir != null && File(projectDir).isDirectory) {
+                commandLine.setWorkDirectory(projectDir)
+            }
+        }
+
         fun executeWithIndicatorAndTimeout(
             commandLine: GeneralCommandLine,
             indicator: ProgressIndicator,

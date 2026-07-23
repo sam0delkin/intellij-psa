@@ -44,6 +44,11 @@
         <backgroundPostStartupActivity implementation="com.github.sam0delkin.intellijpsa.activity.PsaStartupActivity"/>
 
         <iconProvider implementation="com.github.sam0delkin.intellijpsa.ide.presentation.IconProvider"/>
+        <elementDescriptionProvider implementation="com.github.sam0delkin.intellijpsa.psi.PsaElementDescriptionProvider"/>
+        <lang.documentationProvider
+                language="any"
+                order="first"
+                implementationClass="com.github.sam0delkin.intellijpsa.psi.PsaElementDocumentationProvider"/>
         <fileBasedIndex implementation="com.github.sam0delkin.intellijpsa.index.PsaStaticReferenceIndex"/>
         <psi.referenceContributor implementation="com.github.sam0delkin.intellijpsa.psi.reference.PsaReferenceContributor"
                                   language=""/>

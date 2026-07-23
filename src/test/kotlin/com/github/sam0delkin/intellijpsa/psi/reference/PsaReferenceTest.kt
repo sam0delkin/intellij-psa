@@ -114,6 +114,18 @@ class PsaReferenceTest : BasePlatformTestCase() {
         assertTrue(psaReference.isReferenceTo(element))
     }
 
+    fun testCalculateDefaultRangeInElementFallsBackWhenNoManipulator() {
+        myFixture.configureByText("test.php", "<?php 'test';")
+
+        val psaReference = PsaReference(myFixture.file, myFixture.file)
+
+        val range = psaReference.rangeInElement
+
+        assertNotNull(range)
+        assertEquals(0, range.startOffset)
+        assertEquals(myFixture.file.textLength, range.endOffset)
+    }
+
     fun testPsaReferenceTextRange() {
         myFixture.configureByText("test.php", "<?php 'test';")
         val element = myFixture.findElementByText("'test'", com.intellij.psi.PsiElement::class.java)

@@ -4,11 +4,13 @@ import com.github.sam0delkin.intellijpsa.language.php.model.PhpRequestType
 import com.github.sam0delkin.intellijpsa.language.php.settings.PhpPsaSettings
 import com.github.sam0delkin.intellijpsa.model.typeProvider.TypeProvidersModel
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerManager
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.intellij.execution.process.ProcessOutput
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ex.ApplicationUtil
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.Service
@@ -20,62 +22,85 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.guessProjectDir
 import kotlinx.serialization.json.Json
 
 @Service(Service.Level.PROJECT)
 class PhpPsaManager(
     private val project: Project,
-) {
+) : Disposable {
+    // Anchor for resources (e.g. PhpPsaExtension's XDebug message-bus connection) that must
+    // not outlive this plugin's classloader. Light services are disposed by the platform both
+    // on project close and on plugin unload, unlike plain `psaExtension` EP instances, which
+    // are never disposed automatically.
+    override fun dispose() {}
+
     fun getTypeProviders(
         settings: Settings,
         project: Project,
         debug: Boolean? = null,
         progressIndicator: ProgressIndicator? = null,
     ): TypeProvidersModel? {
-        var result: ProcessOutput?
         val innerDebug = if (null !== debug) debug else settings.debug
-        val commandLine = ExecutionUtils.getCommandLine(settings, project)
         val psaManager = project.service<PsaManager>()
-
-        commandLine.environment["PSA_TYPE"] = PhpRequestType.GetTypeProviders.toString()
-        commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
-        commandLine.setWorkDirectory(project.guessProjectDir()?.path)
         val indicator = progressIndicator ?: ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
         try {
-            ApplicationUtil.runWithCheckCanceled(
-                {
-                    result =
-                        ExecutionUtils.executeWithIndicatorAndTimeout(
-                            commandLine,
-                            indicator,
-                            settings.executionTimeout,
+            val stdout: String =
+                if (settings.isServerModeActive()) {
+                    val response =
+                        project.service<ServerManager>().sendRequest(
+                            settings,
+                            PhpRequestType.GetTypeProviders.toString(),
+                            null,
+                            innerDebug,
+                            null,
+                            null,
                         )
-                },
-                indicator,
-            )
 
-            result =
-                ExecutionUtils.executeWithIndicatorAndTimeout(
-                    commandLine,
-                    indicator,
-                    settings.executionTimeout,
-                )
+                    if (null !== response.error) {
+                        throw Exception(response.error)
+                    }
 
-            if (result.isCancelled) {
-                throw ProcessCanceledException()
-            }
+                    response.result?.toString() ?: throw Exception("Failed to get type providers")
+                } else {
+                    var result: ProcessOutput? = null
+                    val commandLine = ExecutionUtils.getCommandLine(settings, project)
+                    commandLine.environment["PSA_TYPE"] = PhpRequestType.GetTypeProviders.toString()
+                    commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
+                    ExecutionUtils.setWorkDirectoryIfExists(commandLine, project)
 
-            if (0 != result.exitCode) {
-                throw Exception(result.stdout + "\n" + result.stderr)
-            }
+                    ApplicationUtil.runWithCheckCanceled(
+                        {
+                            result =
+                                ExecutionUtils.executeWithIndicatorAndTimeout(
+                                    commandLine,
+                                    indicator,
+                                    settings.executionTimeout,
+                                )
+                        },
+                        indicator,
+                    )
+
+                    if (null === result) {
+                        throw Exception("Failed to get type providers")
+                    }
+
+                    if (result.isCancelled) {
+                        throw ProcessCanceledException()
+                    }
+
+                    if (0 != result.exitCode) {
+                        throw Exception(result.stdout + "\n" + result.stderr)
+                    }
+
+                    result.stdout
+                }
 
             psaManager.lastResultSucceed = true
             psaManager.lastResultMessage = ""
 
             return runReadAction {
-                val json = Json.decodeFromString<TypeProvidersModel>(result.stdout)
+                val json = Json.decodeFromString<TypeProvidersModel>(stdout)
 
                 return@runReadAction json
             }

@@ -2,6 +2,7 @@ package com.github.sam0delkin.intellijpsa.listener
 
 import com.github.sam0delkin.intellijpsa.index.INDEX_ID
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerManager
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -46,6 +47,8 @@ class PsaFileChangeListener :
                 } catch (_: Throwable) {
                     null
                 } ?: continue
+
+            project.service<ServerManager>().scheduleRestartOnFileChange(settings)
 
             scriptDir = projectDir.path + '/' + scriptDir
             if (events.none { e -> e.path.indexOf(scriptDir) >= 0 }) {

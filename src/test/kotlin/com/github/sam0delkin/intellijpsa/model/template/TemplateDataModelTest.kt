@@ -1,9 +1,34 @@
 package com.github.sam0delkin.intellijpsa.model.template
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 
 class TemplateDataModelTest : BasePlatformTestCase() {
+    fun testFormFieldDataModelSerialization() {
+        val field =
+            FormFieldDataModel().apply {
+                value = JsonPrimitive("test_value")
+                options.addAll(listOf("option1", "option2"))
+            }
+
+        val encoded = Json.encodeToString(FormFieldDataModel.serializer(), field)
+        val decoded = Json.decodeFromString(FormFieldDataModel.serializer(), encoded)
+
+        assertEquals(field.value, decoded.value)
+        assertEquals(field.options, decoded.options)
+    }
+
+    fun testTemplateDataModelSerialization() {
+        val model = TemplateDataModel()
+
+        val encoded = Json.encodeToString(TemplateDataModel.serializer(), model)
+        val decoded = Json.decodeFromString(TemplateDataModel.serializer(), encoded)
+
+        assertEquals(model.content, decoded.content)
+        assertEquals(model.fileName, decoded.fileName)
+    }
+
     fun testFormFieldDataModel() {
         val field =
             FormFieldDataModel().apply {
