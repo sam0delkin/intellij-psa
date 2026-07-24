@@ -1,15 +1,52 @@
 package com.github.sam0delkin.intellijpsa.language.php.xdebugger.value
 
 import com.github.sam0delkin.intellijpsa.language.php.services.PhpPsaManager
+import com.github.sam0delkin.intellijpsa.language.php.xdebugger.value.presentation.PsaPhpValuePresentation
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.util.ThreeState
+import com.intellij.xdebugger.evaluation.XInstanceEvaluator
+import com.intellij.xdebugger.frame.XCompositeNode
+import com.intellij.xdebugger.frame.XDebuggerTreeNodeHyperlink
 import com.intellij.xdebugger.frame.XFullValueEvaluator
+import com.intellij.xdebugger.frame.XInlineDebuggerDataCallback
+import com.intellij.xdebugger.frame.XNavigatable
+import com.intellij.xdebugger.frame.XReferrersProvider
+import com.intellij.xdebugger.frame.XValue
+import com.intellij.xdebugger.frame.XValueChildrenList
+import com.intellij.xdebugger.frame.XValueModifier
 import com.intellij.xdebugger.frame.XValueNode
 import com.intellij.xdebugger.frame.XValuePlace
 import com.intellij.xdebugger.frame.presentation.XValuePresentation
 import com.jetbrains.php.debug.common.PhpValue
+import org.jetbrains.concurrency.resolvedPromise
 import javax.swing.Icon
 
+/**
+ * Two residual coverage gaps remain in `PsaPhpValue.kt`, both structural rather than missing
+ * test effort:
+ *
+ * 1. `class PathUtils` (line 39, the implicit no-arg constructor): `PathUtils` is only ever used
+ *    via its `companion object`, so its own constructor line never executes - not something a
+ *    test can trigger without pointlessly instantiating a class that's designed to never be
+ *    instantiated. Same category as this project's documented `const val` inlining / interface
+ *    `DefaultImpls` Kover gaps.
+ * 2. The `wrapped is XdebugValue` branch and everything nested under it in `computePresentation`
+ *    (roughly lines 64-193 - the `PhpType.isScalar` check, the full `__toString` evaluation
+ *    closure, and both `PhpEvaluationResultProcessor` callback bodies): reaching this branch
+ *    requires `wrapped` to literally be an instance of `com.jetbrains.php.debug.xdebug.debugger.XdebugValue`,
+ *    which is a `public final class` whose only public constructors require a real
+ *    `PhpDebugProcess<XdebugConnection>` and `DbgpProperty` sourced from an actual live XDebug
+ *    connection - `PhpDebugProcess` itself extends the platform's `XDebugProcess`, which requires
+ *    a real `XDebugSession`/run configuration to construct. `evaluator` similarly must be an
+ *    `XdebugPhpEvaluator` (also requiring a live `PhpDebugProcess`). Neither can be faked via
+ *    `java.lang.reflect.Proxy` (both are concrete classes, not interfaces) or constructed
+ *    meaningfully in `BasePlatformTestCase`, which has no live debug session. This is a genuine
+ *    platform-integration limitation, not a gap in test effort - all reachable branches
+ *    (early-return guards, every simple delegation method, and `computeChildren`'s
+ *    PhpValue-wrapping logic) are covered below.
+ */
 class PsaPhpValueTest : BasePlatformTestCase() {
     // ── PathUtils ─────────────────────────────────────────────────────────
 
@@ -143,6 +180,309 @@ class PsaPhpValueTest : BasePlatformTestCase() {
         capturedNode[0]!!.setPresentation(null, testPresentation, false)
         assertEquals(1, presentationsOnOriginal.size)
         assertSame(testPresentation, presentationsOnOriginal[0])
+    }
+
+    // ── defaultPresentation ──────────────────────────────────────────────
+
+    fun testDefaultPresentationReturnsPsaPhpValuePresentation() {
+        val wrapped = stubPhpValue { _, _ -> }
+        val method =
+            PsaPhpValue::class.java.getDeclaredMethod(
+                "defaultPresentation",
+                String::class.java,
+                String::class.java,
+            )
+        method.isAccessible = true
+
+        val presentation = method.invoke(PsaPhpValue(project, wrapped, null), "42", "int")
+
+        assertTrue(presentation is PsaPhpValuePresentation)
+    }
+
+    // ── simple delegation methods ────────────────────────────────────────
+
+    fun testGetEvaluationExpressionDelegatesToWrapped() {
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun getEvaluationExpression(): String = "wrapped-expr"
+            }
+
+        assertEquals("wrapped-expr", PsaPhpValue(project, wrapped, null).evaluationExpression)
+    }
+
+    fun testCalculateEvaluationExpressionDelegatesToWrapped() {
+        val marker = resolvedPromise<com.intellij.xdebugger.XExpression?>(null)
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun calculateEvaluationExpression() = marker
+            }
+
+        assertSame(marker, PsaPhpValue(project, wrapped, null).calculateEvaluationExpression())
+    }
+
+    fun testGetInstanceEvaluatorDelegatesToWrapped() {
+        val marker =
+            object : XInstanceEvaluator {
+                override fun evaluate(
+                    context: com.intellij.xdebugger.evaluation.XDebuggerEvaluator.XEvaluationCallback,
+                    node: com.intellij.xdebugger.frame.XStackFrame,
+                ) {}
+            }
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun getInstanceEvaluator(): XInstanceEvaluator = marker
+            }
+
+        assertSame(marker, PsaPhpValue(project, wrapped, null).instanceEvaluator)
+    }
+
+    fun testGetModifierDelegatesToWrapped() {
+        val marker =
+            object : XValueModifier() {
+                override fun setValue(
+                    expression: com.intellij.xdebugger.XExpression,
+                    callback: XValueModifier.XModificationCallback,
+                ) {}
+            }
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun getModifier(): XValueModifier = marker
+            }
+
+        assertSame(marker, PsaPhpValue(project, wrapped, null).modifier)
+    }
+
+    fun testComputeSourcePositionDelegatesToWrapped() {
+        var received: XNavigatable? = null
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun computeSourcePosition(navigatable: XNavigatable) {
+                    received = navigatable
+                }
+            }
+        val navigatable = XNavigatable { }
+
+        PsaPhpValue(project, wrapped, null).computeSourcePosition(navigatable)
+
+        assertSame(navigatable, received)
+    }
+
+    fun testComputeInlineDebuggerDataDelegatesToWrapped() {
+        val callback =
+            object : XInlineDebuggerDataCallback() {
+                override fun computed(position: com.intellij.xdebugger.XSourcePosition?) {}
+            }
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun computeInlineDebuggerData(cb: XInlineDebuggerDataCallback): ThreeState = ThreeState.YES
+            }
+
+        assertEquals(ThreeState.YES, PsaPhpValue(project, wrapped, null).computeInlineDebuggerData(callback))
+    }
+
+    fun testCanNavigateToSourceDelegatesToWrapped() {
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun canNavigateToSource(): Boolean = true
+            }
+
+        assertTrue(PsaPhpValue(project, wrapped, null).canNavigateToSource())
+    }
+
+    fun testCanNavigateToTypeSourceDelegatesToWrapped() {
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun canNavigateToTypeSource(): Boolean = true
+            }
+
+        assertTrue(PsaPhpValue(project, wrapped, null).canNavigateToTypeSource())
+    }
+
+    fun testCanNavigateToTypeSourceAsyncDelegatesToWrapped() {
+        val marker = resolvedPromise<Boolean?>(true)
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun canNavigateToTypeSourceAsync() = marker
+            }
+
+        assertSame(marker, PsaPhpValue(project, wrapped, null).canNavigateToTypeSourceAsync())
+    }
+
+    fun testComputeTypeSourcePositionDelegatesToWrapped() {
+        var received: XNavigatable? = null
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun computeTypeSourcePosition(navigatable: XNavigatable) {
+                    received = navigatable
+                }
+            }
+        val navigatable = XNavigatable { }
+
+        PsaPhpValue(project, wrapped, null).computeTypeSourcePosition(navigatable)
+
+        assertSame(navigatable, received)
+    }
+
+    fun testGetReferrersProviderDelegatesToWrapped() {
+        val marker =
+            object : XReferrersProvider() {
+                override fun getReferringObjectsValue(): XValue? = null
+            }
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun getReferrersProvider(): XReferrersProvider = marker
+            }
+
+        assertSame(marker, PsaPhpValue(project, wrapped, null).referrersProvider)
+    }
+
+    // ── computeChildren ──────────────────────────────────────────────────
+
+    fun testComputeChildrenWrapsPhpValueChildrenAndPassesOthersThrough() {
+        val childPhpValue =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+            }
+        val childOtherValue =
+            object : XValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+            }
+        val wrapped =
+            object : PhpValue() {
+                override fun computePresentation(
+                    node: XValueNode,
+                    place: XValuePlace,
+                ) {}
+
+                override fun computeChildren(node: XCompositeNode) {
+                    val list = XValueChildrenList(2)
+                    list.add("phpChild", childPhpValue)
+                    list.add("otherChild", childOtherValue)
+                    node.addChildren(list, true)
+
+                    @Suppress("DEPRECATION")
+                    node.tooManyChildren(0)
+                    node.setAlreadySorted(true)
+                    node.setErrorMessage("boom")
+                    node.setErrorMessage("boom2", null)
+                    node.setMessage("msg", null, SimpleTextAttributes.REGULAR_ATTRIBUTES, null)
+                }
+            }
+
+        var receivedList: XValueChildrenList? = null
+        var receivedLast: Boolean? = null
+        var sortedFlag: Boolean? = null
+        val errorMessages = mutableListOf<String>()
+        val messages = mutableListOf<String>()
+        val targetNode =
+            object : XCompositeNode {
+                override fun addChildren(
+                    list: XValueChildrenList,
+                    last: Boolean,
+                ) {
+                    receivedList = list
+                    receivedLast = last
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun tooManyChildren(remaining: Int) {}
+
+                override fun setAlreadySorted(alreadySorted: Boolean) {
+                    sortedFlag = alreadySorted
+                }
+
+                override fun setErrorMessage(errorMessage: String) {
+                    errorMessages.add(errorMessage)
+                }
+
+                override fun setErrorMessage(
+                    errorMessage: String,
+                    link: XDebuggerTreeNodeHyperlink?,
+                ) {
+                    errorMessages.add(errorMessage)
+                }
+
+                override fun setMessage(
+                    message: String,
+                    icon: Icon?,
+                    attributes: SimpleTextAttributes,
+                    link: XDebuggerTreeNodeHyperlink?,
+                ) {
+                    messages.add(message)
+                }
+            }
+
+        PsaPhpValue(project, wrapped, null).computeChildren(targetNode)
+
+        assertNotNull(receivedList)
+        assertEquals(2, receivedList!!.size())
+        assertTrue(receivedList.getValue(0) is PsaPhpValue)
+        assertSame(childOtherValue, receivedList.getValue(1))
+        assertEquals(true, receivedLast)
+        assertEquals(true, sortedFlag)
+        assertEquals(listOf("boom", "boom2"), errorMessages)
+        assertEquals(listOf("msg"), messages)
     }
 
     // ── helpers ───────────────────────────────────────────────────────────

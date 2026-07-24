@@ -4,6 +4,10 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.io.File
 
 class FileUtilsTest : BasePlatformTestCase() {
+    fun testInstantiation() {
+        assertNotNull(FileUtils())
+    }
+
     fun testWriteToTmpFile() {
         val content = "test content"
         val filePath = FileUtils.writeToTmpFile("test", content)

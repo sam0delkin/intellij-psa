@@ -104,6 +104,56 @@ class ParameterUsageSearcherTest : BasePlatformTestCase() {
         assertTrue("Should find reference for c", ReferencesSearch.search(paramC!!).findAll().isNotEmpty())
     }
 
+    fun testMethodNamedArgumentUsage() {
+        myFixture.configureByText(
+            "test.php",
+            """
+            <?php
+            class MyClass {
+                public function foo(${'$'}param) {}
+            }
+            ${'$'}obj = new MyClass();
+            ${'$'}obj->foo(param: 1);
+            """.trimIndent(),
+        )
+
+        val parameter = myFixture.findElementByText("${'$'}param", Parameter::class.java)!!
+
+        project.service<Settings>().pluginEnabled = false
+        val referencesWhenDisabled = ReferencesSearch.search(parameter).findAll()
+
+        project.service<Settings>().pluginEnabled = true
+        val references = ReferencesSearch.search(parameter).findAll()
+
+        assertTrue(
+            "Should find a reference from the method call's named argument when the plugin is enabled",
+            references.isNotEmpty(),
+        )
+        assertTrue(
+            "Named-argument-to-method-parameter resolution must come from this plugin, not native PHP support",
+            referencesWhenDisabled.isEmpty(),
+        )
+    }
+
+    fun testMethodNamedArgumentWithDifferentNameNoUsage() {
+        myFixture.configureByText(
+            "test.php",
+            """
+            <?php
+            class MyClass {
+                public function foo(${'$'}param, ${'$'}other) {}
+            }
+            ${'$'}obj = new MyClass();
+            ${'$'}obj->foo(other: 1);
+            """.trimIndent(),
+        )
+
+        val parameter = myFixture.findElementByText("${'$'}param", Parameter::class.java)
+        val references = ReferencesSearch.search(parameter).findAll()
+
+        assertSize(0, references)
+    }
+
     fun testNoReferencesWhenPluginDisabled() {
         val settings = project.service<Settings>()
         settings.pluginEnabled = false

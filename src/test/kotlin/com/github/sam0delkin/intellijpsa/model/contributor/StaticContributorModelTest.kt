@@ -2,8 +2,27 @@ package com.github.sam0delkin.intellijpsa.model.contributor
 
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementPatternModel
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.serialization.json.Json
 
 class StaticContributorModelTest : BasePlatformTestCase() {
+    fun testStaticContributorModelSerialization() {
+        val model =
+            StaticContributorModel().apply {
+                name = "my_contributor"
+                pathRegex = "^/src/"
+                scope = StaticContributorScope.Project
+                completionProvider = "provide_completion"
+            }
+
+        val encoded = Json.encodeToString(StaticContributorModel.serializer(), model)
+        val decoded = Json.decodeFromString(StaticContributorModel.serializer(), encoded)
+
+        assertEquals(model.name, decoded.name)
+        assertEquals(model.pathRegex, decoded.pathRegex)
+        assertEquals(model.scope, decoded.scope)
+        assertEquals(model.completionProvider, decoded.completionProvider)
+    }
+
     fun testStaticContributorScopeValues() {
         assertEquals(StaticContributorScope.File, StaticContributorScope.File)
         assertEquals(StaticContributorScope.Project, StaticContributorScope.Project)

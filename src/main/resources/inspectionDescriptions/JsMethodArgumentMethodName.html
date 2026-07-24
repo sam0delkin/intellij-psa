@@ -1,0 +1,17 @@
+<html lang="en">
+<body>
+Reports a dynamic dispatch string that names a method which does not exist on the configured class.
+<p>
+    When a PSA <em>JavaScript method argument provider</em> maps a call such as
+    <code>$el.advanceLender('updateTrancheReferrers', tranche)</code> to a class, this inspection checks that the
+    string method name actually exists among that class's prototype methods. If it does not (and the class itself
+    resolves to at least one known method), the name is reported as unknown &mdash; catching typos in the dispatched
+    method name.
+</p>
+<p>
+    This inspection is only active when your PSA script's <code>Info</code> response enables it via
+    <code>js_method_argument_inspections: true</code>. When the flag is absent or <code>false</code>, the inspection
+    does nothing. See the JavaScript extension documentation for details.
+</p>
+</body>
+</html>

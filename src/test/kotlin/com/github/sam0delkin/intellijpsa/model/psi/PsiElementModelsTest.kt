@@ -82,6 +82,33 @@ class PsiElementModelsTest : BasePlatformTestCase() {
         assertTrue(child1 != child3)
     }
 
+    fun testPsiElementModelChildEqualsWithArray() {
+        val model =
+            PsiElementModel(
+                id = "1",
+                elementType = "TYPE_1",
+                options = mutableMapOf(),
+                elementName = null,
+                elementFqn = null,
+                elementSignature = null,
+                text = "text1",
+                parent = null,
+                prev = null,
+                next = null,
+                textRange = null,
+            )
+        val childWithArray = PsiElementModelChild(array = arrayOf(model))
+        val childWithSameArray = PsiElementModelChild(array = arrayOf(model))
+        val childWithoutArray = PsiElementModelChild()
+        val childWithDifferentArray = PsiElementModelChild(array = arrayOf(model, model))
+
+        assertEquals(childWithArray, childWithSameArray)
+        assertEquals(childWithArray.hashCode(), childWithSameArray.hashCode())
+        assertTrue("Non-null array should not equal a null array", childWithArray != childWithoutArray)
+        assertTrue("A null array should not equal a non-null array", childWithoutArray != childWithArray)
+        assertTrue("Arrays with different contents should not be equal", childWithArray != childWithDifferentArray)
+    }
+
     fun testPsiElementModelTextRange() {
         val textRange = PsiElementModelTextRange(startOffset = 10, endOffset = 20)
 

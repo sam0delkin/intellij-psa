@@ -10,4 +10,8 @@ class JsInfoModel : InfoModel() {
     @SerialName("js_method_argument_providers")
     @JsonProperty("js_method_argument_providers")
     val methodArgumentProviders: ArrayList<JsMethodArgumentProviderModel>? = null
+
+    @SerialName("js_method_argument_inspections")
+    @JsonProperty("js_method_argument_inspections")
+    val methodArgumentInspections: Boolean? = null
 }

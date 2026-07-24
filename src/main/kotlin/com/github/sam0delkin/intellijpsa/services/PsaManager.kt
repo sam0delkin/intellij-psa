@@ -12,6 +12,7 @@ import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModelChild
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModelTextRange
 import com.github.sam0delkin.intellijpsa.model.template.GenerateFileFromTemplateData
 import com.github.sam0delkin.intellijpsa.model.template.TemplateDataModel
+import com.github.sam0delkin.intellijpsa.services.server.ServerManager
 import com.github.sam0delkin.intellijpsa.settings.*
 import com.github.sam0delkin.intellijpsa.util.ExecutionUtils
 import com.github.sam0delkin.intellijpsa.util.FileUtils
@@ -25,16 +26,14 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.*
 import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.*
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.elementType
 import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.rd.util.string.printToString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import org.apache.velocity.app.Velocity
 import org.apache.velocity.util.introspection.UberspectImpl
 import java.io.File
@@ -53,11 +52,10 @@ private const val MAX_STRING_LENGTH = 1000
 class PsaManager(
     private val project: Project,
 ) {
-    private val baseMethods: List<String>
-        get() = PsiElement::class.memberFunctions.map { el -> el.name }
+    private val baseMethods: Set<String> = PsiElement::class.memberFunctions.map { it.name }.toHashSet()
 
     private val ignoredMethods =
-        arrayOf(
+        setOf(
             "clone",
             "getPsi",
             "getPrevPsiSibling",
@@ -68,7 +66,10 @@ class PsaManager(
             "copyElement",
             "getUserDataString",
         )
-    private val elementIgnoredMethods = HashMap<String, List<Method>>()
+
+    private val interfaceCache = HashMap<Class<*>, Set<Class<*>>>()
+
+    private val elementEligibleMethods = HashMap<String, List<Method>>()
     var lastResultSucceed: Boolean = true
     var lastResultMessage: String = ""
 
@@ -92,37 +93,58 @@ class PsaManager(
         project: Project,
         debug: Boolean? = null,
     ): InfoModel {
-        var result: ProcessOutput? = null
         val innerDebug = if (null !== debug) debug else settings.debug
 
-        val commandLine = ExecutionUtils.getCommandLine(settings, project)
-        commandLine.environment["PSA_TYPE"] = RequestType.Info.toString()
-        commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
-        commandLine.setWorkDirectory(project.guessProjectDir()?.path)
-        val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
-
-        ApplicationUtil.runWithCheckCanceled(
-            {
-                result =
-                    ExecutionUtils.executeWithIndicatorAndTimeout(
-                        commandLine,
-                        indicator,
-                        settings.executionTimeout,
+        val stdout: String =
+            if (settings.isServerModeActive()) {
+                val response =
+                    project.service<ServerManager>().sendRequest(
+                        settings,
+                        RequestType.Info.toString(),
+                        null,
+                        innerDebug,
+                        null,
+                        null,
                     )
-            },
-            indicator,
-        )
 
-        if (null === result) {
-            throw Exception("Failed to get info")
-        }
+                if (null !== response.error) {
+                    throw Exception(response.error)
+                }
 
-        if (0 != result.exitCode) {
-            throw Exception(result.stdout + "\n" + result.stderr)
-        }
+                response.result?.toString() ?: throw Exception("Failed to get info")
+            } else {
+                var result: ProcessOutput? = null
+                val commandLine = ExecutionUtils.getCommandLine(settings, project)
+                commandLine.environment["PSA_TYPE"] = RequestType.Info.toString()
+                commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
+                ExecutionUtils.setWorkDirectoryIfExists(commandLine, project)
+                val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
+
+                ApplicationUtil.runWithCheckCanceled(
+                    {
+                        result =
+                            ExecutionUtils.executeWithIndicatorAndTimeout(
+                                commandLine,
+                                indicator,
+                                settings.executionTimeout,
+                            )
+                    },
+                    indicator,
+                )
+
+                if (null === result) {
+                    throw Exception("Failed to get info")
+                }
+
+                if (0 != result.exitCode) {
+                    throw Exception(result.stdout + "\n" + result.stderr)
+                }
+
+                result.stdout
+            }
 
         for (extension in EP_NAME.extensionList) {
-            extension.updateInfo(project, result.stdout)
+            extension.updateInfo(project, stdout)
         }
 
         val json =
@@ -130,7 +152,7 @@ class PsaManager(
                 ignoreUnknownKeys = true
             }
 
-        return json.decodeFromString<InfoModel>(result.stdout)
+        return json.decodeFromString<InfoModel>(stdout)
     }
 
     fun getStaticCompletions(
@@ -139,48 +161,66 @@ class PsaManager(
         debug: Boolean? = null,
         progressIndicator: ProgressIndicator? = null,
     ): StaticCompletionsModel? {
-        var result: ProcessOutput?
         val innerDebug = if (null !== debug) debug else settings.debug
-
-        val commandLine = ExecutionUtils.getCommandLine(settings, project)
-        commandLine.environment["PSA_TYPE"] = RequestType.GetStaticCompletions.toString()
-        commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
-        commandLine.setWorkDirectory(project.guessProjectDir()?.path)
         val indicator = progressIndicator ?: ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
 
         try {
-            ApplicationUtil.runWithCheckCanceled(
-                {
-                    result =
-                        ExecutionUtils.executeWithIndicatorAndTimeout(
-                            commandLine,
-                            indicator,
-                            settings.executionTimeout,
+            val stdout: String =
+                if (settings.isServerModeActive()) {
+                    val response =
+                        project.service<ServerManager>().sendRequest(
+                            settings,
+                            RequestType.GetStaticCompletions.toString(),
+                            null,
+                            innerDebug,
+                            null,
+                            null,
                         )
-                },
-                indicator,
-            )
 
-            result =
-                ExecutionUtils.executeWithIndicatorAndTimeout(
-                    commandLine,
-                    indicator,
-                    settings.executionTimeout,
-                )
+                    if (null !== response.error) {
+                        throw Exception(response.error)
+                    }
 
-            if (result.isCancelled) {
-                throw ProcessCanceledException()
-            }
+                    response.result?.toString() ?: throw Exception("Failed to get static completions")
+                } else {
+                    var result: ProcessOutput? = null
+                    val commandLine = ExecutionUtils.getCommandLine(settings, project)
+                    commandLine.environment["PSA_TYPE"] = RequestType.GetStaticCompletions.toString()
+                    commandLine.environment["PSA_DEBUG"] = if (innerDebug) "1" else "0"
+                    ExecutionUtils.setWorkDirectoryIfExists(commandLine, project)
 
-            if (0 != result.exitCode) {
-                throw Exception(result.stdout + "\n" + result.stderr)
-            }
+                    ApplicationUtil.runWithCheckCanceled(
+                        {
+                            result =
+                                ExecutionUtils.executeWithIndicatorAndTimeout(
+                                    commandLine,
+                                    indicator,
+                                    settings.executionTimeout,
+                                )
+                        },
+                        indicator,
+                    )
+
+                    if (null === result) {
+                        throw Exception("Failed to get static completions")
+                    }
+
+                    if (result.isCancelled) {
+                        throw ProcessCanceledException()
+                    }
+
+                    if (0 != result.exitCode) {
+                        throw Exception(result.stdout + "\n" + result.stderr)
+                    }
+
+                    result.stdout
+                }
 
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
             return runReadAction {
-                val json = Json.decodeFromString<StaticCompletionsModel>(result.stdout)
+                val json = Json.decodeFromString<StaticCompletionsModel>(stdout)
 
                 return@runReadAction json
             }
@@ -343,46 +383,65 @@ class PsaManager(
         originatorFieldName: String?,
         formFields: Map<String, String>,
     ): TemplateDataModel? {
-        val result: ProcessOutput?
-
         try {
-            val data =
-                Json.encodeToString(
-                    GenerateFileFromTemplateData(
-                        actionPath,
-                        templateType,
-                        templateName,
-                        originatorFieldName,
-                        formFields,
-                    ),
-                )
-            val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
-            val commandLine = ExecutionUtils.getCommandLine(settings, project)
-            commandLine.environment["PSA_CONTEXT"] = filePath
-            commandLine.environment["PSA_TYPE"] = RequestType.GenerateFileFromTemplate.toString()
-            commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
-            commandLine.setWorkDirectory(project.guessProjectDir()?.path)
-            val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
-
-            result =
-                ExecutionUtils.executeWithIndicatorAndTimeout(
-                    commandLine,
-                    indicator,
-                    settings.executionTimeout,
+            val templateData =
+                GenerateFileFromTemplateData(
+                    actionPath,
+                    templateType,
+                    templateName,
+                    originatorFieldName,
+                    formFields,
                 )
 
-            if (result.isCancelled) {
-                throw ProcessCanceledException()
-            }
+            val stdout: String =
+                if (settings.isServerModeActive()) {
+                    val response =
+                        project.service<ServerManager>().sendRequest(
+                            settings,
+                            RequestType.GenerateFileFromTemplate.toString(),
+                            null,
+                            settings.debug,
+                            null,
+                            Json.encodeToJsonElement(templateData),
+                        )
 
-            if (0 != result.exitCode) {
-                throw Exception(result.stdout + "\n" + result.stderr)
-            }
+                    if (null !== response.error) {
+                        throw Exception(response.error)
+                    }
+
+                    response.result?.toString() ?: throw Exception("Failed to generate template code")
+                } else {
+                    val data = Json.encodeToString(templateData)
+                    val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
+                    val commandLine = ExecutionUtils.getCommandLine(settings, project)
+                    commandLine.environment["PSA_CONTEXT"] = filePath
+                    commandLine.environment["PSA_TYPE"] = RequestType.GenerateFileFromTemplate.toString()
+                    commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
+                    ExecutionUtils.setWorkDirectoryIfExists(commandLine, project)
+                    val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
+
+                    val result =
+                        ExecutionUtils.executeWithIndicatorAndTimeout(
+                            commandLine,
+                            indicator,
+                            settings.executionTimeout,
+                        )
+
+                    if (result.isCancelled) {
+                        throw ProcessCanceledException()
+                    }
+
+                    if (0 != result.exitCode) {
+                        throw Exception(result.stdout + "\n" + result.stderr)
+                    }
+
+                    result.stdout
+                }
 
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
-            return Json.decodeFromString<TemplateDataModel>(result.stdout)
+            return Json.decodeFromString<TemplateDataModel>(stdout)
         } catch (e: Exception) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
@@ -405,38 +464,58 @@ class PsaManager(
         project: Project,
         action: EditorActionInputModel,
     ): String? {
-        val result: ProcessOutput?
-
         try {
-            val data =
-                Json.encodeToString(action)
-            val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
-            val commandLine = ExecutionUtils.getCommandLine(settings, project)
-            commandLine.environment["PSA_CONTEXT"] = filePath
-            commandLine.environment["PSA_TYPE"] = RequestType.PerformEditorAction.toString()
-            commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
-            commandLine.setWorkDirectory(project.guessProjectDir()?.path)
-            val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
+            val stdout: String =
+                if (settings.isServerModeActive()) {
+                    val response =
+                        project.service<ServerManager>().sendRequest(
+                            settings,
+                            RequestType.PerformEditorAction.toString(),
+                            null,
+                            settings.debug,
+                            null,
+                            Json.encodeToJsonElement(action),
+                        )
 
-            result =
-                ExecutionUtils.executeWithIndicatorAndTimeout(
-                    commandLine,
-                    indicator,
-                    settings.executionTimeout,
-                )
+                    if (null !== response.error) {
+                        throw Exception(response.error)
+                    }
 
-            if (result.isCancelled) {
-                throw ProcessCanceledException()
-            }
+                    val resultElement = response.result ?: throw Exception("Failed to perform action")
 
-            if (0 != result.exitCode) {
-                throw Exception(result.stdout + "\n" + result.stderr)
-            }
+                    Json.decodeFromJsonElement<String>(resultElement)
+                } else {
+                    val data = Json.encodeToString(action)
+                    val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
+                    val commandLine = ExecutionUtils.getCommandLine(settings, project)
+                    commandLine.environment["PSA_CONTEXT"] = filePath
+                    commandLine.environment["PSA_TYPE"] = RequestType.PerformEditorAction.toString()
+                    commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
+                    ExecutionUtils.setWorkDirectoryIfExists(commandLine, project)
+                    val indicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
+
+                    val result =
+                        ExecutionUtils.executeWithIndicatorAndTimeout(
+                            commandLine,
+                            indicator,
+                            settings.executionTimeout,
+                        )
+
+                    if (result.isCancelled) {
+                        throw ProcessCanceledException()
+                    }
+
+                    if (0 != result.exitCode) {
+                        throw Exception(result.stdout + "\n" + result.stderr)
+                    }
+
+                    result.stdout
+                }
 
             this.lastResultSucceed = true
             this.lastResultMessage = ""
 
-            return result.stdout
+            return stdout
         } catch (e: Exception) {
             this.lastResultSucceed = false
             this.lastResultMessage = e.message ?: "Unexpected Error"
@@ -454,13 +533,20 @@ class PsaManager(
         return null
     }
 
+    private data class CompletionsRawResult(
+        val stdout: String? = null,
+        val errorMessage: String? = null,
+        val cancelled: Boolean = false,
+        val timedOut: Boolean = false,
+    )
+
     private fun getCompletionsOutput(
         settings: Settings,
         model: Array<IndexedPsiElementModel>,
         requestType: RequestType,
         language: String,
         editorOffset: Int? = null,
-    ): ProcessOutput? {
+    ): CompletionsRawResult? {
         if (!settings.pluginEnabled) {
             return null
         }
@@ -481,6 +567,24 @@ class PsaManager(
         } else {
             data = Json.encodeToString(model.map { e -> e.model })
         }
+
+        if (settings.isServerModeActive()) {
+            val response =
+                project.service<ServerManager>().sendRequest(
+                    settings,
+                    requestType.toString(),
+                    language,
+                    settings.debug,
+                    editorOffset,
+                    Json.parseToJsonElement(data),
+                )
+
+            return CompletionsRawResult(
+                stdout = response.result?.toString(),
+                errorMessage = response.error,
+            )
+        }
+
         val filePath = FileUtils.writeToTmpFile("psa_tmp", data)
         var result: ProcessOutput? = null
         val normalizedIndicator = ProgressIndicatorProvider.getGlobalProgressIndicator() ?: EmptyProgressIndicator()
@@ -491,7 +595,7 @@ class PsaManager(
         commandLine.environment["PSA_LANGUAGE"] = language
         commandLine.environment["PSA_OFFSET"] = if (null !== editorOffset) editorOffset.toString() else ""
         commandLine.environment["PSA_DEBUG"] = if (settings.debug) "1" else "0"
-        commandLine.setWorkDirectory(project.guessProjectDir()?.path)
+        ExecutionUtils.setWorkDirectoryIfExists(commandLine, project)
 
         ApplicationUtil.runWithCheckCanceled(
             {
@@ -513,7 +617,19 @@ class PsaManager(
         } catch (_: Throwable) {
         }
 
-        return result
+        val finalResult = result
+
+        return CompletionsRawResult(
+            stdout = finalResult?.stdout,
+            cancelled = finalResult?.isCancelled == true,
+            timedOut = finalResult?.isTimeout == true,
+            errorMessage =
+                if (finalResult != null && 0 != finalResult.exitCode && !finalResult.isTimeout) {
+                    finalResult.stdout + "\n" + finalResult.stderr
+                } else {
+                    null
+                },
+        )
     }
 
     fun getCompletions(
@@ -539,19 +655,15 @@ class PsaManager(
             return null
         }
 
-        if (result.isCancelled) {
+        if (result.cancelled) {
             this.lastResultMessage = "Process Execution Cancelled."
             this.lastResultSucceed = false
 
             return null
         }
 
-        if (0 != result.exitCode) {
-            if (result.isTimeout) {
-                this.lastResultMessage = "Process Execution Timeout exceeded."
-            } else {
-                this.lastResultMessage = result.stdout + "\n" + result.stderr
-            }
+        if (result.timedOut) {
+            this.lastResultMessage = "Process Execution Timeout exceeded."
             this.lastResultSucceed = false
 
             if (settings.debug || settings.showErrors) {
@@ -565,7 +677,31 @@ class PsaManager(
             return null
         }
 
-        val completions = Json.decodeFromString<CompletionsModel>(result.stdout)
+        if (null !== result.errorMessage) {
+            this.lastResultMessage = result.errorMessage
+            this.lastResultSucceed = false
+
+            if (settings.debug || settings.showErrors) {
+                NotificationGroupManager
+                    .getInstance()
+                    .getNotificationGroup("PSA Notification")
+                    .createNotification(this.lastResultMessage, NotificationType.ERROR)
+                    .notify(project)
+            }
+
+            return null
+        }
+
+        val stdout = result.stdout
+
+        if (null === stdout) {
+            this.lastResultMessage = "No result received"
+            this.lastResultSucceed = false
+
+            return null
+        }
+
+        val completions = Json.decodeFromString<CompletionsModel>(stdout)
 
         return ExtendedCompletionsModel.createFromModel(completions, project)
     }
@@ -578,39 +714,32 @@ class PsaManager(
         processNext: Boolean = true,
         processPrev: Boolean = true,
         fromOption: Boolean = false,
-        processedElements: ArrayList<PsiElement>? = null,
+        processedElements: HashSet<PsiElement>? = null,
         nestingLevel: Int = 0,
     ): PsiElementModel {
         val filePath = if (null === processedElements) element.containingFile.virtualFile.path else null
-        val currentProcessedElements = if (null !== processedElements) processedElements else ArrayList()
+        val currentProcessedElements = processedElements ?: HashSet()
         val options = mutableMapOf<String, PsiElementModelChild>()
         val elementType = element.elementType.printToString()
         val methods: List<Method>
 
         if (!processOptions) {
             methods = emptyList()
-        } else if (this.elementIgnoredMethods[elementType] !== null) {
-            methods = this.elementIgnoredMethods[elementType]!!
         } else {
             methods =
-                element.javaClass.methods.filter { method ->
-                    !this.baseMethods.contains(method.name) &&
-                        !this.ignoredMethods.contains(method.name) &&
-                        method.parameterTypes.isEmpty()
+                this.elementEligibleMethods.getOrPut(elementType) {
+                    element.javaClass.methods.filter { method ->
+                        !this.baseMethods.contains(method.name) &&
+                            method.name !in this.ignoredMethods &&
+                            method.parameterTypes.isEmpty() &&
+                            isEligibleReturnType(method.returnType)
+                    }
                 }
-            this.elementIgnoredMethods[elementType] = methods
         }
 
         val elementFqn: String? = null
 
-        val textCachedValue =
-            CachedValuesManager.getManager(project).createCachedValue {
-                CachedValueProvider.Result.create(
-                    element.text,
-                    PsiModificationTracker.MODIFICATION_COUNT,
-                )
-            }
-        var elementText = textCachedValue.value
+        var elementText = element.text
         if (elementText.length > MAX_STRING_LENGTH) {
             elementText = elementText.substring(0, MAX_STRING_LENGTH)
         }
@@ -672,34 +801,8 @@ class PsaManager(
         }
 
         for (method in methods) {
-            val interfaces = this.getAllExtendedOrImplementedInterfacesRecursively(method.returnType)
-            val componentTypeInterfaces =
-                if (method.returnType.componentType !== null) {
-                    this.getAllExtendedOrImplementedInterfacesRecursively(
-                        method.returnType.componentType,
-                    )
-                } else {
-                    HashSet()
-                }
             try {
-                if (
-                    !method.returnType.isAssignableFrom(String::class.java) &&
-                    !method.returnType.isAssignableFrom(Number::class.java) &&
-                    !method.returnType.isAssignableFrom(PsiElement::class.java) &&
-                    !interfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) } &&
-                    !componentTypeInterfaces.any { e -> e.isAssignableFrom(PsiElement::class.java) }
-                ) {
-                    continue
-                }
-
-                val cachedValue =
-                    CachedValuesManager.getManager(project).createCachedValue {
-                        CachedValueProvider.Result.create(
-                            method.invoke(element),
-                            PsiModificationTracker.MODIFICATION_COUNT,
-                        )
-                    }
-                var result = cachedValue.value
+                var result = method.invoke(element)
                 var optionName = method.name
                 if (0 == optionName.indexOf("get")) {
                     optionName = optionName.substring(3)
@@ -839,15 +942,33 @@ class PsaManager(
             .updateStaticCompletionConfigs(configs)
     }
 
-    private fun getAllExtendedOrImplementedInterfacesRecursively(clazz: Class<*>): Set<Class<*>> {
-        val res: MutableSet<Class<*>> = HashSet()
-        val interfaces = clazz.interfaces
-        if (interfaces.isNotEmpty()) {
-            res.addAll(interfaces)
-            for (interfaze in interfaces) {
-                res.addAll(getAllExtendedOrImplementedInterfacesRecursively(interfaze))
+    private fun collectInterfaces(clazz: Class<*>): Set<Class<*>> =
+        interfaceCache.getOrPut(clazz) {
+            val res = HashSet<Class<*>>()
+            for (iface in clazz.interfaces) {
+                res.add(iface)
+                res.addAll(collectInterfaces(iface))
             }
+            res
         }
-        return res
+
+    private fun isEligibleReturnType(returnType: Class<*>): Boolean {
+        if (returnType.isAssignableFrom(String::class.java) ||
+            returnType.isAssignableFrom(Number::class.java) ||
+            returnType.isAssignableFrom(PsiElement::class.java)
+        ) {
+            return true
+        }
+
+        if (collectInterfaces(returnType).any { it.isAssignableFrom(PsiElement::class.java) }) return true
+
+        val component = returnType.componentType
+        if (component != null &&
+            collectInterfaces(component).any { it.isAssignableFrom(PsiElement::class.java) }
+        ) {
+            return true
+        }
+
+        return false
     }
 }

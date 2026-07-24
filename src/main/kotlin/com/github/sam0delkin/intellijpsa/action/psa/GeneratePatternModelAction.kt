@@ -11,10 +11,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.psi.PsiManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
 class GeneratePatternModelAction :
@@ -39,8 +39,8 @@ class GeneratePatternModelAction :
         val model = psaManager.psiElementToModel(element)
         val pattern = PsiElementModelHelper.toPattern(model)
 
-        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        clipboard.setContents(StringSelection(Json.encodeToString(pattern)), null)
+        val clipboard = CopyPasteManager.getInstance()
+        clipboard.setContents(StringSelection(Json.encodeToString(pattern)))
 
         NotificationGroupManager
             .getInstance()

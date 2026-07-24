@@ -42,6 +42,9 @@
         <referencesSearch
                 implementation="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpDynamicMethodCallSearcher"
         />
+        <referencesSearch
+                implementation="com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpDynamicParameterUsageSearcher"
+        />
     </extensions>
     <extensions defaultExtensionNs="com.github.sam0delkin.intellijpsa">
         <psaExtension implementation="com.github.sam0delkin.intellijpsa.language.php.PhpPsaExtension"/>

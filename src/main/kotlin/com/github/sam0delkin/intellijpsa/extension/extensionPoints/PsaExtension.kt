@@ -50,4 +50,10 @@ interface PsaExtension {
         project: Project,
         actionGroup: ActionGroup,
     )
+
+    /**
+     * Return a short, human-readable diagnostics report for this extension (loaded providers,
+     * enabled flags, etc.) shown in the settings "Diagnostics" panel. Return `null` to contribute nothing.
+     */
+    fun getDiagnostics(project: Project): String? = null
 }

@@ -9,4 +9,5 @@ enum class RequestType {
     GenerateFileFromTemplate,
     GetStaticCompletions,
     PerformEditorAction,
+    StartServer,
 }

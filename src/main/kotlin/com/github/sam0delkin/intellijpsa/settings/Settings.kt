@@ -86,6 +86,11 @@ class MultipleFileCodeTemplate : SingleFileCodeTemplate() {
     var fileCount: Int? = null
 }
 
+enum class ExecutionMode {
+    Script,
+    Server,
+}
+
 class PersistedEditorAction {
     var name: String = ""
     var title: String = ""
@@ -107,6 +112,7 @@ class Settings : PersistentStateComponent<Settings> {
     var debug: Boolean = false
     var showErrors: Boolean = true
     var scriptPath: String? = ".psa/psa.php"
+    var executionMode: ExecutionMode = ExecutionMode.Script
     var pathMappings: Array<PathMapping>? = arrayOf()
     var goToFilter: String? = ""
     var supportsBatch: Boolean = false
@@ -133,6 +139,8 @@ class Settings : PersistentStateComponent<Settings> {
 
     fun isLanguageSupported(language: String): Boolean =
         this.pluginEnabled && this.supportedLanguages?.split(",")?.contains(language) == true
+
+    fun isServerModeActive(): Boolean = this.executionMode == ExecutionMode.Server && !this.debug
 
     fun getScriptDir(): String? {
         val path = this.scriptPath

@@ -4,6 +4,7 @@ package com.github.sam0delkin.intellijpsa.settings
 
 import com.github.sam0delkin.intellijpsa.extension.extensionPoints.PsaExtension
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerManager
 import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
 import com.github.sam0delkin.intellijpsa.ui.components.Utils
 import com.intellij.execution.util.PathMappingsComponent
@@ -19,11 +20,13 @@ import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.dsl.builder.*
 import java.awt.Dimension
 import java.awt.Point
@@ -41,6 +44,7 @@ class PsaConfigurable(
     private lateinit var enabled: Cell<JBCheckBox>
     private lateinit var debug: Cell<JBCheckBox>
     private lateinit var showErrors: Cell<JBCheckBox>
+    private lateinit var executionMode: Cell<ComboBox<ExecutionMode>>
     private lateinit var scriptPath: Cell<TextFieldWithBrowseButton>
     private lateinit var infoButton: Cell<ActionButton>
     private lateinit var executionTimeout: Cell<JSpinner>
@@ -53,6 +57,7 @@ class PsaConfigurable(
     private lateinit var supportedLanguages: Cell<JTextField>
     private lateinit var supportedLanguagesButton: Cell<ActionButton>
     private lateinit var goToElementFilter: Cell<JTextField>
+    private lateinit var diagnostics: Cell<JBTextArea>
     private var changed: Boolean = false
 
     private fun createComponents(): DialogPanel {
@@ -65,10 +70,22 @@ class PsaConfigurable(
                 group {
                     row("Debug") {
                         debug = checkBox("")
-                    }.rowComment("Debug mode. Passed as `PSA_DEBUG` into the executable script")
+                    }.rowComment(
+                        "Debug mode. Passed as `PSA_DEBUG` into the executable script. In Server mode, " +
+                            "enabling this stops the persistent process and falls back to spawning a fresh " +
+                            "process per request (like Script mode) until Debug is disabled again.",
+                    )
                     row("Show Errors") {
                         showErrors = checkBox("")
                     }.rowComment("Show all errors from the executable script, despite debug mode")
+                    row("Execution Mode") {
+                        executionMode = comboBox(ExecutionMode.values().toList())
+                    }.rowComment(
+                        "<b>Script</b> (default): spawn a fresh process for every request. " +
+                            "<b>Server</b>: keep a single long-lived process alive across all requests " +
+                            "(NDJSON over stdin/stdout) instead of respawning - in this mode, Script Path below is " +
+                            "the server entrypoint instead of the one-shot script.",
+                    )
                     row("Script Path") {
                         scriptPath =
                             Utils
@@ -108,7 +125,10 @@ class PsaConfigurable(
                                 }
                             }
                         infoButton = Utils.actionButton(action, "bottom", this)
-                    }.rowComment("Path to the PSA executable script. Must be an executable file")
+                    }.rowComment(
+                        "Path to the PSA executable script (Script mode) or the server entrypoint " +
+                            "script (Server mode). Must be an executable file",
+                    )
                     row("Maximum PSI Model Nesting Level") {
                         maxNestingLevel = cell(JSpinner(SpinnerNumberModel(100, 0, 10000, 1)))
                     }.rowComment("Maximum nesting level for PSI model during serialization. Default: 100.")
@@ -208,9 +228,47 @@ class PsaConfigurable(
                 for (extension in EP_NAME.extensionList) {
                     extension.configure(this, project)
                 }
+
+                collapsibleGroup("Diagnostics") {
+                    row {
+                        diagnostics =
+                            textArea()
+                                .rows(12)
+                                .align(Align.FILL)
+                                .applyToComponent {
+                                    isEditable = false
+                                    font = java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN, font.size)
+                                }
+                    }.resizableRow()
+                }.rowComment(
+                    "Snapshot of the last <code>Info</code> response: loaded providers, supported languages and " +
+                        "per-language extension state. Press the info button next to Script Path to refresh.",
+                )
             }
 
         return panel
+    }
+
+    private fun buildDiagnostics(): String {
+        val psaManager = project.service<PsaManager>()
+        val builder = StringBuilder()
+        builder.append("Plugin enabled: ${settings.pluginEnabled}\n")
+        builder.append("Script path: ${settings.scriptPath.orEmpty().ifBlank { "<not set>" }}\n")
+        builder.append("Last script result: ${if (psaManager.lastResultSucceed) "OK" else "ERROR"}\n")
+        if (psaManager.lastResultMessage.isNotBlank()) {
+            builder.append("Last message: ${psaManager.lastResultMessage}\n")
+        }
+        builder.append("Supported languages: ${settings.supportedLanguages.orEmpty().ifBlank { "<none>" }}\n")
+        builder.append("GoTo element filter: ${settings.goToFilter.orEmpty().ifBlank { "<none>" }}\n")
+        builder.append("Supports batch: ${settings.supportsBatch}\n")
+        builder.append("Supports static completions: ${settings.supportsStaticCompletions}\n")
+        builder.append("Editor actions: ${settings.editorActions?.size ?: 0}\n")
+
+        for (extension in EP_NAME.extensionList) {
+            extension.getDiagnostics(project)?.let { builder.append("\n").append(it).append("\n") }
+        }
+
+        return builder.toString().trimEnd()
     }
 
     private fun getInfo() {
@@ -235,6 +293,7 @@ class PsaConfigurable(
             }
 
             service.updateInfo(settings, info)
+            this.diagnostics.component.text = buildDiagnostics()
             val languagesString = "<ul>" + info.supportedLanguages.joinToString("") { i -> "<li>- $i</li>" } + "<ul>"
             val filterString = "<ul>" + filter.joinToString("") { i -> "<li>- $i</li>" } + "<ul>"
 
@@ -274,6 +333,7 @@ class PsaConfigurable(
             enabled.component.isSelected != settings.pluginEnabled ||
                 debug.component.isSelected != settings.debug ||
                 showErrors.component.isSelected != settings.showErrors ||
+                executionMode.component.selectedItem != settings.executionMode ||
                 resolveReferences.component.isSelected != settings.resolveReferences ||
                 indexFolder.component.text != settings.indexFolder ||
                 useVelocityInIndex.component.isSelected != settings.useVelocityInIndex ||
@@ -299,6 +359,7 @@ class PsaConfigurable(
         enabled.component.setSelected(settings.pluginEnabled)
         debug.component.setSelected(settings.debug)
         showErrors.component.setSelected(settings.showErrors)
+        executionMode.component.selectedItem = settings.executionMode
         resolveReferences.component.setSelected(settings.resolveReferences)
         indexFolder.component.setText(settings.indexFolder)
         useVelocityInIndex.component.setSelected(settings.useVelocityInIndex)
@@ -315,14 +376,23 @@ class PsaConfigurable(
         for (extension in EP_NAME.extensionList) {
             extension.reset(project)
         }
+
+        diagnostics.component.text = buildDiagnostics()
     }
 
+    @Suppress("IncorrectServiceRetrieving")
     @Throws(ConfigurationException::class)
     override fun apply() {
         val psaManager = project.service<PsaManager>()
+        val previousExecutionMode = settings.executionMode
+        val previousScriptPath = settings.scriptPath
+        val previousPluginEnabled = settings.pluginEnabled
+        val previousDebug = settings.debug
+
         settings.pluginEnabled = enabled.component.isSelected
         settings.debug = debug.component.isSelected
         settings.showErrors = showErrors.component.isSelected
+        settings.executionMode = executionMode.component.selectedItem as ExecutionMode
         settings.resolveReferences = resolveReferences.component.isSelected
         settings.indexFolder = indexFolder.component.text.trim()
         settings.useVelocityInIndex = useVelocityInIndex.component.isSelected
@@ -349,18 +419,28 @@ class PsaConfigurable(
             psaManager.lastResultMessage = ""
         }
 
+        if (
+            previousExecutionMode != settings.executionMode ||
+            previousScriptPath != settings.scriptPath ||
+            previousDebug != settings.debug ||
+            (previousPluginEnabled && !settings.pluginEnabled)
+        ) {
+            project.service<ServerManager>().restart(settings)
+        }
+
         for (extension in EP_NAME.extensionList) {
             extension.apply(project)
         }
 
         val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
         if (null ===
-            service<StatusBarWidgetsManager>()
+            project
+                .service<StatusBarWidgetsManager>()
                 .findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)
         ) {
-            service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
+            project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
         }
-        service<StatusBarWidgetsManager>().updateAllWidgets()
+        project.service<StatusBarWidgetsManager>().updateAllWidgets()
     }
 
     private val settings: Settings

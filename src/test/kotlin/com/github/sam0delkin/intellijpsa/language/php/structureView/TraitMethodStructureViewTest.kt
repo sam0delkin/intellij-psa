@@ -2,10 +2,54 @@ package com.github.sam0delkin.intellijpsa.language.php.structureView
 
 import com.github.sam0delkin.intellijpsa.language.php.settings.PhpPsaSettings
 import com.intellij.openapi.components.service
+import com.intellij.openapi.project.DumbServiceImpl
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.jetbrains.php.lang.psi.elements.PhpClass
 
 class TraitMethodStructureViewTest : BasePlatformTestCase() {
+    fun testGetType() {
+        val extension = TraitMethodStructureViewExtension()
+
+        assertEquals(PhpClass::class.java, extension.getType())
+    }
+
+    fun testGetCurrentEditorElement() {
+        val extension = TraitMethodStructureViewExtension()
+
+        assertNull(extension.getCurrentEditorElement(null, null))
+    }
+
+    @Suppress("UnstableApiUsage")
+    fun testStructureViewExtensionReturnsEmptyWhenIndexNotReady() {
+        val settings = project.service<PhpPsaSettings>()
+        settings.enabled = true
+
+        myFixture.configureByText(
+            "test.php",
+            """
+            <?php
+            trait MyTrait {
+                public function traitMethod() {}
+            }
+            class MyClass {
+                use MyTrait;
+            }
+            """.trimIndent(),
+        )
+
+        val phpClass = myFixture.findElementByText("class MyClass", PhpClass::class.java)
+        val extension = TraitMethodStructureViewExtension()
+
+        val dumbService = DumbServiceImpl.getInstance(project)
+        dumbService.isDumb = true
+        try {
+            val children = extension.getChildren(phpClass)
+            assertNotNull(children)
+        } finally {
+            dumbService.isDumb = false
+        }
+    }
+
     fun testStructureViewExtension() {
         val settings = project.service<PhpPsaSettings>()
         settings.enabled = true
@@ -62,6 +106,61 @@ class TraitMethodStructureViewTest : BasePlatformTestCase() {
 
         val children = extension.getChildren(phpClass)
         assertEmpty(children)
+    }
+
+    fun testTraitGroupTreeElementMembers() {
+        myFixture.configureByText(
+            "test.php",
+            """
+            <?php
+            trait MyTrait {
+                public function traitMethod() {}
+            }
+            class MyClass {
+                use MyTrait;
+            }
+            """.trimIndent(),
+        )
+
+        val phpClass = myFixture.findElementByText("class MyClass", PhpClass::class.java)!!
+        val trait = TraitResolver.collectTraits(phpClass).first()
+        val element =
+            com.github.sam0delkin.intellijpsa.language.php.structureView.element
+                .TraitGroupTreeElement(trait, phpClass)
+
+        assertSame(trait, element.value)
+        assertEquals("trait", element.presentation.locationString)
+        assertNotNull(element.presentation.getIcon(false))
+        assertEquals(trait.canNavigate(), element.canNavigate())
+        assertEquals(trait.canNavigateToSource(), element.canNavigateToSource())
+        element.navigate(false)
+    }
+
+    fun testTraitMethodTreeElementMembers() {
+        myFixture.configureByText(
+            "test.php",
+            """
+            <?php
+            trait MyTrait {
+                public function traitMethod() {}
+            }
+            class MyClass {
+                use MyTrait;
+            }
+            """.trimIndent(),
+        )
+
+        val method = myFixture.findElementByText("traitMethod", com.jetbrains.php.lang.psi.elements.Method::class.java)!!
+        val element =
+            com.github.sam0delkin.intellijpsa.language.php.structureView.element
+                .TraitMethodTreeElement(method)
+
+        assertSame(method, element.value)
+        assertEmpty(element.children.toList())
+        assertEquals("traitMethod", element.alphaSortKey)
+        assertEquals(method.canNavigate(), element.canNavigate())
+        assertEquals(method.canNavigateToSource(), element.canNavigateToSource())
+        element.navigate(false)
     }
 
     fun testTraitResolver() {

@@ -2,6 +2,7 @@
 ## ![icon](src/main/resources/icons/pluginIcon_16.svg) Intellij Project-Specific Autocomplete
 
 ![Build](https://github.com/sam0delkin/intellij-psa/workflows/Build/badge.svg)
+[![codecov](https://codecov.io/gh/sam0delkin/intellij-psa/branch/main/graph/badge.svg)](https://codecov.io/gh/sam0delkin/intellij-psa)
 [![Version](https://img.shields.io/jetbrains/plugin/v/24604.svg)](https://plugins.jetbrains.com/plugin/24604)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/24604.svg)](https://plugins.jetbrains.com/plugin/24604)
 

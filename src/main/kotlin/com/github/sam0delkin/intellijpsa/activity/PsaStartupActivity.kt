@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.activity
 
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.github.sam0delkin.intellijpsa.services.server.ServerManager
 import com.github.sam0delkin.intellijpsa.settings.EP_NAME
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.github.sam0delkin.intellijpsa.status.widget.PsaStatusBarWidgetFactory
@@ -15,19 +16,19 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
 import java.io.File
 import java.util.Timer
 import java.util.TimerTask
 
 class PsaStartupActivity :
-    StartupActivity,
+    ProjectActivity,
     DumbAware,
     Disposable {
     private var timer: Timer? = null
 
-    override fun runActivity(project: Project) {
+    override suspend fun execute(project: Project) {
         ApplicationManager.getApplication().invokeLater {
             val psaManager = project.service<PsaManager>()
             val settings = psaManager.getSettings()
@@ -81,6 +82,10 @@ class PsaStartupActivity :
                 extension.initialize(project)
             }
 
+            if (settings.isServerModeActive()) {
+                project.service<ServerManager>().start(settings)
+            }
+
             ApplicationManager.getApplication().invokeLater {
                 if (null !== timer) {
                     timer?.cancel()
@@ -99,6 +104,7 @@ class PsaStartupActivity :
         timer = Timer()
         timer!!.schedule(
             object : TimerTask() {
+                @Suppress("IncorrectServiceRetrieving")
                 override fun run() {
                     try {
                         val info = psaManager.getInfo(settings, project, false)
@@ -111,10 +117,10 @@ class PsaStartupActivity :
                     }
                     psaManager.updateStaticCompletions(settings, project, false)
                     val psaStatusBarWidgetFactory = PsaStatusBarWidgetFactory()
-                    if (null === service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
-                        service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
+                    if (null === project.service<StatusBarWidgetsManager>().findWidgetFactory(PsaStatusBarWidgetFactory.WIDGET_ID)) {
+                        project.service<StatusBarWidgetsManager>().updateWidget(psaStatusBarWidgetFactory)
                     }
-                    service<StatusBarWidgetsManager>().updateAllWidgets()
+                    project.service<StatusBarWidgetsManager>().updateAllWidgets()
                 }
             },
             500,

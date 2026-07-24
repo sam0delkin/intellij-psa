@@ -51,6 +51,60 @@ class PsaTypeProviderTest : BasePlatformTestCase() {
         assertEquals("\\MyCustomType", element.getUserData(PSA_TYPE_KEY))
     }
 
+    fun testGetTypeReturnsNullForNullElement() {
+        assertNull(typeProvider.getType(null))
+    }
+
+    fun testGetTypeSkipsProviderForDifferentLanguage() {
+        val phpSettings = project.service<PhpPsaManager>().getSettings()
+        val pattern = PsiElementPatternModel(withText = "'some_string'")
+        val providerModel =
+            TypeProviderModel().apply {
+                language = "NotPhp"
+                this.pattern = pattern
+                type = "\\MyCustomType"
+            }
+        phpSettings.typeProviders = arrayListOf(providerModel)
+
+        myFixture.configureByText("test.php", "<?php 'some_string';")
+        val element = myFixture.findElementByText("'some_string'", PsiElement::class.java)
+
+        val type = typeProvider.getType(element)
+
+        assertNull(type)
+    }
+
+    fun testGetTypeCatchesExceptionFromMatching() {
+        val phpSettings = project.service<PhpPsaManager>().getSettings()
+        val providerModel =
+            TypeProviderModel().apply {
+                language = PhpLanguage.INSTANCE.id
+                pattern = null
+                type = "\\MyCustomType"
+            }
+        phpSettings.typeProviders = arrayListOf(providerModel)
+
+        myFixture.configureByText("test.php", "<?php 'some_string';")
+        val element = myFixture.findElementByText("'some_string'", PsiElement::class.java)
+
+        val type = typeProvider.getType(element)
+
+        assertNull(type)
+        assertNull(element.getUserData(PSA_TYPE_KEY))
+    }
+
+    fun testCompleteReturnsNull() {
+        assertNull(typeProvider.complete(null, project))
+    }
+
+    fun testGetBySignatureReturnsEmptyCollection() {
+        assertTrue(typeProvider.getBySignature(null, null, 0, project).isEmpty())
+    }
+
+    fun testGetKeyReturnsExpectedChar() {
+        assertEquals('∞', typeProvider.key)
+    }
+
     fun testNoTypeWhenPluginDisabled() {
         val settings = project.service<Settings>()
         settings.pluginEnabled = false

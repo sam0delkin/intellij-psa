@@ -17,6 +17,7 @@ import kotlinx.serialization.json.Json
 )
 class JsPsaSettings : PersistentStateComponent<JsPsaSettings> {
     var enabled: Boolean = false
+    var methodArgumentProvidersInspectionsEnabled: Boolean = false
     var methodArgumentProvidersJson: String? = null
 
     @get:Transient

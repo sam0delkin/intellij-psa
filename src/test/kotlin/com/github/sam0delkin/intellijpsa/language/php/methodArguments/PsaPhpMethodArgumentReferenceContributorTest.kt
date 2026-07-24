@@ -175,6 +175,27 @@ class PsaPhpMethodArgumentReferenceContributorTest : BasePlatformTestCase() {
         assertCollectionEmpty("No PsaPhpMethodReference when PHP extension is disabled", psaRefs)
     }
 
+    fun testNoReferenceForUnrelatedStringLiteral() {
+        setupCallableProvider()
+        myFixture.configureByText(
+            "Call.php",
+            """
+            <?php
+            class ServiceMethodMessage {}
+            class AccountStatsManager {
+                public function updateStats(${'$'}a) {}
+            }
+            ${'$'}unrelated = 'not_a_dispatch_call';
+            new ServiceMethodMessage([AccountStatsManager::class, 'updateStats'], []);
+            """.trimIndent(),
+        )
+
+        val element = myFixture.findElementByText("'not_a_dispatch_call'", StringLiteralExpression::class.java)
+        assertNotNull(element)
+        val psaRefs = element!!.references.filterIsInstance<PsaPhpMethodReference>()
+        assertCollectionEmpty("No PsaPhpMethodReference for a string literal unrelated to any dispatch call", psaRefs)
+    }
+
     fun testNoReferenceWhenNoProviders() {
         project.service<PhpPsaManager>().getSettings().methodArgumentProviders = null
 

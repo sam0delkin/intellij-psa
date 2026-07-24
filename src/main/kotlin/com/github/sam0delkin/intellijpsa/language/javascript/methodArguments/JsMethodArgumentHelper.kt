@@ -10,11 +10,18 @@ import com.intellij.lang.javascript.psi.JSParameterListElement
 import com.intellij.lang.javascript.psi.JSReferenceExpression
 import com.intellij.lang.javascript.psi.resolve.JSClassResolver
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
+import java.util.Optional
+import java.util.concurrent.ConcurrentHashMap
 
 object JsMethodArgumentHelper {
     data class ProviderMatch(
@@ -108,6 +115,13 @@ object JsMethodArgumentHelper {
         className: String,
     ): List<String> {
         if (className.isEmpty()) return emptyList()
+        return methodNamesCache(project).computeIfAbsent(className) { methodNamesUncached(project, it) }
+    }
+
+    private fun methodNamesUncached(
+        project: Project,
+        className: String,
+    ): List<String> {
         val scope = GlobalSearchScope.allScope(project)
         val resolver = JSClassResolver.getInstance()
         val names = LinkedHashSet<String>()
@@ -158,6 +172,19 @@ object JsMethodArgumentHelper {
         methodName: String,
     ): JSFunction? {
         if (className.isEmpty() || methodName.isEmpty()) return null
+        val cached =
+            resolveMethodCache(project).computeIfAbsent(className to methodName) {
+                Optional.ofNullable(resolveMethodUncached(project, it.first, it.second))
+            }
+        val function = cached.orElse(null)
+        return if (function != null && function.isValid) function else null
+    }
+
+    private fun resolveMethodUncached(
+        project: Project,
+        className: String,
+        methodName: String,
+    ): JSFunction? {
         val scope = GlobalSearchScope.allScope(project)
         val resolver = JSClassResolver.getInstance()
 
@@ -239,4 +266,41 @@ object JsMethodArgumentHelper {
         return PsiTreeUtil.getChildOfType(element, JSFunction::class.java)
             ?: PsiTreeUtil.getChildOfType(element.parent, JSFunction::class.java)
     }
+
+    // The map value type must be a JDK type, not a class defined by this plugin: this cache is
+    // keyed on the Project (via CachedValuesManager) and survives until the next PSI change, so a
+    // plugin-defined value type here would keep the plugin's classloader reachable and block a
+    // clean dynamic plugin reload/update. java.util.Optional (unlike a custom nullable-wrapper
+    // class) lets ConcurrentHashMap cache a "no match" result without introducing one.
+    private val RESOLVE_CACHE_KEY =
+        Key.create<CachedValue<ConcurrentHashMap<Pair<String, String>, Optional<JSFunction>>>>("psa.js.resolveMethod")
+    private val NAMES_CACHE_KEY =
+        Key.create<CachedValue<ConcurrentHashMap<String, List<String>>>>("psa.js.methodNames")
+
+    // internal (not private) so tests can assert the cache never stores a plugin-defined type.
+    internal fun resolveMethodCache(project: Project): ConcurrentHashMap<Pair<String, String>, Optional<JSFunction>> =
+        CachedValuesManager.getManager(project).getCachedValue(
+            project,
+            RESOLVE_CACHE_KEY,
+            {
+                CachedValueProvider.Result.create(
+                    ConcurrentHashMap<Pair<String, String>, Optional<JSFunction>>(),
+                    PsiModificationTracker.MODIFICATION_COUNT,
+                )
+            },
+            false,
+        )
+
+    private fun methodNamesCache(project: Project): ConcurrentHashMap<String, List<String>> =
+        CachedValuesManager.getManager(project).getCachedValue(
+            project,
+            NAMES_CACHE_KEY,
+            {
+                CachedValueProvider.Result.create(
+                    ConcurrentHashMap<String, List<String>>(),
+                    PsiModificationTracker.MODIFICATION_COUNT,
+                )
+            },
+            false,
+        )
 }
