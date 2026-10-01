@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpMethodArgumentTypeInspectionTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class com.github.sam0delkin.intellijpsa.language.php.methodArguments.PsaPhpMethodArgumentTypeInspectionTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/com.github.sam0delkin.intellijpsa.language.php.methodArguments.html">com.github.sam0delkin.intellijpsa.language.php.methodArguments</a> &gt; PsaPhpMethodArgumentTypeInspectionTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">8</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">8</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.102s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox failures" id="successRate">
+<div class="percent">0%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="tabs">
+<ul class="tabLinks">
+<li>
+<a href="#tab0">Failed tests</a>
+</li>
+<li>
+<a href="#tab1">Tests</a>
+</li>
+</ul>
+<div id="tab0" class="tab">
+<h2>Failed tests</h2>
+<div class="test">
+<a name="testCompatibleClassArgumentIsNotHighlighted"></a>
+<h3 class="failures">testCompatibleClassArgumentIsNotHighlighted</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testNoWarningWhenPhpExtensionDisabled"></a>
+<h3 class="failures">testNoWarningWhenPhpExtensionDisabled</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testNoWarningWhenPluginDisabled"></a>
+<h3 class="failures">testNoWarningWhenPluginDisabled</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testScalarCoercionFlaggedAsErrorUnderStrictTypes"></a>
+<h3 class="failures">testScalarCoercionFlaggedAsErrorUnderStrictTypes</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testScalarCoercionFlaggedAsWarningWithoutStrictTypes"></a>
+<h3 class="failures">testScalarCoercionFlaggedAsWarningWithoutStrictTypes</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testSeverityFollowsTargetMethodFileNotCaller"></a>
+<h3 class="failures">testSeverityFollowsTargetMethodFileNotCaller</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testUntypedParameterIsNotChecked"></a>
+<h3 class="failures">testUntypedParameterIsNotChecked</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="testWrongClassArgumentIsHighlighted"></a>
+<h3 class="failures">testWrongClassArgumentIsHighlighted</h3>
+<span class="code">
+<pre>java.lang.NoClassDefFoundError: Could not initialize class com.intellij.codeInsight.daemon.impl.SeverityRegistrar
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at jdk.internal.reflect.GeneratedConstructorAccessor46.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at com.intellij.serviceContainer.ConstructorInjectionKt.instantiateUsingPicoContainer(constructorInjection.kt:95)
+	at com.intellij.serviceContainer.ComponentManagerImpl.instantiateClassWithConstructorInjection(ComponentManagerImpl.kt:1011)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.createAndInitialize(ServiceComponentAdapter.kt:47)
+	at com.intellij.serviceContainer.ServiceComponentAdapter.doCreateInstance(ServiceComponentAdapter.kt:43)
+	at com.intellij.serviceContainer.BaseComponentAdapter.doCreateInstance(BaseComponentAdapter.kt:158)
+	at com.intellij.serviceContainer.BaseComponentAdapter.createInstance(BaseComponentAdapter.kt:137)
+	at com.intellij.serviceContainer.BaseComponentAdapter.access$createInstance(BaseComponentAdapter.kt:21)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invokeSuspend(BaseComponentAdapter.kt:185)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at com.intellij.serviceContainer.BaseComponentAdapter$getInstanceAsync$2.invoke(BaseComponentAdapter.kt)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:78)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:167)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.intellij.serviceContainer.BaseComponentAdapter.getInstanceAsync(BaseComponentAdapter.kt:180)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService$suspendImpl(ComponentManagerImpl.kt:1162)
+	at com.intellij.serviceContainer.ComponentManagerImpl.preloadService(ComponentManagerImpl.kt)
+	at com.intellij.serviceContainer.ComponentManagerImpl$preloadServices$1.invokeSuspend(ComponentManagerImpl.kt:1146)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:106)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:793)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)
+Caused by: java.lang.ExceptionInInitializerError: Exception com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Must be precomputed [in thread &quot;DefaultDispatcher-worker-3&quot;]
+	at com.intellij.testFramework.TestLoggerFactory$TestLogger.error(TestLoggerFactory.java:403)
+	at com.intellij.openapi.diagnostic.Logger.error(Logger.java:370)
+	at com.intellij.ui.scale.JBUIScale.computeSystemFontData(JBUIScale.kt:96)
+	at com.intellij.ui.scale.JBUIScale.access$computeSystemFontData(JBUIScale.kt:31)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:87)
+	at com.intellij.ui.scale.JBUIScale$systemFontData$1.invoke(JBUIScale.kt:86)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.getSystemFontData(JBUIScale.kt:388)
+	at com.intellij.ui.scale.JBUIScale.computeSystemScaleFactor(JBUIScale.kt:208)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:67)
+	at com.intellij.ui.scale.JBUIScale$systemScaleFactor$1.invoke(JBUIScale.kt:66)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:42)
+	at com.intellij.ui.scale.JBUIScale$userScaleFactor$1.invoke(JBUIScale.kt:41)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy._get_value_$lambda$1$lambda$0(SynchronizedClearableLazy.kt:41)
+	at java.base/java.util.concurrent.atomic.AtomicReference.updateAndGet(AtomicReference.java:210)
+	at com.intellij.util.concurrency.SynchronizedClearableLazy.getValue(SynchronizedClearableLazy.kt:40)
+	at com.intellij.ui.scale.JBUIScale.scale(JBUIScale.kt:337)
+	at com.intellij.ui.scale.UserScaleContext.&lt;init&gt;(UserScaleContext.java:23)
+	at com.intellij.ui.scale.UserScaleContext.create(UserScaleContext.java:57)
+	at com.intellij.util.ui.JBScalableIcon.&lt;init&gt;(JBScalableIcon.java:30)
+	at com.intellij.util.ui.JBCachingScalableIcon.&lt;init&gt;(JBCachingScalableIcon.java:19)
+	at com.intellij.util.ui.EmptyIcon.&lt;init&gt;(EmptyIcon.java:74)
+	at com.intellij.util.ui.EmptyIcon.lambda$create$1(EmptyIcon.java:108)
+	at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:107)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:56)
+	at com.intellij.util.ui.EmptyIcon.create(EmptyIcon.java:47)
+	at com.intellij.util.ui.EmptyIcon.&lt;clinit&gt;(EmptyIcon.java:27)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:89)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;init&gt;(HighlightDisplayLevel.java:34)
+	at com.intellij.codeHighlighting.HighlightDisplayLevel.&lt;clinit&gt;(HighlightDisplayLevel.java:47)
+	at com.intellij.codeInsight.daemon.impl.SeverityRegistrar.&lt;clinit&gt;(SeverityRegistrar.java:68)
+	at com.intellij.codeInsight.daemon.impl.DaemonListeners.&lt;init&gt;(DaemonListeners.java:343)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	... 26 more
+</pre>
+</span>
+</div>
+</div>
+<div id="tab1" class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="failures">testCompatibleClassArgumentIsNotHighlighted</td>
+<td class="failures">0.014s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">testNoWarningWhenPhpExtensionDisabled</td>
+<td class="failures">0.010s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">testNoWarningWhenPluginDisabled</td>
+<td class="failures">0.010s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">testScalarCoercionFlaggedAsErrorUnderStrictTypes</td>
+<td class="failures">0.025s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">testScalarCoercionFlaggedAsWarningWithoutStrictTypes</td>
+<td class="failures">0.011s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">testSeverityFollowsTargetMethodFileNotCaller</td>
+<td class="failures">0.010s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">testUntypedParameterIsNotChecked</td>
+<td class="failures">0.011s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">testWrongClassArgumentIsHighlighted</td>
+<td class="failures">0.011s</td>
+<td class="failures">failed</td>
+</tr>
+</table>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="http://www.gradle.org">Gradle 7.6.3</a> at Jul 23, 2026, 6:04:17 PM</p>
+</div>
+</div>
+</body>
+</html>

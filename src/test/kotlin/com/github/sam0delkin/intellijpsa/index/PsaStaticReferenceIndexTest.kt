@@ -20,7 +20,7 @@ import com.intellij.util.indexing.FileBasedIndex
  * `FileBasedIndex.getInstance().ensureUpToDate(INDEX_ID, project, GlobalSearchScope.allScope(project))`
  * to force synchronous indexing).
  *
- * Four residual gaps, deliberately not chased further here:
+ * Three residual gaps, deliberately not chased further here:
  *
  * 1. `inputData.project.guessProjectDir() ?: return fileResult` (~line 62) never observes the null
  *    branch: exactly like `PsaReferenceContributor`'s equivalent `project.guessProjectDir()` null
@@ -29,26 +29,12 @@ import com.intellij.util.indexing.FileBasedIndex
  *    resolve against the light fixture's own "temp://" root), so there is no reachable fixture state
  *    that makes it null without fabricating a synthetic `Project` - not attempted here.
  *
- * 2. The `useVelocityInIndex` fallback body (~lines 119-141, calling `Velocity.evaluate(...)`) is
- *    deliberately never *entered* by any test below - only its three guard sub-conditions
- *    (`filtered.isEmpty()`, `useVelocityInIndex`, `matcher != null`) are exercised, each forced to
- *    make the overall `&&` false via a different one of the three so the block itself never runs.
- *    This mirrors `PsiElementModelHelperTest`'s documented finding (see that file's class doc and
- *    `testMatchesAstNodeWithMatcherThrowsDueToCoverageAgentVelocityConflict`): Apache Velocity cannot
- *    initialize AT ALL in this project's coverage-instrumented test JVM (the intellij-coverage-agent's
- *    injected `__$branchHits$__` field breaks `DeprecatedRuntimeConstants`'s reflection-based static
- *    init), and `PsaStaticReferenceIndex`'s own `catch (_: Exception)` around `Velocity.evaluate(...)`
- *    is - like the code `PsiElementModelHelperTest` documents - too narrow to catch the resulting
- *    `Error`. Deliberately entering that block here would risk crashing `koverXmlReport`'s
- *    instrumented run rather than just leaving a line "missed", so it is left as the same kind of
- *    documented residual gap instead.
- *
- * 3. `if (staticCompletion.completions == null) continue` (~line 96-97) is dead code, not merely
+ * 2. `if (staticCompletion.completions == null) continue` (~line 96-97) is dead code, not merely
  *    hard to reach - see the note directly above `testMapSkipsWhenNoPatternMatchesElement` below for
  *    the full explanation (a config with null `completions` crashes far upstream, in
  *    `ExtendedStaticCompletionModel.createFromModel`, before this guard could ever run).
  *
- * 4. `if (!settings.isLanguageSupported(languageString)) return fileResult` (~line 58-59) is also not
+ * 3. `if (!settings.isLanguageSupported(languageString)) return fileResult` (~line 58-59) is also not
  *    covered - see the note directly above `testMapReturnsEmptyWhenFileOutsideConfiguredIndexFolder`
  *    below for what was tried and why it was abandoned (no coverage gain, and a real risk of
  *    destabilizing the shared `FileBasedIndex` state for unrelated later tests).
@@ -277,10 +263,93 @@ class PsaStaticReferenceIndexTest : BasePlatformTestCase() {
         assertTrue(fileData.isEmpty())
     }
 
+    private fun velocityStaticCompletion(
+        matcher: String,
+        vararg texts: String,
+    ): StaticCompletionModel =
+        StaticCompletionModel().apply {
+            name = "velocity"
+            title = "Velocity"
+            this.matcher = matcher
+            patterns = arrayListOf(PsiElementPatternModel(withType = "single quoted string"))
+            completions =
+                CompletionsModel().apply {
+                    completions =
+                        texts
+                            .map {
+                                CompletionModel().apply {
+                                    text = it
+                                    link = "/target.php:1:1"
+                                }
+                            }.toCollection(ArrayList())
+                }
+        }
+
+    // No completion text equals the usage text, so with useVelocityInIndex the matcher decides:
+    // `$model` is the token (type/text) and `$completion` the candidate entry.
+    fun testMapUsesVelocityMatcherWhenNoDirectTextMatch() {
+        val settings = baseSettings()
+        settings.useVelocityInIndex = true
+        project.service<PsaManager>().setStaticCompletionConfigs(
+            arrayListOf(
+                velocityStaticCompletion(
+                    "#if(\$model.text == 'target' && \$model.type == 'single quoted string')true#end",
+                    "alias",
+                ),
+            ),
+        )
+        myFixture.addFileToProject("target.php", "<?php\nclass Target {}\n")
+
+        val fileData = indexAndGetFileData("velocity_match.php")
+
+        assertEquals(listOf("velocity"), fileData.values.flatMap { it.keys })
+    }
+
+    fun testMapVelocityMatcherRenderingFalseIndexesNothing() {
+        val settings = baseSettings()
+        settings.useVelocityInIndex = true
+        project.service<PsaManager>().setStaticCompletionConfigs(
+            arrayListOf(velocityStaticCompletion("#if(\$model.text == 'other')true#end", "alias")),
+        )
+        myFixture.addFileToProject("target.php", "<?php\nclass Target {}\n")
+
+        assertTrue(indexAndGetFileData("velocity_no_match.php").isEmpty())
+    }
+
+    fun testMapInvalidVelocityMatcherIndexesNothing() {
+        val settings = baseSettings()
+        settings.useVelocityInIndex = true
+        project.service<PsaManager>().setStaticCompletionConfigs(arrayListOf(velocityStaticCompletion("#if(", "alias")))
+        myFixture.addFileToProject("target.php", "<?php\nclass Target {}\n")
+
+        assertTrue(indexAndGetFileData("velocity_invalid.php").isEmpty())
+    }
+
+    // Regression test: the rendered output used to be accumulated in one shared writer, so once one
+    // candidate rendered "true" every later candidate of the same config matched too.
+    fun testMapVelocityMatcherEvaluatesEachCompletionIndependently() {
+        val settings = baseSettings()
+        settings.useVelocityInIndex = true
+        project.service<PsaManager>().setStaticCompletionConfigs(
+            arrayListOf(velocityStaticCompletion("#if(\$completion.text == 'first')true#end", "first", "second")),
+        )
+        myFixture.addFileToProject("target.php", "<?php\nclass Target {}\n")
+
+        val fileData = indexAndGetFileData("velocity_independent.php")
+
+        assertEquals(
+            1,
+            fileData.values
+                .flatMap { it.values }
+                .flatten()
+                .size,
+        )
+    }
+
     // Forces the `filtered.isEmpty() && settings.useVelocityInIndex && staticCompletion.matcher !=
     // null` condition false via its THIRD operand (matcher == null) specifically, so the Velocity
-    // fallback body itself is never entered (see this file's class doc for why) while still
-    // confirming useVelocityInIndex=true alone, without a matcher, does not change the outcome.
+    // fallback body itself is never entered, while still confirming useVelocityInIndex=true alone,
+    // without a matcher, does not change the outcome.
     fun testMapSkipsVelocityFallbackWhenMatcherIsNull() {
         val settings = baseSettings()
         settings.useVelocityInIndex = true

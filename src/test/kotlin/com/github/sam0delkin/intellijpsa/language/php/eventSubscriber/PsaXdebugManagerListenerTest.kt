@@ -1,5 +1,6 @@
 package com.github.sam0delkin.intellijpsa.language.php.eventSubscriber
 
+import com.github.sam0delkin.intellijpsa.language.php.xdebugger.stackFrame.PhpPsaStackFrame
 import com.intellij.execution.configurations.RunProfile
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.RunContentDescriptor
@@ -8,6 +9,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.replaceService
 import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebugSessionListener
@@ -20,6 +22,14 @@ import com.intellij.xdebugger.frame.XStackFrame
 import com.intellij.xdebugger.frame.XSuspendContext
 import com.intellij.xdebugger.stepping.XSmartStepIntoHandler
 import com.intellij.xdebugger.stepping.XSmartStepIntoVariant
+import com.jetbrains.php.debug.xdebug.debugger.XdebugStackFrame
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.eq
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import javax.swing.Icon
 import javax.swing.event.HyperlinkListener
 
@@ -53,18 +63,8 @@ import javax.swing.event.HyperlinkListener
  * - `registerExistingSessions`, against the real (empty, since no session was started)
  *   `XDebuggerManager.getInstance(project).debugSessions`.
  *
- * Two residual gaps remain (per `build/reports/kover/xml/report.xml`), both left uncovered
- * deliberately rather than for lack of effort:
- * 1. The `forEach` body in `registerExistingSessions` (registering a listener per already-active
- *    session) only runs when `XDebuggerManager` already tracks at least one live session -
- *    populating that requires actually starting a debug session via
- *    `XDebuggerManager.startSession`/`startSessionAndShowTab`, which in turn needs a real
- *    `ExecutionEnvironment` + `XDebugProcessStarter` + run configuration. That is materially
- *    heavier platform-integration ceremony than faking the `XDebugSession` interface itself, so
- *    it is treated the same as the harder-to-reach cases above rather than forced.
- * 2. `processStackFrame`'s `session.currentStackFrame !is PhpPsaStackFrame` branch and its body
- *    are only reachable once `stackFrame` has already passed the `is XdebugStackFrame` check -
- *    i.e. the same unconstructable-without-a-live-connection dependency as `PhpPsaStackFrameTest`.
+ * The frame-wrapping branch (needs a real `XdebugStackFrame`) and `registerExistingSessions` with an
+ * active session are covered with Mockito mocks at the end of this file.
  */
 class PsaXdebugManagerListenerTest : BasePlatformTestCase() {
     fun testRegisterExistingSessionsWithNoActiveSessionsDoesNotThrow() {
@@ -170,6 +170,50 @@ class PsaXdebugManagerListenerTest : BasePlatformTestCase() {
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
+
+    private fun mockedSession(vararg currentFrames: XStackFrame?): Pair<XDebugSession, XExecutionStack> {
+        val session = mock(XDebugSession::class.java)
+        val stack = mock(XExecutionStack::class.java)
+        val context = mock(XSuspendContext::class.java)
+        `when`(context.activeExecutionStack).thenReturn(stack)
+        `when`(session.suspendContext).thenReturn(context)
+        `when`(session.currentStackFrame).thenReturn(currentFrames.first(), *currentFrames.drop(1).toTypedArray())
+
+        return session to stack
+    }
+
+    fun testProcessStackFrameReplacesXdebugFrameWithPsaWrapper() {
+        val xdebugFrame = mock(XdebugStackFrame::class.java)
+        val (session, stack) = mockedSession(xdebugFrame)
+
+        PsaXdebugManagerListener(project).processStackFrame(session)
+
+        val frame = ArgumentCaptor.forClass(XStackFrame::class.java)
+        verify(session).setCurrentStackFrame(eq(stack), frame.capture())
+        assertInstanceOf(frame.value, PhpPsaStackFrame::class.java)
+    }
+
+    // If the current frame is already the PSA wrapper by the time it's re-read (another listener
+    // callback won the race), it isn't wrapped again.
+    fun testProcessStackFrameDoesNotRewrapWhenFrameAlreadyWrapped() {
+        val xdebugFrame = mock(XdebugStackFrame::class.java)
+        val (session, _) = mockedSession(xdebugFrame, PhpPsaStackFrame(project, xdebugFrame))
+
+        PsaXdebugManagerListener(project).processStackFrame(session)
+
+        verify(session, never()).setCurrentStackFrame(any(), any())
+    }
+
+    fun testRegisterExistingSessionsListensToEveryActiveSession() {
+        val (session, _) = mockedSession(null)
+        val debuggerManager = mock(XDebuggerManager::class.java)
+        `when`(debuggerManager.debugSessions).thenReturn(arrayOf(session))
+        project.replaceService(XDebuggerManager::class.java, debuggerManager, testRootDisposable)
+
+        PsaXdebugManagerListener(project).registerExistingSessions()
+
+        verify(session).addSessionListener(any())
+    }
 
     /**
      * `registerSessionListener` is private (used internally by both `registerExistingSessions`

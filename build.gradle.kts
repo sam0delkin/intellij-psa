@@ -1,3 +1,4 @@
+import kotlinx.kover.api.KoverTaskExtension
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import java.util.Base64
@@ -30,6 +31,9 @@ plugins {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     compileOnly("org.apache.velocity:velocity-engine-core:2.4.1")
+    // Mocks the final XDebug platform types (XdebugValue, XdebugStackFrame, XdebugPhpEvaluator)
+    // that can't be constructed without a live debug session.
+    testImplementation("org.mockito:mockito-core:5.11.0")
 }
 
 group = properties("pluginGroup")
@@ -92,6 +96,16 @@ buildConfig {
 tasks {
     wrapper {
         gradleVersion = properties("gradleVersion")
+    }
+
+    test {
+        // Only instrument the plugin's own classes. Kover's agent otherwise also instruments
+        // third-party jars, adding a synthetic `__$branchHits$__` field to Velocity's
+        // `DeprecatedRuntimeConstants` - Velocity's reflective init rejects it, so Velocity could
+        // never initialize under test and every `matcher` code path was untestable.
+        extensions.configure<KoverTaskExtension> {
+            includes.add("com.github.sam0delkin.intellijpsa.*")
+        }
     }
 
     patchPluginXml {

@@ -1,58 +1,91 @@
 package com.github.sam0delkin.intellijpsa.language.php.xdebugger.stackFrame
 
+import com.github.sam0delkin.intellijpsa.language.php.xdebugger.value.PsaPhpValue
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.intellij.xdebugger.frame.XStackFrame
+import com.intellij.ui.ColoredTextContainer
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.xdebugger.XSourcePosition
+import com.intellij.xdebugger.frame.XCompositeNode
+import com.intellij.xdebugger.frame.XDebuggerTreeNodeHyperlink
+import com.intellij.xdebugger.frame.XValue
+import com.intellij.xdebugger.frame.XValueChildrenList
+import com.jetbrains.php.debug.common.PhpValue
+import com.jetbrains.php.debug.xdebug.debugger.XdebugPhpEvaluator
 import com.jetbrains.php.debug.xdebug.debugger.XdebugStackFrame
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyBoolean
+import org.mockito.Mockito.doAnswer
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 
 /**
- * `PhpPsaStackFrame` cannot be meaningfully unit-tested in a `BasePlatformTestCase`: unlike
- * `PsaPhpValue` (see `PsaPhpValueTest.kt`), which only has *part* of one method gated behind an
- * unconstructable platform type, every single member of `PhpPsaStackFrame` (`getEqualityObject`,
- * `getEvaluator`, `getSourcePosition`, `customizePresentation`, `computeChildren`) simply
- * delegates to `wrapped`, and the constructor itself requires a non-null
- * `com.jetbrains.php.debug.xdebug.debugger.XdebugStackFrame` - there is no code path that can be
- * exercised without one.
- *
- * Confirmed via `javap` against `php-232.8660.60/php-impl/lib/php.jar` and the platform's
- * `ideaIU-2023.2/lib/app-client.jar`:
- * - `XdebugStackFrame`'s only public constructor is
- *   `XdebugStackFrame(PhpDebugProcess<XdebugConnection>, Runnable, String, int, String, int, int,
- *   DbgpExceptionBreak)` - it is not `final` (so it isn't a hard language-level barrier by
- *   itself), but every viable instance still requires a real `PhpDebugProcess<XdebugConnection>`.
- * - `PhpDebugProcess`'s only public constructor is `PhpDebugProcess(XDebugSession,
- *   PhpDebugDriver<S>, PhpDebugStrategy, ConsoleView, boolean)`. `XDebugSession` is a plain
- *   platform *interface* and so is fakeable (see `PsaXdebugManagerListenerTest.kt`, which does
- *   exactly that), but `PhpDebugDriver` alone declares ~15 abstract protocol-level methods
- *   (`registerBreakpoint`, `registerHandlers`, `start`, `createPathFromUrlExtractor`, ...) and
- *   `ConsoleView` is a full UI console interface - faking the whole chain just to obtain a
- *   constructible instance is disproportionate ceremony for a class with no interesting logic
- *   of its own.
- * - Even granting a successfully constructed instance, `PhpStackFrame.computeChildren` (the
- *   `final` method `XdebugStackFrame` inherits and that `PhpPsaStackFrame.computeChildren`
- *   delegates to) calls the abstract `computeVariables`, which performs real DBGP-protocol
- *   variable retrieval over the live connection - so the one method with any branching logic
- *   worth covering (the `value is PhpValue` check in `PhpPsaStackFrame.computeChildren`'s
- *   children-wrapping callback) cannot be reached even with a fully faked object graph; it
- *   requires a live XDebug session to invoke `wrapped.computeChildren` with real children.
- *
- * This is the same category of platform-integration limitation as `XdebugValue` in
- * `PsaPhpValueTest.kt`'s class doc comment, one level deeper. 0% coverage on this file is the
- * expected, documented outcome - not a gap in test effort.
+ * `XdebugStackFrame` needs a live debug process to construct, so it's mocked (Mockito).
  */
 class PhpPsaStackFrameTest : BasePlatformTestCase() {
-    /**
-     * Not a behavioral test of `PhpPsaStackFrame` itself (there is none reachable - see above);
-     * this documents/guards the exact precondition that makes it untestable, so that if a future
-     * refactor ever loosens the constructor (e.g. to accept an interface instead of the concrete
-     * `XdebugStackFrame`), this test fails and signals that the KDoc above should be revisited.
-     */
-    fun testWrapsXStackFrameAndRequiresAConcreteXdebugStackFrame() {
-        assertTrue(XStackFrame::class.java.isAssignableFrom(PhpPsaStackFrame::class.java))
+    private val wrapped: XdebugStackFrame = mock(XdebugStackFrame::class.java)
 
-        val constructor = PhpPsaStackFrame::class.java.declaredConstructors.single()
-        val paramTypes = constructor.parameterTypes
+    private fun frame() = PhpPsaStackFrame(project, wrapped)
 
-        assertEquals(2, paramTypes.size)
-        assertEquals(XdebugStackFrame::class.java, paramTypes[1])
+    fun testSimpleMembersDelegateToWrappedFrame() {
+        val equality = Any()
+        val evaluator = mock(XdebugPhpEvaluator::class.java)
+        val position = mock(XSourcePosition::class.java)
+        `when`(wrapped.equalityObject).thenReturn(equality)
+        `when`(wrapped.evaluator).thenReturn(evaluator)
+        `when`(wrapped.sourcePosition).thenReturn(position)
+        val container = mock(ColoredTextContainer::class.java)
+
+        frame().customizePresentation(container)
+
+        assertSame(equality, frame().equalityObject)
+        assertSame(evaluator, frame().evaluator)
+        assertSame(position, frame().sourcePosition)
+        verify(wrapped).customizePresentation(container)
+    }
+
+    // PHP values among the frame's children are wrapped in PsaPhpValue (so the `__toString`
+    // formatter applies); anything else is passed through untouched.
+    fun testComputeChildrenWrapsPhpValuesOnly() {
+        val phpValue = mock(PhpValue::class.java)
+        val otherValue = mock(XValue::class.java)
+        doAnswer {
+            val list = XValueChildrenList()
+            list.add("user", phpValue)
+            list.add("other", otherValue)
+            it.getArgument<XCompositeNode>(0).addChildren(list, true)
+        }.`when`(wrapped).computeChildren(any())
+        var received: XValueChildrenList? = null
+        val node = mock(XCompositeNode::class.java)
+        doAnswer { received = it.getArgument(0) }.`when`(node).addChildren(any(), anyBoolean())
+
+        frame().computeChildren(node)
+
+        val children = received!!
+        assertEquals(listOf("user", "other"), (0 until children.size()).map { children.getName(it) })
+        assertInstanceOf(children.getValue(0), PsaPhpValue::class.java)
+        assertSame(otherValue, children.getValue(1))
+    }
+
+    @Suppress("DEPRECATION")
+    fun testComputeChildrenForwardsNodeStatusCalls() {
+        val link = mock(XDebuggerTreeNodeHyperlink::class.java)
+        doAnswer {
+            val inner = it.getArgument<XCompositeNode>(0)
+            inner.tooManyChildren(5)
+            inner.setAlreadySorted(true)
+            inner.setErrorMessage("error")
+            inner.setErrorMessage("linked error", link)
+            inner.setMessage("message", null, SimpleTextAttributes.REGULAR_ATTRIBUTES, link)
+        }.`when`(wrapped).computeChildren(any())
+        val node = mock(XCompositeNode::class.java)
+
+        frame().computeChildren(node)
+
+        verify(node).tooManyChildren(5)
+        verify(node).setAlreadySorted(true)
+        verify(node).setErrorMessage("error")
+        verify(node).setErrorMessage("linked error", link)
+        verify(node).setMessage("message", null, SimpleTextAttributes.REGULAR_ATTRIBUTES, link)
     }
 }

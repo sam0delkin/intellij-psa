@@ -1,9 +1,11 @@
 package com.github.sam0delkin.intellijpsa.completion
 
+import com.github.sam0delkin.intellijpsa.annotator.ANNOTATOR_COMPLETION_TITLE
 import com.github.sam0delkin.intellijpsa.model.StaticCompletionModel
 import com.github.sam0delkin.intellijpsa.model.completion.CompletionModel
 import com.github.sam0delkin.intellijpsa.model.completion.CompletionsModel
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementPatternModel
+import com.github.sam0delkin.intellijpsa.psi.PsaElement
 import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.services.server.ServerManager
 import com.github.sam0delkin.intellijpsa.services.server.ServerState
@@ -13,6 +15,9 @@ import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProcess
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.components.service
@@ -221,6 +226,37 @@ class AnyCompletionContributorTest : BasePlatformTestCase() {
 
         assertNotNull(targets)
         assertTrue(targets!!.isNotEmpty())
+    }
+
+    // Regression test: `title` is optional, but an untitled static completion used to throw an NPE
+    // here as soon as one of its entries matched.
+    fun testGotoDeclarationResolvesStaticCompletionWithoutTitle() {
+        myFixture.configureByText("test.php", "<?php 'test_string';")
+        enableScriptMode("counting-script.php")
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)!!
+        project.service<PsaManager>().setStaticCompletionConfigs(
+            arrayListOf(
+                StaticCompletionModel().apply {
+                    name = "untitled"
+                    patterns = arrayListOf(PsiElementPatternModel(withType = "String"))
+                    completions =
+                        CompletionsModel().apply {
+                            completions =
+                                arrayListOf(
+                                    CompletionModel().apply {
+                                        text = "'test_string'"
+                                        link = "/test.php:0:1"
+                                    },
+                                )
+                        }
+                },
+            ),
+        )
+
+        val targets = AnyCompletionContributor.GotoDeclaration().getGotoDeclarationTargets(element, 0, null)
+
+        assertEquals(1, targets!!.size)
+        assertNull(element.getUserData(ANNOTATOR_COMPLETION_TITLE))
     }
 
     fun testGotoDeclarationFallsBackToScriptWhenNoStaticCompletionMatches() {
@@ -582,5 +618,71 @@ class AnyCompletionContributorTest : BasePlatformTestCase() {
         val targets = AnyCompletionContributor.GotoDeclaration().resolveLiveGoToTargets(element)
 
         assertNull(targets)
+    }
+
+    private fun matcherStaticCompletion(matcher: String): StaticCompletionModel =
+        StaticCompletionModel().apply {
+            name = "my_static"
+            title = "My Static"
+            this.matcher = matcher
+            patterns = arrayListOf(PsiElementPatternModel(withType = "String"))
+            completions =
+                CompletionsModel().apply {
+                    completions =
+                        arrayListOf(
+                            CompletionModel().apply {
+                                text = "first"
+                                link = "/test.php:0:1"
+                            },
+                            CompletionModel().apply {
+                                text = "second"
+                                link = "/test.php:0:2"
+                            },
+                        )
+                }
+        }
+
+    // With a matcher, the static completion entries are filtered by evaluating it as a Velocity
+    // template per entry (instead of by exact text) - only entries rendering "true"/"1" survive.
+    fun testGotoDeclarationFiltersStaticCompletionsByVelocityMatcher() {
+        myFixture.configureByText("test.php", "<?php 'test_string';")
+        enableScriptMode("counting-script.php")
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)!!
+        project.service<PsaManager>().setStaticCompletionConfigs(
+            arrayListOf(matcherStaticCompletion("#if(\$completion.text == 'second')true#end")),
+        )
+
+        val targets = AnyCompletionContributor.GotoDeclaration().getGotoDeclarationTargets(element, 0, null)
+
+        assertEquals(listOf("second"), targets!!.map { (it as PsaElement).presentation.presentableText })
+        assertEquals("My Static", element.getUserData(ANNOTATOR_COMPLETION_TITLE))
+    }
+
+    // A matcher that fails to evaluate rejects every entry and reports the error once (not once
+    // per entry) as a PSA notification.
+    fun testGotoDeclarationRejectsAllEntriesAndNotifiesOnceWhenVelocityMatcherIsInvalid() {
+        myFixture.configureByText("test.php", "<?php 'test_string';")
+        enableScriptMode("counting-script.php")
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)!!
+        project.service<PsaManager>().setStaticCompletionConfigs(arrayListOf(matcherStaticCompletion("#if(")))
+        val notifications = mutableListOf<Notification>()
+        project.messageBus.connect(testRootDisposable).subscribe(
+            Notifications.TOPIC,
+            object : Notifications {
+                override fun notify(notification: Notification) {
+                    notifications.add(notification)
+                }
+            },
+        )
+
+        val targets = AnyCompletionContributor.GotoDeclaration().getGotoDeclarationTargets(element, 0, null)
+
+        assertEmpty(targets!!)
+        assertEquals(listOf("Error evaluating static completion matcher"), notifications.map { it.title })
+        assertEquals(NotificationType.ERROR, notifications.single().type)
+    }
+
+    fun testOuterContributorClassIsInstantiable() {
+        assertNotNull(AnyCompletionContributor())
     }
 }

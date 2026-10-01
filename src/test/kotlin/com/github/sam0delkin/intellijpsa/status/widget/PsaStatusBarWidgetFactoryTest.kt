@@ -5,17 +5,23 @@ import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.services.server.ServerManager
 import com.github.sam0delkin.intellijpsa.services.server.ServerState
 import com.github.sam0delkin.intellijpsa.settings.ExecutionMode
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.components.service
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.ListPopup
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.io.File
+import java.lang.reflect.Proxy
+import java.util.concurrent.atomic.AtomicInteger
 
 class PsaStatusBarWidgetFactoryTest : BasePlatformTestCase() {
     private lateinit var factory: PsaStatusBarWidgetFactory
@@ -75,21 +81,21 @@ class PsaStatusBarWidgetFactoryTest : BasePlatformTestCase() {
      * environment throws that from `getService`, so a proxy is the only way to reach it (mirrors the
      * `mockStatusBar()` proxy technique above).
      */
-    private fun throwingServiceProject(): com.intellij.openapi.project.Project =
-        java.lang.reflect.Proxy.newProxyInstance(
-            com.intellij.openapi.project.Project::class.java.classLoader,
-            arrayOf(com.intellij.openapi.project.Project::class.java),
+    private fun throwingServiceProject(): Project =
+        Proxy.newProxyInstance(
+            Project::class.java.classLoader,
+            arrayOf(Project::class.java),
         ) { _, method, _ ->
             if (method.name == "getService") {
                 throw IllegalStateException("simulated: service unavailable")
             }
             null
-        } as com.intellij.openapi.project.Project
+        } as Project
 
     private fun presentation(): StatusBarWidget.IconPresentation = factory.createWidget(project) as StatusBarWidget.IconPresentation
 
     private fun mockStatusBar(): StatusBar =
-        java.lang.reflect.Proxy.newProxyInstance(
+        Proxy.newProxyInstance(
             StatusBar::class.java.classLoader,
             arrayOf(StatusBar::class.java),
         ) { _, _, _ -> null } as StatusBar
@@ -109,7 +115,7 @@ class PsaStatusBarWidgetFactoryTest : BasePlatformTestCase() {
     private fun createPopupActionGroup(widget: StatusBarWidget): ActionGroup {
         val method = widget.javaClass.getDeclaredMethod("createPopup", DataContext::class.java)
         method.isAccessible = true
-        val popup = method.invoke(widget, DataContext { null }) as com.intellij.openapi.ui.popup.ListPopup
+        val popup = method.invoke(widget, DataContext { null }) as ListPopup
         val actions =
             try {
                 val stepField = popup.javaClass.methods.first { it.name == "getListStep" }
@@ -132,8 +138,7 @@ class PsaStatusBarWidgetFactoryTest : BasePlatformTestCase() {
                 Disposer.dispose(popup)
             }
         val group =
-            com.intellij.openapi.actionSystem
-                .DefaultActionGroup()
+            DefaultActionGroup()
         actions.forEach { group.add(it) }
 
         return group
@@ -262,7 +267,7 @@ class PsaStatusBarWidgetFactoryTest : BasePlatformTestCase() {
 
         factory.disposeWidget(widget)
 
-        assertTrue(Disposer.isDisposed(widget as com.intellij.openapi.Disposable))
+        assertTrue(Disposer.isDisposed(widget as Disposable))
     }
 
     fun testWidgetIdMatchesConstant() {
@@ -303,10 +308,9 @@ class PsaStatusBarWidgetFactoryTest : BasePlatformTestCase() {
     fun testInstallTimerTriggersStatusBarUpdate() {
         val widget = factory.createWidget(project)
         val updateCount =
-            java.util.concurrent.atomic
-                .AtomicInteger(0)
+            AtomicInteger(0)
         val statusBar =
-            java.lang.reflect.Proxy.newProxyInstance(
+            Proxy.newProxyInstance(
                 StatusBar::class.java.classLoader,
                 arrayOf(StatusBar::class.java),
             ) { _, method, _ ->

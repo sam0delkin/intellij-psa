@@ -1,6 +1,7 @@
 package com.github.sam0delkin.intellijpsa.language.php.methodArguments
 
 import com.github.sam0delkin.intellijpsa.language.php.model.MethodArgumentProviderModel
+import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
@@ -61,7 +62,7 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
                 },
             )
 
-        val classEl = myFixture.findElementByText("AccountStatsManager", com.intellij.psi.PsiElement::class.java)
+        val classEl = myFixture.findElementByText("AccountStatsManager", PsiElement::class.java)
         assertNotNull(classEl)
         val match = PsaPhpMethodArgumentHelper.findProviderForMethodNameElement(classEl!!, providers)
         assertNull("Class name element should not match as method name", match)
@@ -354,4 +355,160 @@ class PsaPhpMethodArgumentHelperTest : BasePlatformTestCase() {
         PsiTreeUtil
             .findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java)
             .first { it.text.contains(containing) && !it.text.contains("::class") }
+
+    // ── provider edge cases ──────────────────────────────────────────────
+
+    private fun queueProvider(
+        classIndex: Int? = 0,
+        methodIndex: Int? = 1,
+    ) = MethodArgumentProviderModel().apply {
+        `class` = "QueueManager"
+        method = "executeServiceMethod"
+        classArgumentIndex = classIndex
+        methodArgumentIndex = methodIndex
+        argumentsArgumentIndex = 2
+    }
+
+    private fun configureQueueCall(call: String) {
+        myFixture.configureByText(
+            "Queue.php",
+            """
+            <?php
+            class QueueManager {
+                public function executeServiceMethod(${'$'}service, ${'$'}method, ${'$'}args) {}
+            }
+            class MyService {
+                public function doWork(${'$'}a, ${'$'}b) {}
+            }
+            ${'$'}queue = new QueueManager();
+            ${'$'}queue->executeServiceMethod($call);
+            """.trimIndent(),
+        )
+    }
+
+    private fun argumentsArray(): ArrayCreationExpression =
+        PsiTreeUtil.findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java).last()
+
+    // A provider that names neither a callable nor a class + method argument can't match anything.
+    fun testProviderWithoutCallableOrMethodArgumentNeverMatches() {
+        configureQueueCall("'MyService', 'doWork', [1, 2]")
+        val provider = queueProvider(classIndex = null, methodIndex = null)
+        val element = myFixture.findElementByText("'doWork'", StringLiteralExpression::class.java)!!
+
+        assertNull(PsaPhpMethodArgumentHelper.findProviderForMethodNameElement(element, listOf(provider)))
+        assertNull(PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(argumentsArray(), listOf(provider)))
+    }
+
+    // The class argument may be a `Foo::class` constant directly.
+    fun testClassArgumentAsClassConstant() {
+        configureQueueCall("MyService::class, 'doWork', [1, 2]")
+
+        val match = PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(argumentsArray(), listOf(queueProvider()))
+
+        assertEquals("doWork", match!!.method.name)
+    }
+
+    // `Foo::class` that doesn't resolve (here: a namespace mismatch) falls back to a same-named class
+    // declared in the same file.
+    fun testUnresolvedClassConstantFallsBackToSameNamedClassInFile() {
+        myFixture.configureByText(
+            "Queue.php",
+            """
+            <?php
+            namespace App {
+                class QueueManager {
+                    public function executeServiceMethod(${'$'}service, ${'$'}method, ${'$'}args) {}
+                }
+                class MyService {
+                    public function doWork(${'$'}a) {}
+                }
+            }
+            namespace Other {
+                (new \App\QueueManager())->executeServiceMethod(MyService::class, 'doWork', [1]);
+            }
+            """.trimIndent(),
+        )
+
+        val match = PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(argumentsArray(), listOf(queueProvider()))
+
+        assertEquals("doWork", match!!.method.name)
+    }
+
+    fun testClassArgumentThatIsNotAClassReferenceDoesNotMatch() {
+        configureQueueCall("\$something, 'doWork', [1, 2]")
+
+        assertNull(PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(argumentsArray(), listOf(queueProvider())))
+    }
+
+    // ── callable provider edge cases ─────────────────────────────────────
+
+    private fun configureCallableMessage(callable: String) {
+        myFixture.configureByText(
+            "Dispatcher.php",
+            """
+            <?php
+            class ServiceMethodMessage {}
+            class AccountStatsManager {
+                public function updateStats(${'$'}account) {}
+            }
+            function wrap(${'$'}callable) { return ${'$'}callable; }
+            new ServiceMethodMessage($callable, [${'$'}account]);
+            """.trimIndent(),
+        )
+    }
+
+    private val callableProvider =
+        MethodArgumentProviderModel().apply {
+            `class` = "ServiceMethodMessage"
+            method = "__construct"
+            callableArgumentIndex = 0
+            argumentsArgumentIndex = 1
+        }
+
+    // The callable array may be nested inside another expression (e.g. a wrapper call).
+    fun testCallableArrayNestedInsideAnotherExpression() {
+        configureCallableMessage("wrap([AccountStatsManager::class, 'updateStats'])")
+
+        val match = PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(argumentsArray(), listOf(callableProvider))
+
+        assertEquals("updateStats", match!!.method.name)
+    }
+
+    fun testCallableArgumentWithoutArrayDoesNotMatch() {
+        configureCallableMessage("\$callable")
+
+        assertNull(PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(argumentsArray(), listOf(callableProvider)))
+    }
+
+    // ── findArgumentForParameter ─────────────────────────────────────────
+
+    private fun doWorkElement() = myFixture.findElementByText("'doWork'", StringLiteralExpression::class.java)!!
+
+    fun testFindArgumentForParameterReturnsArrayValueAtParameterIndex() {
+        configureQueueCall("'MyService', 'doWork', [1, 2]")
+
+        assertEquals("2", PsaPhpMethodArgumentHelper.findArgumentForParameter(doWorkElement(), queueProvider(), 1)!!.text)
+    }
+
+    // The arguments array may be nested inside another expression (e.g. array_merge(...)).
+    fun testFindArgumentForParameterFindsNestedArgumentsArray() {
+        configureQueueCall("'MyService', 'doWork', array_merge([1, 2])")
+
+        assertEquals("1", PsaPhpMethodArgumentHelper.findArgumentForParameter(doWorkElement(), queueProvider(), 0)!!.text)
+    }
+
+    fun testFindArgumentForParameterWithoutArgumentsArrayIsNull() {
+        configureQueueCall("'MyService', 'doWork', \$args")
+
+        assertNull(PsaPhpMethodArgumentHelper.findArgumentForParameter(doWorkElement(), queueProvider(), 0))
+    }
+
+    // Parameters before `arguments_offset` aren't supplied by the arguments array.
+    fun testFindArgumentForParameterBeforeArgumentsOffsetIsNull() {
+        configureQueueCall("'MyService', 'doWork', [1, 2]")
+        val provider = queueProvider().apply { argumentsOffset = 1 }
+
+        assertNull(PsaPhpMethodArgumentHelper.findArgumentForParameter(doWorkElement(), provider, 0))
+        assertEquals("1", PsaPhpMethodArgumentHelper.findArgumentForParameter(doWorkElement(), provider, 1)!!.text)
+    }
 }

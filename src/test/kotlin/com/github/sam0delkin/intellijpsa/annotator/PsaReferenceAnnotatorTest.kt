@@ -10,32 +10,11 @@ import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 /**
- * The `fileData.values.map { ... }` traversal (lines ~49-85, the "processed" branch) resolves each
- * recorded reference-occurrence location via `PsiUtils.processLink("file://$result", ...,
- * appendProjectDir = false)`, which reconstructs an absolute-filesystem "file://" URL from the
- * light-fixture's "temp://" virtual path (e.g. "file:///src/test.php") - there is no real file on
- * disk at that path, so `VirtualFileManager.findFileByUrl` always returns null and `processed` can
- * never become true under `BasePlatformTestCase`. This is the same VFS protocol mismatch documented
- * in `PsaLineMarkerProviderTest.kt` for the equivalent lookup in `PsaLineMarkerProvider.kt`. The
- * `!processed` fallback branch below it, however, resolves completion links via the DEFAULT
- * `appendProjectDir = true` path (through `guessProjectDir()`'s "temp://" URL), which works fine in
- * this harness and is what these tests exercise.
- *
- * A second, code-level (not environmental) dead zone lives inside that same `!processed` fallback:
- * the "matched but no completion title" branches (lines ~108-111 and ~121-124 - the `else` arm of
- * each `if (null != completionTitle)` check) can never be reached without first crashing.
- * `AnyCompletionContributor.GotoDeclaration.getGotoDeclarationTargets` only ever calls
- * `sourceElement.putUserData(ANNOTATOR_COMPLETION_TITLE, config.title)` from inside the exact same
- * static-completion-pattern-match branch that is the *only* way (for the `offset < 0` calls this
- * annotator makes) its result can end up non-empty - and moments later, unconditionally, does
- * `it.completionName = config.title!!` over that same (by-then-known-non-empty) completions list.
- * So whenever `targets`/`completions` below is genuinely non-empty, `config.title` must already have
- * been non-null (else that `!!` would have thrown a `KotlinNullPointerException` out of
- * `getGotoDeclarationTargets` first) - meaning `element.getUserData(ANNOTATOR_COMPLETION_TITLE)` can
- * never observe null at that point. This is a real (if practically harmless, since every static
- * completion in this codebase's own usage sets a non-null `title`) latent `!!`-assertion coupling,
- * not something a fixture could route around - reported rather than worked around per this session's
- * "don't fix, report" convention for incidental findings.
+ * The `fileData.values.map { ... }` traversal (the "processed" branch) resolves recorded usage
+ * locations as real `file://` URLs, which this light fixture's `temp://` VFS can't provide - it is
+ * covered by `PsaReferenceAnnotatorStaticReferenceTest` (real on-disk project) instead. These tests
+ * exercise the `!processed` fallback branch.
+
  */
 class PsaReferenceAnnotatorTest : BasePlatformTestCase() {
     private fun enableAnnotator() {
@@ -49,10 +28,13 @@ class PsaReferenceAnnotatorTest : BasePlatformTestCase() {
         }
     }
 
-    private fun staticCompletion(completionText: String): StaticCompletionModel =
+    private fun staticCompletion(
+        completionText: String,
+        title: String? = "My Static",
+    ): StaticCompletionModel =
         StaticCompletionModel().apply {
             name = "my_static"
-            title = "My Static"
+            this.title = title
             patterns = arrayListOf(PsiElementPatternModel(withType = "String"))
             completions =
                 CompletionsModel().apply {
@@ -97,6 +79,34 @@ class PsaReferenceAnnotatorTest : BasePlatformTestCase() {
             annotation,
         )
         assertEquals(HighlightSeverity.WEAK_WARNING, annotation!!.severity)
+    }
+
+    // `title` is optional in the static completion schema. Regression test: an untitled config used
+    // to crash GoTo (and so this annotator) with an NPE as soon as an entry matched.
+    fun testAnnotatesExactMatchAsPsaReferenceWithoutCompletionTitle() {
+        enableAnnotator()
+        project.service<PsaManager>().setStaticCompletionConfigs(arrayListOf(staticCompletion("'target'", title = null)))
+        myFixture.configureByText("test.php", "<?php\n'target';")
+
+        val annotations = myFixture.doHighlighting(HighlightSeverity.INFORMATION)
+
+        val annotation = annotations.single { it.description?.contains("PSA Reference") == true }
+        assertEquals("PSA Reference", annotation.description)
+        assertEquals(HighlightSeverity.INFORMATION, annotation.severity)
+    }
+
+    fun testAnnotatesNonMatchingElementAsUndefinedWithoutCompletionTitle() {
+        enableAnnotator()
+        project.service<PsaManager>().setStaticCompletionConfigs(
+            arrayListOf(staticCompletion("'something_else'", title = null)),
+        )
+        myFixture.configureByText("test.php", "<?php\n'target';")
+
+        val annotations = myFixture.doHighlighting(HighlightSeverity.INFORMATION)
+
+        val annotation = annotations.single { it.description?.contains("PSA Reference") == true }
+        assertEquals("Undefined PSA Reference", annotation.description)
+        assertEquals(HighlightSeverity.WEAK_WARNING, annotation.severity)
     }
 
     fun testNoAnnotationWhenElementMatchesNoStaticCompletionPattern() {

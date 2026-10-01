@@ -28,6 +28,7 @@ import com.intellij.openapi.fileTypes.FileTypes
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogBuilder
@@ -38,6 +39,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiDirectory
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.GotItTooltip
 import com.intellij.ui.HorizontalScrollBarEditorCustomization
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
@@ -325,11 +327,10 @@ class MultipleFileTemplateAction(
                             ) {
                                 override fun actionPerformed(e: AnActionEvent) {
                                     val tooltip =
-                                        com.intellij.ui
-                                            .GotItTooltip(
-                                                "PSA",
-                                                psaManager.lastResultMessage,
-                                            ).withIcon(AllIcons.General.ErrorDialog)
+                                        GotItTooltip(
+                                            "PSA",
+                                            psaManager.lastResultMessage,
+                                        ).withIcon(AllIcons.General.ErrorDialog)
                                             .withButtonLabel("OK")
                                     tooltip.createAndShow(errorIcon!!.component) { c, _ ->
                                         Point(
@@ -393,23 +394,31 @@ class MultipleFileTemplateAction(
             )
         dialogBuilder.setTitle("Create " + template.title)
         if (dialogBuilder.showAndGet()) {
-            ApplicationManager.getApplication().runWriteAction {
-                var index = 0
-                filePaths.forEach {
-                    val previewTextField = previewTextFields[index]
-                    val fullFileName = e.project!!.guessProjectDir()!!.path + "/" + it
-                    val fileNameParts = fullFileName.split("/")
-                    val filePath = fileNameParts.dropLast(1).joinToString("/")
-                    Files.createDirectories(Paths.get(filePath))
-                    val file: Path = Paths.get(fullFileName)
-                    Files.write(file, previewTextField.document.text.split("\n"), StandardCharsets.UTF_8)
-                    val virtualFile = VirtualFileManager.getInstance().refreshAndFindFileByUrl("file://$fullFileName")
+            createFiles(e.project!!)
+        }
+    }
 
-                    if (navigateToFile!!.component.isSelected && virtualFile !== null) {
-                        OpenFileDescriptor(e.project!!, virtualFile, 0).navigate(true)
-                    }
-                    index++
+    /**
+     * Writes every previewed file (paths relative to the project dir, content as currently shown
+     * in the dialog), optionally opening them.
+     */
+    internal fun createFiles(project: Project) {
+        ApplicationManager.getApplication().runWriteAction {
+            var index = 0
+            filePaths.forEach {
+                val previewTextField = previewTextFields[index]
+                val fullFileName = project.guessProjectDir()!!.path + "/" + it
+                val fileNameParts = fullFileName.split("/")
+                val filePath = fileNameParts.dropLast(1).joinToString("/")
+                Files.createDirectories(Paths.get(filePath))
+                val file: Path = Paths.get(fullFileName)
+                Files.writeString(file, previewTextField.document.text, StandardCharsets.UTF_8)
+                val virtualFile = VirtualFileManager.getInstance().refreshAndFindFileByUrl("file://$fullFileName")
+
+                if (navigateToFile!!.component.isSelected && virtualFile !== null) {
+                    OpenFileDescriptor(project, virtualFile, 0).navigate(true)
                 }
+                index++
             }
         }
     }

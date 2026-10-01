@@ -1,13 +1,17 @@
 package com.github.sam0delkin.intellijpsa.settings
 
 import com.github.sam0delkin.intellijpsa.services.PsaManager
+import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.components.service
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.Cell
 import java.io.File
+import javax.swing.JComponent
 import javax.swing.JTextField
 
 /**
@@ -62,7 +66,7 @@ class PsaConfigurableTest : BasePlatformTestCase() {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T : javax.swing.JComponent> cell(name: String): Cell<T> {
+    private fun <T : JComponent> cell(name: String): Cell<T> {
         val field = PsaConfigurable::class.java.getDeclaredField(name)
         field.isAccessible = true
 
@@ -168,12 +172,12 @@ class PsaConfigurableTest : BasePlatformTestCase() {
         checkBox("enabled").isSelected = false
         browseField("scriptPath").text = ""
         callPrivate("updateInfoButtonEnabled")
-        assertFalse(cell<com.intellij.openapi.actionSystem.impl.ActionButton>("infoButton").component.isEnabled)
+        assertFalse(cell<ActionButton>("infoButton").component.isEnabled)
 
         checkBox("enabled").isSelected = true
         browseField("scriptPath").text = "/some/script.php"
         callPrivate("updateInfoButtonEnabled")
-        assertTrue(cell<com.intellij.openapi.actionSystem.impl.ActionButton>("infoButton").component.isEnabled)
+        assertTrue(cell<ActionButton>("infoButton").component.isEnabled)
     }
 
     fun testGetInfoSuccessUpdatesFieldsAndDiagnostics() {
@@ -263,10 +267,10 @@ class PsaConfigurableTest : BasePlatformTestCase() {
     }
 
     fun testSupportedLanguagesButtonActionShowsTooltip() {
-        val button = cell<com.intellij.openapi.actionSystem.impl.ActionButton>("supportedLanguagesButton").component
+        val button = cell<ActionButton>("supportedLanguagesButton").component
         val action = button.action
         val event =
-            com.intellij.testFramework.TestActionEvent
+            TestActionEvent
                 .createTestEvent(action)
 
         action.actionPerformed(event)
@@ -285,10 +289,10 @@ class PsaConfigurableTest : BasePlatformTestCase() {
             executionMode = ExecutionMode.Script
             scriptPath = fixturePath("configurable-info-success.php")
         }
-        val button = cell<com.intellij.openapi.actionSystem.impl.ActionButton>("infoButton").component
+        val button = cell<ActionButton>("infoButton").component
         val action = button.action
         val event =
-            com.intellij.testFramework.TestActionEvent
+            TestActionEvent
                 .createTestEvent(action)
 
         action.actionPerformed(event)
@@ -307,5 +311,29 @@ class PsaConfigurableTest : BasePlatformTestCase() {
 
         assertTrue(project.service<PsaManager>().lastResultSucceed)
         assertEquals("", project.service<PsaManager>().lastResultMessage)
+    }
+
+    fun testToProjectPathIsRelativeForFileInsideProject() {
+        val file = myFixture.addFileToProject(".psa/psa.sh", "#!/bin/sh").virtualFile
+
+        assertEquals(".psa/psa.sh", configurable.toProjectPath(file))
+    }
+
+    fun testToProjectPathIsAbsoluteForFileOutsideProject() {
+        val outside = LocalFileSystem.getInstance().refreshAndFindFileByPath(fixturePath("template-success.php"))!!
+
+        assertEquals(outside.path, configurable.toProjectPath(outside))
+    }
+
+    // Picking a file also refreshes the "Get info" button state.
+    fun testToProjectPathRefreshesInfoButtonState() {
+        checkBox("enabled").isSelected = true
+        browseField("scriptPath").text = "psa.sh"
+        cell<ActionButton>("infoButton").component.isEnabled = false
+        val file = myFixture.addFileToProject("psa.sh", "#!/bin/sh").virtualFile
+
+        configurable.toProjectPath(file)
+
+        assertTrue(cell<ActionButton>("infoButton").component.isEnabled)
     }
 }

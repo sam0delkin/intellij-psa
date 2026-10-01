@@ -6,6 +6,9 @@ import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ThreeState
+import com.intellij.xdebugger.XExpression
+import com.intellij.xdebugger.XSourcePosition
+import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 import com.intellij.xdebugger.evaluation.XInstanceEvaluator
 import com.intellij.xdebugger.frame.XCompositeNode
 import com.intellij.xdebugger.frame.XDebuggerTreeNodeHyperlink
@@ -13,6 +16,7 @@ import com.intellij.xdebugger.frame.XFullValueEvaluator
 import com.intellij.xdebugger.frame.XInlineDebuggerDataCallback
 import com.intellij.xdebugger.frame.XNavigatable
 import com.intellij.xdebugger.frame.XReferrersProvider
+import com.intellij.xdebugger.frame.XStackFrame
 import com.intellij.xdebugger.frame.XValue
 import com.intellij.xdebugger.frame.XValueChildrenList
 import com.intellij.xdebugger.frame.XValueModifier
@@ -24,28 +28,10 @@ import org.jetbrains.concurrency.resolvedPromise
 import javax.swing.Icon
 
 /**
- * Two residual coverage gaps remain in `PsaPhpValue.kt`, both structural rather than missing
- * test effort:
- *
- * 1. `class PathUtils` (line 39, the implicit no-arg constructor): `PathUtils` is only ever used
- *    via its `companion object`, so its own constructor line never executes - not something a
- *    test can trigger without pointlessly instantiating a class that's designed to never be
- *    instantiated. Same category as this project's documented `const val` inlining / interface
- *    `DefaultImpls` Kover gaps.
- * 2. The `wrapped is XdebugValue` branch and everything nested under it in `computePresentation`
- *    (roughly lines 64-193 - the `PhpType.isScalar` check, the full `__toString` evaluation
- *    closure, and both `PhpEvaluationResultProcessor` callback bodies): reaching this branch
- *    requires `wrapped` to literally be an instance of `com.jetbrains.php.debug.xdebug.debugger.XdebugValue`,
- *    which is a `public final class` whose only public constructors require a real
- *    `PhpDebugProcess<XdebugConnection>` and `DbgpProperty` sourced from an actual live XDebug
- *    connection - `PhpDebugProcess` itself extends the platform's `XDebugProcess`, which requires
- *    a real `XDebugSession`/run configuration to construct. `evaluator` similarly must be an
- *    `XdebugPhpEvaluator` (also requiring a live `PhpDebugProcess`). Neither can be faked via
- *    `java.lang.reflect.Proxy` (both are concrete classes, not interfaces) or constructed
- *    meaningfully in `BasePlatformTestCase`, which has no live debug session. This is a genuine
- *    platform-integration limitation, not a gap in test effort - all reachable branches
- *    (early-return guards, every simple delegation method, and `computeChildren`'s
- *    PhpValue-wrapping logic) are covered below.
+ * Covers `PathUtils`, the early-return guards and the simple delegation methods. The `__toString`
+ * formatter path (which needs a real `XdebugValue`/`XdebugPhpEvaluator`) is covered with Mockito
+ * in `PsaPhpValueToStringTest`. `class PathUtils`'s own constructor is never run - it's only used
+ * through its companion object.
  */
 class PsaPhpValueTest : BasePlatformTestCase() {
     // ── PathUtils ─────────────────────────────────────────────────────────
@@ -216,7 +202,7 @@ class PsaPhpValueTest : BasePlatformTestCase() {
     }
 
     fun testCalculateEvaluationExpressionDelegatesToWrapped() {
-        val marker = resolvedPromise<com.intellij.xdebugger.XExpression?>(null)
+        val marker = resolvedPromise<XExpression?>(null)
         val wrapped =
             object : PhpValue() {
                 override fun computePresentation(
@@ -234,8 +220,8 @@ class PsaPhpValueTest : BasePlatformTestCase() {
         val marker =
             object : XInstanceEvaluator {
                 override fun evaluate(
-                    context: com.intellij.xdebugger.evaluation.XDebuggerEvaluator.XEvaluationCallback,
-                    node: com.intellij.xdebugger.frame.XStackFrame,
+                    context: XDebuggerEvaluator.XEvaluationCallback,
+                    node: XStackFrame,
                 ) {}
             }
         val wrapped =
@@ -255,7 +241,7 @@ class PsaPhpValueTest : BasePlatformTestCase() {
         val marker =
             object : XValueModifier() {
                 override fun setValue(
-                    expression: com.intellij.xdebugger.XExpression,
+                    expression: XExpression,
                     callback: XValueModifier.XModificationCallback,
                 ) {}
             }
@@ -295,7 +281,7 @@ class PsaPhpValueTest : BasePlatformTestCase() {
     fun testComputeInlineDebuggerDataDelegatesToWrapped() {
         val callback =
             object : XInlineDebuggerDataCallback() {
-                override fun computed(position: com.intellij.xdebugger.XSourcePosition?) {}
+                override fun computed(position: XSourcePosition?) {}
             }
         val wrapped =
             object : PhpValue() {

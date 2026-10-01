@@ -20,6 +20,7 @@ import com.intellij.usageView.UsageInfo
 import com.intellij.util.containers.MultiMap
 import com.jetbrains.php.lang.psi.PhpPsiElementFactory
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
+import com.jetbrains.php.lang.psi.elements.ConstantReference
 import com.jetbrains.php.lang.psi.elements.ParameterList
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 import com.jetbrains.php.refactoring.changeSignature.PhpChangeInfo
@@ -52,7 +53,10 @@ class PsaPhpChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
             if (result.any { (it as? PsaPhpDynamicCallUsageInfo)?.array?.containingFile == stringLiteralExpression.containingFile }) {
                 return@forEach
             }
-            val array = findArgumentsArray(stringLiteralExpression, providers) ?: return@forEach
+            val match =
+                PsaPhpMethodArgumentHelper.findProviderForMethodNameElement(stringLiteralExpression, providers)
+                    ?: return@forEach
+            val array = findArgumentsArray(stringLiteralExpression, match.provider) ?: return@forEach
             val provider =
                 PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(array, providers)?.provider
                     ?: return@forEach
@@ -144,15 +148,16 @@ class PsaPhpChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
         val allLiterals = PsiTreeUtil.findChildrenOfType(file, StringLiteralExpression::class.java)
         val allMagicConstants =
             PsiTreeUtil
-                .findChildrenOfType(file, com.jetbrains.php.lang.psi.elements.ConstantReference::class.java)
+                .findChildrenOfType(file, ConstantReference::class.java)
                 .filter { it.name == "__METHOD__" || it.name == "__FUNCTION__" }
 
         (allLiterals + allMagicConstants)
             .filter { PsaPhpMethodArgumentHelper.extractStringContents(it) == methodName }
             .forEach { methodNameElement ->
-                PsaPhpMethodArgumentHelper.findProviderForMethodNameElement(methodNameElement, providers)
-                    ?: return@forEach
-                val array = findArgumentsArray(methodNameElement, providers) ?: return@forEach
+                val match =
+                    PsaPhpMethodArgumentHelper.findProviderForMethodNameElement(methodNameElement, providers)
+                        ?: return@forEach
+                val array = findArgumentsArray(methodNameElement, match.provider) ?: return@forEach
                 val provider =
                     PsaPhpMethodArgumentHelper.findProviderForArgumentsArray(array, providers)?.provider
                         ?: return@forEach
@@ -162,35 +167,32 @@ class PsaPhpChangeSignatureUsageProcessor : ChangeSignatureUsageProcessor {
             }
     }
 
+    // The arguments array of the call [methodNameElement] belongs to, laid out as [provider] describes.
     private fun findArgumentsArray(
         methodNameElement: PsiElement,
-        providers: List<MethodArgumentProviderModel>,
+        provider: MethodArgumentProviderModel,
     ): ArrayCreationExpression? {
-        for (provider in providers) {
-            val paramList: ParameterList? =
-                when {
-                    provider.callableArgumentIndex != null -> {
-                        val callableArray =
-                            PsiTreeUtil.getParentOfType(
-                                methodNameElement,
-                                ArrayCreationExpression::class.java,
-                            )
-                        callableArray?.parent as? ParameterList
-                    }
-
-                    provider.methodArgumentIndex != null -> {
-                        methodNameElement.parent as? ParameterList
-                    }
-
-                    else -> {
-                        null
-                    }
+        val paramList: ParameterList? =
+            when {
+                provider.callableArgumentIndex != null -> {
+                    val callableArray =
+                        PsiTreeUtil.getParentOfType(
+                            methodNameElement,
+                            ArrayCreationExpression::class.java,
+                        )
+                    callableArray?.parent as? ParameterList
                 }
 
-            return paramList?.parameters?.getOrNull(provider.argumentsArgumentIndex) as? ArrayCreationExpression
-        }
+                provider.methodArgumentIndex != null -> {
+                    methodNameElement.parent as? ParameterList
+                }
 
-        return null
+                else -> {
+                    null
+                }
+            }
+
+        return paramList?.parameters?.getOrNull(provider.argumentsArgumentIndex) as? ArrayCreationExpression
     }
 
     private fun arrayValues(array: ArrayCreationExpression): List<PsiElement> =

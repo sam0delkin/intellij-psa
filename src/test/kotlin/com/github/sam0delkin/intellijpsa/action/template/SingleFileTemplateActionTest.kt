@@ -14,6 +14,7 @@ import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.PsiDirectory
@@ -30,6 +31,8 @@ import com.intellij.util.textCompletion.TextCompletionValueDescriptor
 import com.intellij.util.textCompletion.TextFieldWithCompletion
 import java.awt.Container
 import java.io.File
+import java.util.Timer
+import javax.swing.JCheckBox
 import javax.swing.JComponent
 
 class SingleFileTemplateActionTest : BasePlatformTestCase() {
@@ -45,7 +48,7 @@ class SingleFileTemplateActionTest : BasePlatformTestCase() {
             for (action in createdActions) {
                 val field = action.javaClass.getDeclaredField("timer")
                 field.isAccessible = true
-                (field.get(action) as? java.util.Timer)?.cancel()
+                (field.get(action) as? Timer)?.cancel()
             }
         } finally {
             super.tearDown()
@@ -441,5 +444,33 @@ class SingleFileTemplateActionTest : BasePlatformTestCase() {
             Thread.sleep(100)
         }
         PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+    }
+
+    // What "OK" does: the previewed file (name + content from the script) is created in the
+    // target directory and opened.
+    fun testCreateFileWritesPreviewedFileIntoDirectoryAndOpensIt() {
+        val directory = PsiManager.getInstance(project).findDirectory(project.guessProjectDir()!!)!!
+        val template = buildAllFieldTypesTemplate("single_create_template", "Single Create")
+        val action = buildActionAndCatchDialogNpe(directory, template, "template-success.php")
+        waitForUpdateDataToSettle(action)
+
+        action.createFile(project, directory)
+
+        val created = directory.findFile("MyClass.php")!!
+        assertEquals("<?php\nclass MyClass {}\n", created.text)
+        assertEquals(created.virtualFile, FileEditorManager.getInstance(project).selectedFiles.single())
+    }
+
+    fun testCreateFileDoesNotOpenItWhenNavigationIsUnchecked() {
+        val directory = PsiManager.getInstance(project).findDirectory(project.guessProjectDir()!!)!!
+        val template = buildAllFieldTypesTemplate("single_create_no_nav_template", "Single Create No Nav")
+        val action = buildActionAndCatchDialogNpe(directory, template, "template-success.php")
+        waitForUpdateDataToSettle(action)
+        privateField<Cell<JCheckBox>>(action, "navigateToFile").component.isSelected = false
+
+        action.createFile(project, directory)
+
+        assertNotNull(directory.findFile("MyClass.php"))
+        assertEmpty(FileEditorManager.getInstance(project).selectedFiles)
     }
 }

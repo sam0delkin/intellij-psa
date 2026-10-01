@@ -8,6 +8,7 @@ import javax.swing.JTextField
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.text.AbstractDocument
+import javax.swing.text.Document
 import javax.swing.text.Element
 
 class JTextFieldCollectionTest : BasePlatformTestCase() {
@@ -214,7 +215,7 @@ class JTextFieldCollectionTest : BasePlatformTestCase() {
 
                 override fun getLength(): Int = 0
 
-                override fun getDocument(): javax.swing.text.Document = doc
+                override fun getDocument(): Document = doc
 
                 override fun getType(): DocumentEvent.EventType = DocumentEvent.EventType.CHANGE
 

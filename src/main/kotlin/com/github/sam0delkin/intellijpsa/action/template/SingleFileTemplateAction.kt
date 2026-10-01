@@ -21,6 +21,7 @@ import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.fileTypes.FileTypes
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogBuilder
@@ -342,24 +343,35 @@ class SingleFileTemplateAction(
             )
         dialogBuilder.setTitle("Create " + template.title)
         if (dialogBuilder.showAndGet()) {
-            ApplicationManager.getApplication().runWriteAction {
-                val fileFromText: PsiFile =
-                    PsiFileFactory
-                        .getInstance(e.project)
-                        .createFileFromText(
-                            fileNameField!!.component.text,
-                            previewTextField!!.component.fileType,
-                            previewTextField!!.component.document.text,
-                        )
-                val el =
-                    PsiDirectoryFactory
-                        .getInstance(e.project)
-                        .createDirectory(directories[0].virtualFile)
-                        .add(fileFromText)
+            createFile(e.project!!, directories[0])
+        }
+    }
 
-                if (navigateToFile!!.component.isSelected) {
-                    OpenFileDescriptor(e.project!!, el.containingFile.virtualFile, 0).navigate(true)
-                }
+    /**
+     * Creates the previewed file (name and content as currently shown in the dialog) in
+     * [directory], optionally opening it.
+     */
+    internal fun createFile(
+        project: Project,
+        directory: PsiDirectory,
+    ) {
+        ApplicationManager.getApplication().runWriteAction {
+            val fileFromText: PsiFile =
+                PsiFileFactory
+                    .getInstance(project)
+                    .createFileFromText(
+                        fileNameField!!.component.text,
+                        previewTextField!!.component.fileType,
+                        previewTextField!!.component.document.text,
+                    )
+            val el =
+                PsiDirectoryFactory
+                    .getInstance(project)
+                    .createDirectory(directory.virtualFile)
+                    .add(fileFromText)
+
+            if (navigateToFile!!.component.isSelected) {
+                OpenFileDescriptor(project, el.containingFile.virtualFile, 0).navigate(true)
             }
         }
     }

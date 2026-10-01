@@ -10,6 +10,7 @@ import com.github.sam0delkin.intellijpsa.settings.PersistedEditorAction
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.ide.IdeView
 import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.actionSystem.Separator
@@ -141,7 +142,7 @@ class PsaEditorActionGroupTest : BasePlatformTestCase() {
 
     fun testAddCustomActionsSkipsActionWithMismatchedPathRegex() {
         val group = PsaEditorActionGroup()
-        val actions = HashMap<String?, ArrayList<com.intellij.openapi.actionSystem.AnAction>>()
+        val actions = HashMap<String?, ArrayList<AnAction>>()
         val editorActions =
             arrayListOf(
                 PersistedEditorAction().apply {
@@ -158,7 +159,7 @@ class PsaEditorActionGroupTest : BasePlatformTestCase() {
 
     fun testAddCustomActionsSkipsContextActionMismatch() {
         val group = PsaEditorActionGroup()
-        val actions = HashMap<String?, ArrayList<com.intellij.openapi.actionSystem.AnAction>>()
+        val actions = HashMap<String?, ArrayList<AnAction>>()
         val editorActions =
             arrayListOf(
                 PersistedEditorAction().apply {
@@ -175,7 +176,7 @@ class PsaEditorActionGroupTest : BasePlatformTestCase() {
 
     fun testAddCustomActionsSkipsEmptyTitle() {
         val group = PsaEditorActionGroup()
-        val actions = HashMap<String?, ArrayList<com.intellij.openapi.actionSystem.AnAction>>()
+        val actions = HashMap<String?, ArrayList<AnAction>>()
         val editorActions =
             arrayListOf(
                 PersistedEditorAction().apply {
@@ -200,7 +201,7 @@ class PsaEditorActionGroupTest : BasePlatformTestCase() {
             executionMode = ExecutionMode.Script
             scriptPath = fixturePath().path
         }
-        val actions = HashMap<String?, ArrayList<com.intellij.openapi.actionSystem.AnAction>>()
+        val actions = HashMap<String?, ArrayList<AnAction>>()
         val editorActions =
             arrayListOf(
                 PersistedEditorAction().apply {
@@ -233,7 +234,7 @@ class PsaEditorActionGroupTest : BasePlatformTestCase() {
             executionMode = ExecutionMode.Script
             scriptPath = fixturePath().path
         }
-        val actions = HashMap<String?, ArrayList<com.intellij.openapi.actionSystem.AnAction>>()
+        val actions = HashMap<String?, ArrayList<AnAction>>()
         val editorActions =
             arrayListOf(
                 PersistedEditorAction().apply {

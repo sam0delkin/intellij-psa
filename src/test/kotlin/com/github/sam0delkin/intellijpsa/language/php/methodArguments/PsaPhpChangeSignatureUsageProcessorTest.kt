@@ -1,17 +1,22 @@
 package com.github.sam0delkin.intellijpsa.language.php.methodArguments
 
+import com.github.sam0delkin.intellijpsa.language.php.PhpPsaExtension
 import com.github.sam0delkin.intellijpsa.language.php.model.MethodArgumentProviderModel
 import com.github.sam0delkin.intellijpsa.language.php.services.PhpPsaManager
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.Ref
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.rename.ResolveSnapshotProvider
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.usageView.UsageInfo
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.refactoring.changeSignature.PhpChangeInfo
 import com.jetbrains.php.refactoring.changeSignature.PhpMethodDescriptor
 import com.jetbrains.php.refactoring.changeSignature.PhpParameterInfo
+import org.mockito.Mockito.mock
 
 class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
     private lateinit var processor: PsaPhpChangeSignatureUsageProcessor
@@ -134,7 +139,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
                     .methodArgumentProviders!!
                     .first(),
             )
-        val allUsages: Array<com.intellij.usageView.UsageInfo> = arrayOf(usageInfo)
+        val allUsages: Array<UsageInfo> = arrayOf(usageInfo)
 
         WriteCommandAction.runWriteCommandAction(project) {
             processor.processUsage(changeInfo, usageInfo, false, allUsages)
@@ -184,7 +189,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
                 .first()
         val usageInfo = PsaPhpDynamicCallUsageInfo(array, provider)
 
-        val allUsages: Array<com.intellij.usageView.UsageInfo> = arrayOf(usageInfo)
+        val allUsages: Array<UsageInfo> = arrayOf(usageInfo)
         WriteCommandAction.runWriteCommandAction(project) {
             processor.processUsage(changeInfo, usageInfo, false, allUsages)
         }
@@ -372,7 +377,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         val method = myFixture.findElementByText("b", Method::class.java)!!
         val changeInfo = buildChangeInfo(method, emptyList())
 
-        val plainUsage = com.intellij.usageView.UsageInfo(method)
+        val plainUsage = UsageInfo(method)
         val result = processor.processUsage(changeInfo, plainUsage, false, arrayOf(plainUsage))
 
         assertFalse("processUsage should return false for non-dynamic usages", result)
@@ -383,8 +388,7 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         phpSettings.enabled = true
 
         val extension =
-            com.github.sam0delkin.intellijpsa.language.php
-                .PhpPsaExtension()
+            PhpPsaExtension()
         extension.updateInfo(
             project,
             """
@@ -409,6 +413,60 @@ class PsaPhpChangeSignatureUsageProcessorTest : BasePlatformTestCase() {
         assertEquals("__construct", providers[0].method)
         assertEquals(0, providers[0].callableArgumentIndex)
         assertEquals(1, providers[0].argumentsArgumentIndex)
+    }
+
+    // Regression test: only the first configured provider's argument layout used to be considered
+    // when locating the arguments array, so call sites of any later provider were missed.
+    fun testFindUsagesUsesTheMatchingProviderWhenSeveralAreConfigured() {
+        project.service<PhpPsaManager>().getSettings().methodArgumentProviders =
+            arrayListOf(
+                MethodArgumentProviderModel().apply {
+                    `class` = "QueueManager"
+                    method = "executeServiceMethod"
+                    classArgumentIndex = 0
+                    methodArgumentIndex = 1
+                    argumentsArgumentIndex = 2
+                },
+                MethodArgumentProviderModel().apply {
+                    `class` = "ServiceMethodMessage"
+                    method = "__construct"
+                    callableArgumentIndex = 0
+                    argumentsArgumentIndex = 1
+                },
+            )
+        myFixture.configureByText(
+            "Call.php",
+            """
+            <?php
+            class ServiceMethodMessage {}
+            class AccountStatsManager {
+                public function updateStats(${'$'}a) {}
+            }
+            new ServiceMethodMessage([AccountStatsManager::class, 'updateStats'], [${'$'}a]);
+            """.trimIndent(),
+        )
+        val method = myFixture.findElementByText("updateStats", Method::class.java)!!
+
+        val usages = processor.findUsages(buildChangeInfo(method, listOf(PhpParameterInfo(0, "a"))))
+
+        assertEquals(1, usages.size)
+        assertEquals("[\$a]", (usages.single() as PsaPhpDynamicCallUsageInfo).array.text)
+    }
+
+    // The primary method itself, conflicts, previews and default values are all left to PHP's own
+    // Change Signature processor.
+    fun testLeavesPrimaryMethodConflictsAndDefaultsToPhpProcessor() {
+        setupCallableProvider()
+        myFixture.configureByText("Call.php", "<?php\nclass A { public function m() {} }")
+        val changeInfo = buildChangeInfo(myFixture.findElementByText("m", Method::class.java)!!, emptyList())
+
+        assertFalse(processor.processPrimaryMethod(changeInfo))
+        assertTrue(processor.findConflicts(changeInfo, Ref(emptyArray())).isEmpty)
+        assertFalse(processor.shouldPreviewUsages(changeInfo, emptyArray()))
+        assertFalse(processor.setupDefaultValues(changeInfo, Ref(emptyArray()), project))
+        val snapshots = mutableListOf<ResolveSnapshotProvider.ResolveSnapshot>()
+        processor.registerConflictResolvers(snapshots, mock(ResolveSnapshotProvider::class.java), emptyArray(), changeInfo)
+        assertEmpty(snapshots)
     }
 
     private fun buildChangeInfo(

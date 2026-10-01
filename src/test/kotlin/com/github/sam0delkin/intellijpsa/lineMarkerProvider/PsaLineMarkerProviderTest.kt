@@ -23,35 +23,11 @@ import com.intellij.util.indexing.FileBasedIndex
 import java.io.File
 
 /**
- * The "PSA Reference" rename-dialog flow in `collectSlowLineMarkers` (roughly lines 103-313 of
- * PsaLineMarkerProvider.kt) only runs when `ReferenceProvidersRegistry.getReferencesFromProviders`
- * returns a [com.github.sam0delkin.intellijpsa.psi.reference.PsaReference] whose
- * `staticCompletionName` is non-null - which only `PsaReferenceContributor`'s static-index lookup
- * ever sets. That lookup resolves each recorded usage location via
- * `PsiUtils.processLink("file://$keyEl", ..., appendProjectDir = false)`, which only resolves
- * against a real `LocalFileSystem` "file://" URL. `BasePlatformTestCase`'s light-fixture project is
- * backed entirely by the in-memory "temp://" VFS (confirmed experimentally:
- * `VirtualFileManager.findFileByUrl("file:///src/test.php")` returns null while
- * `findFileByUrl("temp:///src/test.php")` resolves correctly), so that lookup can never succeed
- * here - there is no fixture data that makes it succeed, this is a VFS protocol mismatch between
- * the light test harness and code that assumes a real filesystem. The rest of this file's tests
- * confirm the reachable guard clauses and the fileData traversal instead; the rename dialog itself
- * remains a documented residual gap. The same limitation is why `PsaReferenceContributorTest.kt`
- * only covers the Server live-lookup path (which never needs `staticCompletionName`), not
- * the static-index path, and would equally block a dedicated `PsaStaticReferenceIndexTest.kt` from
- * covering `PsaReferenceContributor`'s consuming side.
- *
- * A handful of remaining kover-reported partial-branch lines (the `staticLookupEnabled` expression
- * around line 61 and the `it?.entries!!` line inside the fileData traversal around line 85) were
- * checked against the compiled bytecode (`javap -p -c -l` on
- * `build/classes/kotlin/main/.../PsaLineMarkerProvider.class`) rather than assumed: in both cases
- * the one remaining uncovered branch is a null-check on a value the Kotlin compiler cannot actually
- * prove non-null at the call site (an inlined stdlib `isNullOrEmpty()` null-check on
- * `PsaManager.getStaticCompletionConfigs()`'s declared-non-null `MutableList` return, and a `?.`
- * null-check on a per-file index value coming back through a Java-interop platform type from
- * `FileBasedIndex.getFileData()`/`PsaStaticReferenceIndex`'s own non-null-typed `Map<String,
- * List<String>>` value type) - genuinely unreachable without corrupting internal state, not a gap a
- * fixture could close.
+ * The static-completion-backed marker and its Rename action need `PsiUtils.processLink("file://...")`
+ * to resolve recorded usage paths, which only works against a real on-disk project - this light
+ * fixture is backed by the in-memory `temp://` VFS, so that path is covered by
+ * `PsaLineMarkerProviderStaticReferenceTest` instead. The tests here cover the guard clauses and the
+ * Server-mode live-only marker.
  */
 class PsaLineMarkerProviderTest : BasePlatformTestCase() {
     override fun setUp() {
@@ -138,8 +114,7 @@ class PsaLineMarkerProviderTest : BasePlatformTestCase() {
     // (the smallest element whose text is exactly the quoted string) always is. Under
     // BasePlatformTestCase, TestLoggerFactory turns that Logger.error call into a hard
     // TestLoggerAssertionError. This is pre-existing platform behavior unrelated to the new
-    // Server-mode gating this test targets (and the static-completion path could never reach
-    // createLineMarkerInfo in tests at all - see this file's class doc comment) - suppress just
+    // Server-mode gating this test targets - suppress just
     // this expected log via LoggedErrorProcessor rather than changing which element is targeted
     // (a leaf element wouldn't have any reference attached to it at all).
     private fun collectSlowLineMarkersSuppressingLeafWarning(
@@ -491,22 +466,16 @@ class PsaLineMarkerProviderTest : BasePlatformTestCase() {
         FileBasedIndex.getInstance().ensureUpToDate(INDEX_ID, project, GlobalSearchScope.allScope(project))
     }
 
-    // Exercises the fileData.values.map { it?.entries!!.map { entry -> { ... } } } traversal
-    // (PsaLineMarkerProvider.kt lines ~80-101) against real, non-empty FileBasedIndex data, so the
-    // outer .map calls actually iterate real entries instead of an empty map. The innermost
-    // lambda's body (the `val sourceEl = ...` block starting at line ~85) is never invoked no
-    // matter what data is supplied here or in real usage - that inner block is a lambda literal
-    // returned-but-never-called by its enclosing `.map { entry -> { ... } } }`, a data-independent
-    // dead-code shape, not something any fixture could reach.
-    fun testCollectSlowLineMarkersTraversesRealFileDataWithoutMatchingAReference() {
+    // Real, non-empty index data for the file, but the reference lookup can't resolve it here.
+    fun testCollectSlowLineMarkersWithIndexedFileButNoResolvableReference() {
         indexMatchingStaticCompletion()
         val element = myFixture.findElementByText("'target'", PsiElement::class.java)!!
         val result = mutableListOf<LineMarkerInfo<*>>()
 
         PsaLineMarkerProvider().collectSlowLineMarkers(mutableListOf(element), result)
 
-        // See this file's class doc comment: the static-index reference lookup can never succeed
-        // under BasePlatformTestCase's temp:// VFS, so no marker is ever produced here.
+        // See this file's class doc comment: the static-index reference lookup needs a real
+        // on-disk project, so no marker is produced under this light fixture.
         assertTrue(result.isEmpty())
     }
 }

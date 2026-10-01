@@ -4,9 +4,14 @@ import com.github.sam0delkin.intellijpsa.language.php.services.PhpPsaManager
 import com.github.sam0delkin.intellijpsa.language.php.typeProvider.PSA_TYPE_PROVIDER_ANNOTATOR_KEY
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.components.service
+import com.intellij.psi.PsiElement
 import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.jetbrains.php.lang.psi.PhpPsiElementFactory
+import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
 class TypeProviderAnnotatorTest : BasePlatformTestCase() {
     override fun setUp() {
@@ -23,7 +28,7 @@ class TypeProviderAnnotatorTest : BasePlatformTestCase() {
 
     fun testAnnotationCreatedWhenUserDataPresent() {
         myFixture.configureByText("test.php", "<?php 'some_string';")
-        val element = myFixture.findElementByText("'some_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'some_string'", PsiElement::class.java)
 
         // Find the leaf element which is actually passed to annotator in many cases,
         // or just the element itself. The annotator is called for all elements.
@@ -44,7 +49,7 @@ class TypeProviderAnnotatorTest : BasePlatformTestCase() {
         phpSettings.debugTypeProvider = false
 
         myFixture.configureByText("test.php", "<?php 'some_string';")
-        val element = myFixture.findElementByText("'some_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'some_string'", PsiElement::class.java)
         val pointer = SmartPointerManager.createPointer(element)
         element.putUserData(PSA_TYPE_PROVIDER_ANNOTATOR_KEY, pointer)
 
@@ -59,7 +64,7 @@ class TypeProviderAnnotatorTest : BasePlatformTestCase() {
         settings.pluginEnabled = false
 
         myFixture.configureByText("test.php", "<?php 'some_string';")
-        val element = myFixture.findElementByText("'some_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'some_string'", PsiElement::class.java)
         val pointer = SmartPointerManager.createPointer(element)
         element.putUserData(PSA_TYPE_PROVIDER_ANNOTATOR_KEY, pointer)
 
@@ -71,7 +76,7 @@ class TypeProviderAnnotatorTest : BasePlatformTestCase() {
 
     fun testNoAnnotationWhenTargetElementIsNull() {
         myFixture.configureByText("test.php", "<?php 'some_string';")
-        val element = myFixture.findElementByText("'some_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'some_string'", PsiElement::class.java)
 
         // Create a pointer to an element that is then "deleted" (not really possible this way, but we can mock it by having a pointer to something else)
         // Or just use a pointer to an element that's no longer valid.
@@ -82,12 +87,12 @@ class TypeProviderAnnotatorTest : BasePlatformTestCase() {
         // but it's easier to just assume the check `if (null != targetElement)` works.
         // Let's try to make it null by using a pointer to a temporary element.
 
-        var pointer: com.intellij.psi.SmartPsiElementPointer<com.intellij.psi.PsiElement>? = null
-        com.intellij.openapi.application.WriteAction.run<Throwable> {
+        var pointer: SmartPsiElementPointer<PsiElement>? = null
+        WriteAction.run<Throwable> {
             val tempElement =
-                com.jetbrains.php.lang.psi.PhpPsiElementFactory.createFromText(
+                PhpPsiElementFactory.createFromText(
                     project,
-                    com.jetbrains.php.lang.psi.elements.StringLiteralExpression::class.java,
+                    StringLiteralExpression::class.java,
                     "'temp'",
                 )
             pointer = SmartPointerManager.createPointer(tempElement!!)

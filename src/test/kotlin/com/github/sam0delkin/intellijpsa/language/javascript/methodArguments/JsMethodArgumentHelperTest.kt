@@ -3,6 +3,7 @@ package com.github.sam0delkin.intellijpsa.language.javascript.methodArguments
 import com.github.sam0delkin.intellijpsa.language.javascript.model.JsMethodArgumentProviderModel
 import com.intellij.lang.javascript.psi.JSCallExpression
 import com.intellij.lang.javascript.psi.JSLiteralExpression
+import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
@@ -123,7 +124,7 @@ class JsMethodArgumentHelperTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val element = myFixture.findElementByText("foo", com.intellij.psi.PsiElement::class.java)!!
+        val element = myFixture.findElementByText("foo", PsiElement::class.java)!!
 
         val match = JsMethodArgumentHelper.findProviderForMethodNamePosition(element, emptyList())
 

@@ -2,8 +2,11 @@ package com.github.sam0delkin.intellijpsa.services
 
 import com.github.sam0delkin.intellijpsa.model.EditorActionSource
 import com.github.sam0delkin.intellijpsa.model.EditorActionTarget
+import com.github.sam0delkin.intellijpsa.model.InfoModel
 import com.github.sam0delkin.intellijpsa.model.RequestType
+import com.github.sam0delkin.intellijpsa.model.StaticCompletionModel
 import com.github.sam0delkin.intellijpsa.model.action.EditorActionInputModel
+import com.github.sam0delkin.intellijpsa.model.completion.CompletionsModel
 import com.github.sam0delkin.intellijpsa.model.psi.IndexedPsiElementModel
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModel
 import com.github.sam0delkin.intellijpsa.services.server.ServerManager
@@ -12,10 +15,15 @@ import com.github.sam0delkin.intellijpsa.settings.ExecutionMode
 import com.github.sam0delkin.intellijpsa.settings.MultipleFileCodeTemplate
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.components.service
+import com.intellij.openapi.progress.util.ProgressIndicatorBase
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.jetbrains.php.lang.psi.elements.PhpClass
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.security.Permission
 
 class PsaManagerTest : BasePlatformTestCase() {
     private val infoJsonFormat = Json { ignoreUnknownKeys = true }
@@ -156,11 +164,10 @@ class PsaManagerTest : BasePlatformTestCase() {
 
         manager.setStaticCompletionConfigs(
             arrayListOf(
-                com.github.sam0delkin.intellijpsa.model.StaticCompletionModel().apply {
+                StaticCompletionModel().apply {
                     name = "a"
                     completions =
-                        com.github.sam0delkin.intellijpsa.model.completion
-                            .CompletionsModel()
+                        CompletionsModel()
                             .apply { completions = arrayListOf() }
                 },
             ),
@@ -206,7 +213,7 @@ class PsaManagerTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         val info =
-            infoJsonFormat.decodeFromString<com.github.sam0delkin.intellijpsa.model.InfoModel>(infoJson)
+            infoJsonFormat.decodeFromString<InfoModel>(infoJson)
 
         project.service<PsaManager>().updateInfo(settings, info)
 
@@ -237,7 +244,7 @@ class PsaManagerTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         val info =
-            infoJsonFormat.decodeFromString<com.github.sam0delkin.intellijpsa.model.InfoModel>(infoJson)
+            infoJsonFormat.decodeFromString<InfoModel>(infoJson)
 
         try {
             project.service<PsaManager>().updateInfo(settings, info)
@@ -367,8 +374,7 @@ class PsaManagerTest : BasePlatformTestCase() {
                 executionTimeout = 5000
             }
         val indicator =
-            com.intellij.openapi.progress.util
-                .ProgressIndicatorBase()
+            ProgressIndicatorBase()
         val cancelThread =
             Thread {
                 Thread.sleep(100)
@@ -399,12 +405,12 @@ class PsaManagerTest : BasePlatformTestCase() {
                     }
                 }
 
-                override fun checkPermission(perm: java.security.Permission?) {
+                override fun checkPermission(perm: Permission?) {
                     // Allow everything else - only checkDelete() is restricted above.
                 }
 
                 override fun checkPermission(
-                    perm: java.security.Permission?,
+                    perm: Permission?,
                     context: Any?,
                 ) {
                     // Allow everything else - only checkDelete() is restricted above.
@@ -511,7 +517,7 @@ class PsaManagerTest : BasePlatformTestCase() {
 
     fun testPsiElementToModelWithoutOptions() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)!!
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)!!
 
         val model = project.service<PsaManager>().psiElementToModel(element, processOptions = false)
 
@@ -535,7 +541,7 @@ class PsaManagerTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         val info =
-            infoJsonFormat.decodeFromString<com.github.sam0delkin.intellijpsa.model.InfoModel>(infoJson)
+            infoJsonFormat.decodeFromString<InfoModel>(infoJson)
 
         project.service<PsaManager>().updateInfo(settings, info)
 
@@ -621,7 +627,7 @@ class PsaManagerTest : BasePlatformTestCase() {
             "test.php",
             "<?php class $longName {}",
         )
-        val phpClass = myFixture.findElementByText("class $longName", com.jetbrains.php.lang.psi.elements.PhpClass::class.java)!!
+        val phpClass = myFixture.findElementByText("class $longName", PhpClass::class.java)!!
 
         val model = project.service<PsaManager>().psiElementToModel(phpClass)
 
@@ -650,8 +656,8 @@ class PsaManagerTest : BasePlatformTestCase() {
 
         var visited = 0
         myFixture.file.accept(
-            object : com.intellij.psi.PsiRecursiveElementVisitor() {
-                override fun visitElement(element: com.intellij.psi.PsiElement) {
+            object : PsiRecursiveElementVisitor() {
+                override fun visitElement(element: PsiElement) {
                     visited++
                     manager.psiElementToModel(
                         element,
@@ -681,7 +687,7 @@ class PsaManagerTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
         project.service<Settings>().maxNestingLevel = 0
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)!!
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)!!
 
         val model = project.service<PsaManager>().psiElementToModel(element, nestingLevel = 1)
 

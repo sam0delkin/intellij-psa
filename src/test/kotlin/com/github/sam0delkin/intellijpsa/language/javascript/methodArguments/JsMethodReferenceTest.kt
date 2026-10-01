@@ -1,11 +1,13 @@
 package com.github.sam0delkin.intellijpsa.language.javascript.methodArguments
 
+import com.github.sam0delkin.intellijpsa.language.javascript.model.JsMethodArgumentProviderModel
 import com.github.sam0delkin.intellijpsa.language.javascript.settings.JsPsaSettings
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.lang.javascript.psi.JSFunction
 import com.intellij.lang.javascript.psi.JSLiteralExpression
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
+import com.intellij.psi.PsiElement
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class JsMethodReferenceTest : BasePlatformTestCase() {
@@ -16,7 +18,7 @@ class JsMethodReferenceTest : BasePlatformTestCase() {
         project.service<JsPsaSettings>().enabled = true
         project.service<JsPsaSettings>().methodArgumentProviders =
             arrayListOf(
-                com.github.sam0delkin.intellijpsa.language.javascript.model.JsMethodArgumentProviderModel().apply {
+                JsMethodArgumentProviderModel().apply {
                     referenceName = "advanceLender"
                     `class` = "AdvanceLender"
                     methodArgumentIndex = 0
@@ -65,7 +67,7 @@ class JsMethodReferenceTest : BasePlatformTestCase() {
         val ref = createReference()
 
         val renamed =
-            WriteCommandAction.runWriteCommandAction<com.intellij.psi.PsiElement>(project) {
+            WriteCommandAction.runWriteCommandAction<PsiElement>(project) {
                 ref.handleElementRename("newMethodName")
             }
 

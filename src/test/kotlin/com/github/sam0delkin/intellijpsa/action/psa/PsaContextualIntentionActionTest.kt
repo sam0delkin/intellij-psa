@@ -5,8 +5,10 @@ import com.github.sam0delkin.intellijpsa.model.EditorActionTarget
 import com.github.sam0delkin.intellijpsa.settings.ExecutionMode
 import com.github.sam0delkin.intellijpsa.settings.PersistedEditorAction
 import com.github.sam0delkin.intellijpsa.settings.Settings
+import com.intellij.lang.Language
 import com.intellij.openapi.components.service
 import com.intellij.openapi.ide.CopyPasteManager
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.testFramework.LightVirtualFileBase
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -45,10 +47,10 @@ class PsaContextualIntentionActionTest : BasePlatformTestCase() {
         return file
     }
 
-    private fun nonPhysicalFile(): com.intellij.psi.PsiFile =
+    private fun nonPhysicalFile(): PsiFile =
         PsiFileFactory.getInstance(project).createFileFromText(
             "orphan.php",
-            com.intellij.lang.Language
+            Language
                 .findLanguageByID("TEXT")!!,
             "text",
         )
