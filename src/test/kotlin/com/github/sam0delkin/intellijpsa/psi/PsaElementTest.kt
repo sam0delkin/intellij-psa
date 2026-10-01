@@ -1,12 +1,14 @@
 package com.github.sam0delkin.intellijpsa.psi
 
 import com.github.sam0delkin.intellijpsa.icons.Icons
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PsaElementTest : BasePlatformTestCase() {
     fun testPsaElementCreation() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -17,7 +19,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementParent() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -27,7 +29,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementPresentation() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -40,7 +42,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementLocationString() {
         myFixture.configureByText("test.php", "<?php\n'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -53,7 +55,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementIcon() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -65,7 +67,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementToString() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -77,7 +79,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementNavigationElement() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -89,7 +91,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementIsValid() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -98,7 +100,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementNode() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 
@@ -110,7 +112,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementNameFallsBackToNormalizedTextWithoutNamedAncestor() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "'test_string'")
 
@@ -129,18 +131,18 @@ class PsaElementTest : BasePlatformTestCase() {
             }
             """.trimIndent(),
         )
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "'test_string'")
         val declarationParent = psaElement.getDeclarationParent()
 
         assertNotNull(declarationParent)
-        assertEquals("myMethod", (declarationParent as? com.intellij.psi.PsiNamedElement)?.name)
+        assertEquals("myMethod", (declarationParent as? PsiNamedElement)?.name)
     }
 
     fun testGetDeclarationParentReturnsNullWithoutNamedAncestor() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "'test_string'")
 
@@ -149,7 +151,7 @@ class PsaElementTest : BasePlatformTestCase() {
 
     fun testPsaElementGetOriginalElement() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val psaElement = PsaElement(element, "test_string")
 

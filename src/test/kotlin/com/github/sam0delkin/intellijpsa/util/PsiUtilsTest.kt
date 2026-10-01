@@ -1,5 +1,6 @@
 package com.github.sam0delkin.intellijpsa.util
 
+import com.intellij.psi.PsiElement
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PsiUtilsTest : BasePlatformTestCase() {
@@ -69,7 +70,7 @@ class PsiUtilsTest : BasePlatformTestCase() {
     fun testGetPrevElementByType() {
         myFixture.configureByText("test.php", "<?php \$var = 'value';")
 
-        val assignmentElement = myFixture.findElementByText("value", com.intellij.psi.PsiElement::class.java)
+        val assignmentElement = myFixture.findElementByText("value", PsiElement::class.java)
         val prevElement = PsiUtils.getPrevElementByType(assignmentElement, "VARIABLE")
 
         assertNotNull(prevElement)
@@ -79,7 +80,7 @@ class PsiUtilsTest : BasePlatformTestCase() {
     fun testGetPrevElementByTypeNotFound() {
         myFixture.configureByText("test.php", "<?php 'value';")
 
-        val stringElement = myFixture.findElementByText("'value'", com.intellij.psi.PsiElement::class.java)
+        val stringElement = myFixture.findElementByText("'value'", PsiElement::class.java)
         val prevElement = PsiUtils.getPrevElementByType(stringElement, "NON_EXISTENT_TYPE")
 
         assertNull(prevElement)

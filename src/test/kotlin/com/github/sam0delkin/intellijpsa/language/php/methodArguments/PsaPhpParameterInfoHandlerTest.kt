@@ -4,6 +4,7 @@ import com.github.sam0delkin.intellijpsa.language.php.model.MethodArgumentProvid
 import com.github.sam0delkin.intellijpsa.language.php.settings.PhpPsaSettings
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.components.service
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.utils.parameterInfo.MockCreateParameterInfoContext
 import com.intellij.testFramework.utils.parameterInfo.MockParameterInfoUIContext
@@ -55,7 +56,7 @@ class PsaPhpParameterInfoHandlerTest : BasePlatformTestCase() {
     fun testGetActualParametersFiltersDelimitersAndWhitespace() {
         myFixture.configureByText("test.php", code)
         val array =
-            com.intellij.psi.util.PsiTreeUtil
+            PsiTreeUtil
                 .findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java)
                 .first()
         val handler = PsaPhpParameterInfoHandler()
@@ -177,7 +178,7 @@ class PsaPhpParameterInfoHandlerTest : BasePlatformTestCase() {
         val handler = PsaPhpParameterInfoHandler()
         myFixture.configureByText("test.php", code)
         val array =
-            com.intellij.psi.util.PsiTreeUtil
+            PsiTreeUtil
                 .findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java)
                 .first()
         val uiContext = MockParameterInfoUIContext(array)
@@ -191,7 +192,7 @@ class PsaPhpParameterInfoHandlerTest : BasePlatformTestCase() {
         val handler = PsaPhpParameterInfoHandler()
         myFixture.configureByText("test.php", code)
         val array =
-            com.intellij.psi.util.PsiTreeUtil
+            PsiTreeUtil
                 .findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java)
                 .first()
         val uiContext = MockParameterInfoUIContext(array)
@@ -211,7 +212,7 @@ class PsaPhpParameterInfoHandlerTest : BasePlatformTestCase() {
         @Suppress("UNCHECKED_CAST")
         val parameters = context.itemsToShow!![0] as Array<Parameter>
         val array =
-            com.intellij.psi.util.PsiTreeUtil
+            PsiTreeUtil
                 .findChildrenOfType(myFixture.file, ArrayCreationExpression::class.java)
                 .first()
         val uiContext = MockParameterInfoUIContext(array)

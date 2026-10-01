@@ -1,11 +1,12 @@
 package com.github.sam0delkin.intellijpsa.psi.reference
 
+import com.intellij.psi.PsiElement
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class PsaReferenceTest : BasePlatformTestCase() {
     fun testPsaReferenceCreation() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         val referenceElement = element
 
         val psaReference = PsaReference(element, referenceElement)
@@ -17,7 +18,7 @@ class PsaReferenceTest : BasePlatformTestCase() {
 
     fun testPsaReferenceWithStaticCompletionName() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         val referenceElement = element
 
         val psaReference = PsaReference(element, referenceElement, "static_completion")
@@ -28,7 +29,7 @@ class PsaReferenceTest : BasePlatformTestCase() {
 
     fun testPsaReferenceResolve() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         val referenceElement = element
 
         val psaReference = PsaReference(element, referenceElement)
@@ -41,7 +42,7 @@ class PsaReferenceTest : BasePlatformTestCase() {
 
     fun testPsaReferenceDefaultRangeInElement() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         val referenceElement = element
 
         val psaReference = PsaReference(element, referenceElement)
@@ -53,20 +54,20 @@ class PsaReferenceTest : BasePlatformTestCase() {
 
     fun testPsaReferenceIsReferenceTo() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         val referenceElement = element
 
         val psaReference = PsaReference(element, referenceElement)
 
         assertTrue(psaReference.isReferenceTo(element))
 
-        val otherElement = myFixture.findElementByText("<?php", com.intellij.psi.PsiElement::class.java)
+        val otherElement = myFixture.findElementByText("<?php", PsiElement::class.java)
         assertTrue(psaReference.isReferenceTo(otherElement))
     }
 
     fun testPsaReferenceHandleElementRename() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         val referenceElement = element
 
         val psaReference = PsaReference(element, referenceElement)
@@ -88,7 +89,7 @@ class PsaReferenceTest : BasePlatformTestCase() {
             }
             """.trimIndent(),
         )
-        val element = myFixture.findElementByText("'MyClass'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'MyClass'", PsiElement::class.java)
 
         val psaReference = PsaReference(element, element, "MyClass")
 
@@ -101,7 +102,7 @@ class PsaReferenceTest : BasePlatformTestCase() {
 
     fun testPsaReferenceWithDifferentElements() {
         myFixture.configureByText("test.php", "<?php function myFunc() {}")
-        val element = myFixture.findElementByText("myFunc", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("myFunc", PsiElement::class.java)
         val referenceElement = element
 
         val psaReference = PsaReference(element, referenceElement)
@@ -128,7 +129,7 @@ class PsaReferenceTest : BasePlatformTestCase() {
 
     fun testPsaReferenceTextRange() {
         myFixture.configureByText("test.php", "<?php 'test';")
-        val element = myFixture.findElementByText("'test'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test'", PsiElement::class.java)
 
         val psaReference = PsaReference(element, element)
 

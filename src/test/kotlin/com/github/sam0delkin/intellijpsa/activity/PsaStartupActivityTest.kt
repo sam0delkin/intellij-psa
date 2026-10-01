@@ -15,12 +15,9 @@ import java.util.Timer
 
 /**
  * `execute()`'s plugin-disabled branch only notifies when a real, executable `.psa/psa.sh` file
- * exists on disk at `guessProjectDir().path`. In a light `BasePlatformTestCase` fixture,
- * `guessProjectDir()` resolves to the synthetic in-memory `temp:///src` root (see
- * `PsaContextualIntentionActionTest`/`ExecutionUtilsTest` for the same documented limitation), which
- * is never backed by a real file - so the `RunOnceUtil.runOnceForProject { ... }` notification body
- * is not reachable here and is a documented residual gap, consistent with this project's other
- * environment-dependent gaps.
+ * exists on disk at `guessProjectDir().path`, which a light fixture's in-memory `temp:///src` root
+ * never has - that prompt is covered by `PsaStartupActivityProjectScriptTest` (real on-disk project)
+ * instead.
  *
  * Every test that reaches `scheduleUpdate()` waits for its 500ms `java.util.Timer` task to actually
  * finish (via `waitForWidgetRegistration`) before returning, instead of relying on a fixed sleep -

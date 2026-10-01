@@ -24,6 +24,7 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.Cell
 import java.awt.Container
 import java.io.File
+import java.util.Timer
 import javax.swing.JComponent
 
 class MultipleFileTemplateActionTest : BasePlatformTestCase() {
@@ -39,7 +40,7 @@ class MultipleFileTemplateActionTest : BasePlatformTestCase() {
             for (action in createdActions) {
                 val field = action.javaClass.getDeclaredField("timer")
                 field.isAccessible = true
-                (field.get(action) as? java.util.Timer)?.cancel()
+                (field.get(action) as? Timer)?.cancel()
             }
         } finally {
             super.tearDown()

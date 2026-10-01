@@ -284,7 +284,7 @@ class AnyCompletionContributor {
                         json!!.extendedCompletions =
                             json.extendedCompletions!!
                                 .map {
-                                    it.completionName = config.title!!
+                                    it.completionName = config.title
                                     it
                                 }.toMutableList()
 

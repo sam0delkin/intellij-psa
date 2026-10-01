@@ -1,12 +1,13 @@
 package com.github.sam0delkin.intellijpsa.ide.presentation
 
 import com.github.sam0delkin.intellijpsa.psi.PsaElement
+import com.intellij.psi.PsiElement
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class IconProviderTest : BasePlatformTestCase() {
     fun testGetIconReturnsPluginIconForPsaElement() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         val psaElement = PsaElement(element, "test_string")
 
         val icon = IconProvider().getIcon(psaElement, 0)
@@ -16,7 +17,7 @@ class IconProviderTest : BasePlatformTestCase() {
 
     fun testGetIconReturnsNullForOtherElements() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val icon = IconProvider().getIcon(element, 0)
 

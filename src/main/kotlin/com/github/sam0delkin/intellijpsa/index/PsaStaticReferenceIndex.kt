@@ -127,10 +127,10 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
                                             val text = element.text
                                         },
                                     )
-                                    val writer = StringWriter()
                                     filtered =
                                         staticCompletion.completions!!.completions!!.filter {
                                             context.put("completion", it)
+                                            val writer = StringWriter()
 
                                             try {
                                                 Velocity.evaluate(context, writer, "", staticCompletion.matcher)
@@ -139,7 +139,6 @@ class PsaStaticReferenceIndex : FileBasedIndexExtension<String, Map<String, List
                                             }
 
                                             val result = writer.buffer.toString()
-                                            writer.flush()
 
                                             result == "true" || result == "1"
                                         }

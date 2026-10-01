@@ -18,6 +18,12 @@
 - Cleaned up various IDE code-analysis warnings (deprecations, unstable API usage, redundant code) across the codebase; no behavior changes
 - Fixed a `NullPointerException` in reference resolution when the element being resolved lives in a non-physical PSI copy with no backing virtual file (e.g. the internal copy the completion machinery reparses against)
 - [Editor Actions] Editor actions and PSA-actions clipboard source/target now go through the platform's `CopyPasteManager` instead of `Toolkit.getDefaultToolkit().systemClipboard` directly, avoiding a `HeadlessException` in environments without a display
+- [References] Fixed the gutter "Rename.." action crashing (`PsiInvalidElementAccessException`) when the declaration has the same element type as its usages
+- [Static Completions] Fixed GoTo, reference annotations and gutter markers failing with a `NullPointerException` for static completions without a `title` (which is optional)
+- [Indexing] Fixed the `useVelocityInIndex` matcher treating every remaining completion of a config as matched once one had matched
+- [PHP] Fixed Change Signature missing dynamic call sites of every method argument provider except the first configured one
+- [Templates] Fixed multi-file templates appending an extra trailing newline to every generated file
+- [Tests] Raised test coverage (static-reference gutter/Rename, annotator, Velocity matchers, template file creation, project-script prompt) by adding an on-disk test fixture and limiting Kover instrumentation to the plugin's own classes (it previously broke Velocity under test); replaced inline fully-qualified class names with imports and removed never-executed code in `PsaLineMarkerProvider`
 
 ## [0.0.33] - 2026-06-29
 - [GoTo] The PSA script-based GoTo no longer runs when a reference at the caret resolves or another GoTo handler already provides a target, avoiding a synchronous script call when navigation is already possible

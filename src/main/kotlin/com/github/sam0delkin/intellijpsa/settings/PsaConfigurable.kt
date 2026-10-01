@@ -24,12 +24,16 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsManager
+import com.intellij.ui.GotItTooltip
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.dsl.builder.*
 import java.awt.Dimension
+import java.awt.Font
 import java.awt.Point
+import java.nio.file.Files
 import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JSpinner
@@ -96,22 +100,11 @@ class PsaConfigurable(
                                     FileChooserDescriptorFactory
                                         .createSingleFileDescriptor()
                                         .withFileFilter { e ->
-                                            java.nio.file.Files
+                                            Files
                                                 .isExecutable(Path.of(e.path))
                                         }.withShowHiddenFiles(true),
-                                ) { chosenFile ->
-                                    run {
-                                        val projectDirectory = project.guessProjectDir()
-                                        assert(projectDirectory != null)
-                                        var path = VfsUtil.getRelativePath(chosenFile, projectDirectory!!, '/')
-                                        if (null == path) {
-                                            path = chosenFile.path
-                                        }
-                                        updateInfoButtonEnabled()
-
-                                        path
-                                    }
-                                }.gap(RightGap.SMALL)
+                                ) { chosenFile -> toProjectPath(chosenFile) }
+                                .gap(RightGap.SMALL)
 
                         @Suppress("DialogTitleCapitalization")
                         val action =
@@ -149,19 +142,7 @@ class PsaConfigurable(
                                     project,
                                     FileChooserDescriptorFactory
                                         .createSingleFolderDescriptor(),
-                                ) { chosenFile ->
-                                    run {
-                                        val projectDirectory = project.guessProjectDir()
-                                        assert(projectDirectory != null)
-                                        var path = VfsUtil.getRelativePath(chosenFile, projectDirectory!!, '/')
-                                        if (null == path) {
-                                            path = chosenFile.path
-                                        }
-                                        updateInfoButtonEnabled()
-
-                                        path
-                                    }
-                                }
+                                ) { chosenFile -> toProjectPath(chosenFile) }
                     }.rowComment(
                         "Filter indexing directory (to not index node_modules or vendor dir)",
                     ).enabledIf(resolveReferences.selected)
@@ -197,12 +178,11 @@ class PsaConfigurable(
                                 override fun actionPerformed(e: AnActionEvent) {
                                     val languages = Language.getRegisteredLanguages()
                                     val tooltip =
-                                        com.intellij.ui
-                                            .GotItTooltip(
-                                                "PSA",
-                                                "Supported Languages: <br />" +
-                                                    "" + languages.joinToString(", ") { it.displayName },
-                                            ).withIcon(AllIcons.General.BalloonInformation)
+                                        GotItTooltip(
+                                            "PSA",
+                                            "Supported Languages: <br />" +
+                                                "" + languages.joinToString(", ") { it.displayName },
+                                        ).withIcon(AllIcons.General.BalloonInformation)
                                             .withButtonLabel("OK")
                                     tooltip.createAndShow(supportedLanguagesButton.component) { c, _ ->
                                         Point(
@@ -237,7 +217,7 @@ class PsaConfigurable(
                                 .align(Align.FILL)
                                 .applyToComponent {
                                     isEditable = false
-                                    font = java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN, font.size)
+                                    font = Font(Font.MONOSPACED, Font.PLAIN, font.size)
                                 }
                     }.resizableRow()
                 }.rowComment(
@@ -298,31 +278,45 @@ class PsaConfigurable(
             val filterString = "<ul>" + filter.joinToString("") { i -> "<li>- $i</li>" } + "<ul>"
 
             val tooltip =
-                com.intellij.ui
-                    .GotItTooltip(
-                        "PSA",
-                        "Successfully retrieved info: <br />" +
-                            "Supported Languages: $languagesString<br />" +
-                            "GoTo Element Filter: $filterString<br />" +
-                            "Template Count: $templateCount<br />" +
-                            "Supports Batch: ${settings.supportsBatch}<br />",
-                    ).withIcon(AllIcons.General.BalloonInformation)
+                GotItTooltip(
+                    "PSA",
+                    "Successfully retrieved info: <br />" +
+                        "Supported Languages: $languagesString<br />" +
+                        "GoTo Element Filter: $filterString<br />" +
+                        "Template Count: $templateCount<br />" +
+                        "Supports Batch: ${settings.supportsBatch}<br />",
+                ).withIcon(AllIcons.General.BalloonInformation)
                     .withButtonLabel("OK")
             tooltip.createAndShow(this.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
         } catch (e: Exception) {
             val tooltip =
-                com.intellij.ui
-                    .GotItTooltip(
-                        "PSA",
-                        "Error during retrieve info: <br />" + e.message + "<br /><br /> For help, please " +
-                            "check the <a href=\"https://github.com/sam0delkin/intellij-psa#documentation\">documentation</a>",
-                    ).withIcon(AllIcons.General.BalloonError)
+                GotItTooltip(
+                    "PSA",
+                    "Error during retrieve info: <br />" + e.message + "<br /><br /> For help, please " +
+                        "check the <a href=\"https://github.com/sam0delkin/intellij-psa#documentation\">documentation</a>",
+                ).withIcon(AllIcons.General.BalloonError)
                     .withButtonLabel("OK")
             tooltip.createAndShow(this.infoButton.component) { c, _ -> Point(c.width, c.height / 2) }
         }
     }
 
     override fun createComponent(): JComponent = this.createComponents()
+
+    /**
+     * Path stored for a file picked in one of the browse dialogs: relative to the project dir when
+     * the file is inside it, absolute otherwise.
+     */
+    internal fun toProjectPath(chosenFile: VirtualFile): String {
+        val projectDirectory = project.guessProjectDir()
+        assert(projectDirectory != null)
+        var path = VfsUtil.getRelativePath(chosenFile, projectDirectory!!, '/')
+        if (null == path) {
+            path = chosenFile.path
+        }
+        updateInfoButtonEnabled()
+
+        return path
+    }
 
     private fun updateInfoButtonEnabled() {
         this.infoButton.component.setEnabled(this.enabled.component.isSelected && this.scriptPath.component.text != "")

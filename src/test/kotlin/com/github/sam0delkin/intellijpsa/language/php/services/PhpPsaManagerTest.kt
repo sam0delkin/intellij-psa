@@ -1,5 +1,6 @@
 package com.github.sam0delkin.intellijpsa.language.php.services
 
+import com.github.sam0delkin.intellijpsa.services.PsaManager
 import com.github.sam0delkin.intellijpsa.settings.ExecutionMode
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.components.service
@@ -28,7 +29,7 @@ class PhpPsaManagerTest : BasePlatformTestCase() {
         val providers = project.service<PhpPsaManager>().getTypeProviders(settings, project)
 
         assertNull(providers)
-        assertFalse(project.service<com.github.sam0delkin.intellijpsa.services.PsaManager>().lastResultSucceed)
+        assertFalse(project.service<PsaManager>().lastResultSucceed)
     }
 
     fun testUpdateTypeProvidersCancelsPreviousIndicatorOnSecondCall() {
@@ -84,7 +85,7 @@ class PhpPsaManagerTest : BasePlatformTestCase() {
         val providers = project.service<PhpPsaManager>().getTypeProviders(settings, project)
 
         assertNotNull(providers)
-        assertTrue(project.service<com.github.sam0delkin.intellijpsa.services.PsaManager>().lastResultSucceed)
+        assertTrue(project.service<PsaManager>().lastResultSucceed)
     }
 
     fun testGetTypeProvidersWithAlreadyCancelledIndicator() {

@@ -5,6 +5,7 @@ import com.github.sam0delkin.intellijpsa.language.php.services.PhpPsaManager
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.refactoring.changeSignature.PhpChangeInfo
 import com.jetbrains.php.refactoring.changeSignature.PhpChangeSignatureProcessor
@@ -65,7 +66,7 @@ class PsaPhpChangeSignatureTest : BasePlatformTestCase() {
                 descriptor.returnTypeText ?: "",
                 descriptor.name,
                 descriptor.visibility,
-                emptySet<com.jetbrains.php.lang.psi.elements.Function>(),
+                emptySet<Function>(),
                 false,
                 false,
             )
@@ -124,7 +125,7 @@ class PsaPhpChangeSignatureTest : BasePlatformTestCase() {
                 descriptor.returnTypeText ?: "",
                 descriptor.name,
                 descriptor.visibility,
-                emptySet<com.jetbrains.php.lang.psi.elements.Function>(),
+                emptySet<Function>(),
                 false,
                 false,
             )

@@ -7,11 +7,12 @@ import com.intellij.openapi.project.Project
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import com.intellij.util.xmlb.annotations.Transient as XmlTransient
 
 @Serializable
 class ExtendedStaticCompletionModel : StaticCompletionModel() {
     @Transient
-    @com.intellij.util.xmlb.annotations.Transient
+    @XmlTransient
     var extendedCompletions: ExtendedCompletionsModel? = null
 
     companion object {
@@ -46,7 +47,7 @@ class ExtendedStaticCompletionModel : StaticCompletionModel() {
 @Serializable
 class ExtendedCompletionsModel : CompletionsModel() {
     @Transient
-    @com.intellij.util.xmlb.annotations.Transient
+    @XmlTransient
     var extendedCompletions: MutableList<ExtendedCompletionModel>? = null
 
     companion object {

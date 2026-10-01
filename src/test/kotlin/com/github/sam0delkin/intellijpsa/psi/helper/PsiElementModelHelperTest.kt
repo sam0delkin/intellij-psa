@@ -3,6 +3,7 @@ package com.github.sam0delkin.intellijpsa.psi.helper
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModel
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementModelChild
 import com.github.sam0delkin.intellijpsa.model.psi.PsiElementPatternModel
+import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.lang.LighterASTNode
 import com.intellij.lang.TreeBackedLighterAST
@@ -22,12 +23,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  *   at all, so it can never report a match even when a matching ancestor genuinely exists - see
  *   `testMatchesAstNodeWithAnyParentAlwaysFalseDueToProductionBug`.
  *
- * A third, environment-level (not code) limitation is also documented rather than worked around:
- * `matches(element: ASTNode, pattern)`'s `withMatcher` branch (~lines 249-266) calls
- * `Velocity.evaluate(...)`, which can never succeed in this project's coverage-instrumented test
- * JVM - see `testMatchesAstNodeWithMatcherThrowsDueToCoverageAgentVelocityConflict` for the full
- * explanation (a genuine conflict between the IntelliJ coverage agent and Apache Velocity's
- * reflection-based static init, confirmed via a direct `Velocity.init()` probe).
  */
 class PsiElementModelHelperTest : BasePlatformTestCase() {
     fun testMatchesWithText() {
@@ -513,7 +508,7 @@ class PsiElementModelHelperTest : BasePlatformTestCase() {
 
     // --- matches(element: ASTNode, pattern) ---
 
-    private fun stringLiteralAstNode(): com.intellij.lang.ASTNode =
+    private fun stringLiteralAstNode(): ASTNode =
         myFixture
             .apply { configureByText("test.php", "<?php 'target';") }
             .findElementByText("'target'", PsiElement::class.java)!!
@@ -605,36 +600,35 @@ class PsiElementModelHelperTest : BasePlatformTestCase() {
         )
     }
 
-    // Confirmed via a diagnostic probe (Velocity.init(properties) called directly in a test throws
-    // the same chain seen below) that Apache Velocity cannot initialize AT ALL in this project's
-    // coverage-instrumented test JVM: org.apache.velocity.exception.VelocityException:
-    // "Could not initialize property keys deprecation map because DeprecatedRuntimeConstants.
-    // __$branchHits$__ field isn't properly named". The IntelliJ coverage agent
-    // (intellij-coverage-agent, which backs Kover 0.6.1 here) injects a synthetic `__$branchHits$__`
-    // field into every loaded class it instruments, including third-party library classes like
-    // Velocity's own `DeprecatedRuntimeConstants` - and Velocity's `DeprecationAwareExtProperties`
-    // reflects over every declared field of that class assuming they are all real Velocity
-    // constants, so the injected field breaks its static initialization outright
-    // (ExceptionInInitializerError on RuntimeSingleton's <clinit>, permanently poisoning that class
-    // for the rest of the JVM's lifetime, per standard JVM class-init-failure semantics). Because
-    // production code's `withMatcher` handler only catches `Exception` (line ~258), not `Throwable`,
-    // the resulting `NoClassDefFoundError` (an `Error`) is never caught - it propagates straight out
-    // of `matches()`, so every `withMatcher` test call fails identically regardless of the template
-    // content (true/false/1/invalid syntax all hit the same uncaught Error before any template logic
-    // runs). This is a genuine coverage-tooling/third-party-library conflict, not something fixable
-    // via test data or code under this project's pinned Kover 0.6.1 setup - the ~18-line
-    // `withMatcher` branch (PsiElementModelHelper.kt ~lines 249-266) is a documented residual gap.
-    fun testMatchesAstNodeWithMatcherThrowsDueToCoverageAgentVelocityConflict() {
+    // `withMatcher` evaluates a Velocity template against the element; only a rendered "true"/"1"
+    // counts as a match.
+    fun testMatchesAstNodeWithMatcherRenderingTrueOrOne() {
         val node = stringLiteralAstNode()
 
-        // The exact Error subtype depends on whether Velocity's RuntimeSingleton has already failed
-        // to initialize once before in this JVM: the first-ever attempt throws
-        // ExceptionInInitializerError directly, while any later attempt throws the JVM's cached
-        // NoClassDefFoundError instead (standard class-init-failure semantics) - assert broadly on
-        // Error rather than pin to whichever one happens to occur based on test execution order.
-        assertThrows(Error::class.java) {
-            PsiElementModelHelper.matches(node, PsiElementPatternModel(withMatcher = "true"))
-        }
+        assertTrue(PsiElementModelHelper.matches(node, PsiElementPatternModel(withMatcher = "true")))
+        assertTrue(PsiElementModelHelper.matches(node, PsiElementPatternModel(withMatcher = " 1 ")))
+        assertTrue(
+            PsiElementModelHelper.matches(
+                node,
+                PsiElementPatternModel(withMatcher = "#if(\$element.text == \"'target'\")true#end"),
+            ),
+        )
+    }
+
+    fun testMatchesAstNodeWithMatcherRenderingAnythingElseIsNoMatch() {
+        val node = stringLiteralAstNode()
+
+        assertFalse(PsiElementModelHelper.matches(node, PsiElementPatternModel(withMatcher = "false")))
+        assertFalse(
+            PsiElementModelHelper.matches(
+                node,
+                PsiElementPatternModel(withMatcher = "#if(\$element.text == 'other')true#end"),
+            ),
+        )
+    }
+
+    fun testMatchesAstNodeWithInvalidMatcherIsNoMatch() {
+        assertFalse(PsiElementModelHelper.matches(stringLiteralAstNode(), PsiElementPatternModel(withMatcher = "#if(")))
     }
 
     private fun createModel(

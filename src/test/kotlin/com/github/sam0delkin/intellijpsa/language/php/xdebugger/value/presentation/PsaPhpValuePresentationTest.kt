@@ -1,5 +1,6 @@
 package com.github.sam0delkin.intellijpsa.language.php.xdebugger.value.presentation
 
+import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.xdebugger.frame.presentation.XValuePresentation
 
@@ -16,7 +17,7 @@ class PsaPhpValuePresentationTest : BasePlatformTestCase() {
 
                 override fun renderValue(
                     value: String,
-                    key: com.intellij.openapi.editor.colors.TextAttributesKey,
+                    key: TextAttributesKey,
                 ) {
                     renderedValue = value
                 }

@@ -1,9 +1,12 @@
 package com.github.sam0delkin.intellijpsa.language.php.structureView
 
 import com.github.sam0delkin.intellijpsa.language.php.settings.PhpPsaSettings
+import com.github.sam0delkin.intellijpsa.language.php.structureView.element.TraitGroupTreeElement
+import com.github.sam0delkin.intellijpsa.language.php.structureView.element.TraitMethodTreeElement
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbServiceImpl
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.PhpClass
 
 class TraitMethodStructureViewTest : BasePlatformTestCase() {
@@ -125,8 +128,7 @@ class TraitMethodStructureViewTest : BasePlatformTestCase() {
         val phpClass = myFixture.findElementByText("class MyClass", PhpClass::class.java)!!
         val trait = TraitResolver.collectTraits(phpClass).first()
         val element =
-            com.github.sam0delkin.intellijpsa.language.php.structureView.element
-                .TraitGroupTreeElement(trait, phpClass)
+            TraitGroupTreeElement(trait, phpClass)
 
         assertSame(trait, element.value)
         assertEquals("trait", element.presentation.locationString)
@@ -150,10 +152,9 @@ class TraitMethodStructureViewTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        val method = myFixture.findElementByText("traitMethod", com.jetbrains.php.lang.psi.elements.Method::class.java)!!
+        val method = myFixture.findElementByText("traitMethod", Method::class.java)!!
         val element =
-            com.github.sam0delkin.intellijpsa.language.php.structureView.element
-                .TraitMethodTreeElement(method)
+            TraitMethodTreeElement(method)
 
         assertSame(method, element.value)
         assertEmpty(element.children.toList())

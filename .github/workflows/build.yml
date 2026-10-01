@@ -80,22 +80,7 @@ jobs:
       - name: Gradle Wrapper Validation
         uses: gradle/wrapper-validation-action@v1.0.5
 
-      # Several things were tried and abandoned here - see git history if reviving this area:
-      # `extensions: json` doesn't restrict the install to just that extension (setup-php's
-      # `extensions` input adds to/ensures the base install's default set, not replaces it);
-      # explicitly disabling each noisy extension by name with a `-` prefix worked under `act`'s
-      # container but NOT on the real GitHub-hosted runner, and the exact broken set wasn't even
-      # stable across separate real-runner runs (each fix round revealed one more); and
-      # `ini-values: display_errors=Off, display_startup_errors=Off` had no effect at all -
-      # "PHP Startup: Unable to load dynamic library" is printed unconditionally by the C-level
-      # module loader when dlopen() fails, before display_errors/display_startup_errors are even
-      # consulted, so no error-display setting can suppress it, and no static list of names is
-      # reliable long-term as the runner image's default PHP extension set drifts.
-      # Instead, self-discover: ask PHP itself which extensions it just failed to dlopen (that
-      # warning fires during module init on every invocation, so `php -v` alone surfaces all of
-      # them), then strip exactly those `extension=` directives from every .ini file PHP reads,
-      # whichever mechanism put them there. Runs to a fixed point in case removing one directive's
-      # warnings exposes another (observed once between runs, not within a single php invocation).
+      # PHP-related tests
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:

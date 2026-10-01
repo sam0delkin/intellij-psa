@@ -5,6 +5,8 @@ import com.github.sam0delkin.intellijpsa.language.php.services.PhpPsaManager
 import com.github.sam0delkin.intellijpsa.settings.Settings
 import com.intellij.openapi.components.service
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
+import com.jetbrains.php.lang.psi.elements.ConstantReference
 
 class PsaPhpMagicConstantsTest : BasePlatformTestCase() {
     override fun setUp() {
@@ -43,12 +45,12 @@ class PsaPhpMagicConstantsTest : BasePlatformTestCase() {
         )
 
         // Find __METHOD__
-        val call = myFixture.findElementByText("__METHOD__", com.jetbrains.php.lang.psi.elements.ConstantReference::class.java)
+        val call = myFixture.findElementByText("__METHOD__", ConstantReference::class.java)
         assertNotNull(call)
 
         // The arguments array should have parameter info or the provider should resolve the method.
         // Let's check if the arguments array [1] is recognized by PsaPhpMethodArgumentHelper
-        val array = myFixture.findElementByText("[1]", com.jetbrains.php.lang.psi.elements.ArrayCreationExpression::class.java)
+        val array = myFixture.findElementByText("[1]", ArrayCreationExpression::class.java)
         assertNotNull(array)
 
         val allProviders = project.service<PhpPsaManager>().getSettings().methodArgumentProviders ?: emptyList()

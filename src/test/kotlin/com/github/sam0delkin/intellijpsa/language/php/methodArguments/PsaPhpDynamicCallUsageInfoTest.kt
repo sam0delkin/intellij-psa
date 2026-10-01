@@ -3,6 +3,7 @@ package com.github.sam0delkin.intellijpsa.language.php.methodArguments
 import com.github.sam0delkin.intellijpsa.language.php.model.MethodArgumentProviderModel
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.usageView.UsageInfo
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 
 class PsaPhpDynamicCallUsageInfoTest : BasePlatformTestCase() {
@@ -54,6 +55,6 @@ class PsaPhpDynamicCallUsageInfoTest : BasePlatformTestCase() {
 
         val usageInfo = PsaPhpDynamicCallUsageInfo(array, provider)
 
-        assertInstanceOf(usageInfo, com.intellij.usageView.UsageInfo::class.java)
+        assertInstanceOf(usageInfo, UsageInfo::class.java)
     }
 }

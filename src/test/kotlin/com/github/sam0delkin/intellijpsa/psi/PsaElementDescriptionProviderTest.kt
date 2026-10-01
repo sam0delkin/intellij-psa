@@ -2,6 +2,7 @@ package com.github.sam0delkin.intellijpsa.psi
 
 import com.intellij.psi.ElementDescriptionLocation
 import com.intellij.psi.ElementDescriptionProvider
+import com.intellij.psi.PsiElement
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.usageView.UsageViewLongNameLocation
 import com.intellij.usageView.UsageViewNodeTextLocation
@@ -10,13 +11,13 @@ import com.intellij.usageView.UsageViewTypeLocation
 class PsaElementDescriptionProviderTest : BasePlatformTestCase() {
     private fun createPsaElement(): PsaElement {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
         return PsaElement(element, "test_string")
     }
 
     fun testReturnsNullForNonPsaElement() {
         myFixture.configureByText("test.php", "<?php 'test_string';")
-        val element = myFixture.findElementByText("'test_string'", com.intellij.psi.PsiElement::class.java)
+        val element = myFixture.findElementByText("'test_string'", PsiElement::class.java)
 
         val description = PsaElementDescriptionProvider().getElementDescription(element, UsageViewTypeLocation.INSTANCE)
 

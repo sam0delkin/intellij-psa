@@ -1,5 +1,7 @@
 package com.github.sam0delkin.intellijpsa.util
 
+import kotlin.reflect.KProperty
+
 class PropertyAccessor {
     companion object {
         fun getPropertyValue(
@@ -113,7 +115,7 @@ class PropertyAccessor {
                     if (obj::class.isData) {
                         // Use reflection to get properties of data classes
                         obj::class.members.forEach { member ->
-                            if (member is kotlin.reflect.KProperty<*>) {
+                            if (member is KProperty<*>) {
                                 val value = member.call(obj)
                                 val newPath = if (currentPath.isEmpty()) member.name else "$currentPath.${member.name}"
                                 traverseObject(value, newPath, result)

@@ -33,11 +33,9 @@ import java.io.File
  * location), so `testStaticIndexLookupEntersOuterLoopButInnerResolutionStillFailsUnderVfsMismatch`
  * calls `getReferencesByElement` on the TARGET-side element (e.g. `target.php`'s resolved element)
  * rather than the usual source-usage element - that's what makes `index.getValues(INDEX_ID,
- * elementUrl, ...)` return real, non-empty data at all in this harness (unlike the innermost
- * resolution one level deeper, which remains the same documented VFS dead zone as
- * `PsaLineMarkerProviderTest` and `PsaReferenceAnnotatorTest`: `PsiUtils.processLink("file://$keyEl",
- * ..., appendProjectDir = false)` reconstructs a real "file://" URL from a raw filesystem path, which
- * never resolves against this light-fixture project's "temp://"-only VFS).
+ * elementUrl, ...)` return real, non-empty data at all in this harness. The innermost resolution
+ * (`PsiUtils.processLink("file://$keyEl", ..., appendProjectDir = false)`) needs a real on-disk
+ * project and is covered end-to-end by `PsaLineMarkerProviderStaticReferenceTest` instead.
  */
 class PsaReferenceContributorTest : BasePlatformTestCase() {
     override fun setUp() {
@@ -308,7 +306,7 @@ class PsaReferenceContributorTest : BasePlatformTestCase() {
     // See this file's class doc comment: querying on the TARGET-side element (rather than the usual
     // source-usage element) is what makes the outer `index.getValues(...)` lookup return real,
     // non-empty data in this harness at all - the innermost per-entry resolution one level deeper
-    // still hits the same documented VFS dead zone, so this never produces an actual PsaReference.
+    // needs a real on-disk project, so this never produces an actual PsaReference here.
     @Suppress("UnstableApiUsage")
     fun testStaticIndexLookupEntersOuterLoopButInnerResolutionStillFailsUnderVfsMismatch() {
         project.service<Settings>().apply {
